@@ -8,8 +8,8 @@
 (require geofun/digitama/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define src : Geo (geo-sandglass 64 #:stroke 'Grey #:fill (rgba 0.0 0.0 0.9 0.9)))
-(define dest : Geo (geo-rectangle 120 90 #:stroke #false #:fill (rgba 0.7 0.0 0.0 0.9)))
+(define src : Geo (geo-sandglass 64 #:stroke 'Grey #:fill (rgba 0.0 0.0 0.9 0.6)))
+(define dest : Geo (geo-rectangle 120 90 #:stroke #false #:fill (rgba 0.7 0.0 0.0 0.6)))
 
 (for/list : (Listof Any) ([op (in-list geo-pin-operators)])
   (geo-freeze (geo-composite (geo-composite #:operator op dest 40.0 30.0 src)

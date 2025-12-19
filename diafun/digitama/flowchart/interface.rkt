@@ -4,11 +4,11 @@
 
 (require racket/case)
 
-(require "node.rkt")
-(require "../path/interface.rkt")
+(require "block.rkt")
+(require "../track/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-node-fallback-construct : Dia-Path-Id->Node-Shape
+(define default-diaflow-block-fallback-construct : Dia-Anchor->Block
   (lambda [id label style width height direction hint]
     (case/eq (object-name style)
              [(diaflow-start-style) (diaflow-block-terminal id label style width height direction hint)]

@@ -6,7 +6,7 @@
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/layer/type)
 
-(require "../node/dc.rkt")
+(require "../block/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; TODO: deal with curved prints
@@ -16,7 +16,7 @@
     (define B : Float-Complex (gpp-clean-position b:track))
     
     (gpp:point (gpath:datum-cmd b:track)
-               (or (dia-line-node-intersect source A B A)
+               (or (dia-line-block-intersect source A B A)
                    A))))
 
 (define dia-2-tracks-relocate-target : (-> (GLayerof Geo) GPath:Print GPath:Print GPath:Print)
@@ -25,7 +25,7 @@
     (define B : Float-Complex (gpp-clean-position b:track))
 
     (gpp:point (gpath:datum-cmd b:track)
-               (or (dia-line-node-intersect target A B B)
+               (or (dia-line-block-intersect target A B B)
                    B))))
 
 (define dia-2-tracks-relocate-endpoints : (-> (Option (GLayerof Geo)) (Option (GLayerof Geo)) (List GPath:Print GPath:Print)

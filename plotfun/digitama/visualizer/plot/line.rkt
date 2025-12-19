@@ -21,14 +21,15 @@
 (require "../../unsafe/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:lines geo:line:visualizer ()
+(struct plot:lines geo:line:visualizer
+  ([close? : Boolean])
   #:type-name Plot:Lines
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define lines
   (lambda [#:id [id : (Option Symbol) #false]
-           #:label [label : (U False DC-Markup-Text Plot:Mark 'name) 'name]
+           #:label [label : (U False DC-Markup-Text Plot:Mark) #false]
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
@@ -36,27 +37,30 @@
            #:offset [offset : Complex 0.0+0.0i]
            #:color [strk-color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
-           #:opacity [opacity : Real 1.0]
+           #:opacity [opacity : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
+           #:close? [close? : Boolean #false]
            [pts : (Listof Point2D)]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
-    (define points : (Listof Complex) (map ~point2d-real pts))
+    (define-values (points lx ty rx by) (~point2ds pts offset scale))
     (define df/dx : (-> Real (Option Real)) (plot-lines-df/dx points))
-    (define safe-f : (-> Real Real) (plot-lines->function points))
-    (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
-    
+    (define safe-f : (-> Real Real) (plot-lines->function points close?))
+    (define-values (xrange yrange)
+      (plot-range-normalize (or maybe-xmin lx) (or maybe-xmax rx)
+                            (or maybe-ymin ty) (or maybe-ymax by)))
+
     (define lines-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
-        (define samples : (Listof Real) (plot-lines-samples points xmin xmax))
-        (define-values (dots x y width height) (~cartesian2ds safe-f samples ymin ymax transform))
+        (define-values (dots x y width height) (~cartesian2ds points xmin xmax ymin ymax transform))
         (define dynamic-angle : (-> Real (Option Real))
           (plot-function-pin-angle df/dx 0 placement))
 
         (define pen : Pen
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
-                         #:color (plot-select-pen-color strk-color idx bg-color)))
-        
+                         #:color (plot-select-pen-color strk-color idx bg-color)
+                         (default-plot-function-pen)))
+
         (create-visualizer plot:lines
                            #:with [id (geo-draw-lines pen)
                                       (geo-shape-extent width height 0.0 0.0)
@@ -67,7 +71,7 @@
                                       #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
-                           dots)))
+                           dots close?)))
 
     (plot-visualizer lines-realize xrange yrange
                      (plot-lines-range points)
@@ -91,8 +95,13 @@
                   [else (sample rest (cons this-x sx))]))
           (reverse sx)))))
 
-(define plot-lines->function : (-> (Listof Complex) (-> Real Real))
-  (lambda [pts]
+(define plot-lines->function : (-> (Listof Complex) Boolean (-> Real Real))
+  (lambda [pts0 close?]
+    (define pts
+      (cond [(null? pts0) pts0]
+            [(not close?) pts0]
+            [else (append pts0 (list (car pts0)))]))
+    
     (define ys : (HashTable Real Real)
       (for/hasheqv : (HashTable Real Real) ([pt (in-list pts)])
         (values (real-part pt)
@@ -134,4 +143,5 @@
         (define pos (geo:visualizer-position self))
         (dc_line cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
                  (geo:line:visualizer-dots self)
-                 (geo-select-stroke-paint* alt-stroke))))))
+                 (geo-select-stroke-paint* alt-stroke)
+                 (plot:lines-close? self))))))

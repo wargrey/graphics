@@ -8,8 +8,8 @@
 (require geofun/digitama/path/label)
 (require geofun/digitama/geometry/anchor)
 
-(require "../node/dc.rkt")
-(require "../path/interface.rkt")
+(require "../block/dc.rkt")
+(require "../track/interface.rkt")
 
 (require "style.rkt")
 
@@ -21,7 +21,7 @@
 (define default-diacls-relationship-identifier : (Parameterof (Option DiaCls-RelationShip-Identifier)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diacls-block-identify : Dia-Path-Block-Identifier
+(define default-diacls-block-identify : Dia-Block-Identifier
   (lambda [anchor]
     (define text (geo-anchor->string anchor))
     (define size (string-length text))
@@ -29,34 +29,34 @@
     (and (> size 0)
          (not (eq? (string-ref text 0) #\.))
          (if (symbol? anchor)
-             (dia-path-block-style-construct anchor text (default-diacls-class-style-make) make-diacls-class-style)
-             (dia-path-block-style-construct anchor text (default-diacls-interface-style-make) make-diacls-interface-style)))))
+             (dia-block-info anchor text (default-diacls-class-style-make) make-diacls-class-style)
+             (dia-block-info anchor text (default-diacls-interface-style-make) make-diacls-interface-style)))))
 
-(define default-diacls-arrow-identify : Dia-Path-Arrow-Identifier
+(define default-diacls-track-identify : Dia-Track-Identifier
   (lambda [source target labels extra-info]
     (define hints : (Listof Bytes) (geo-path-label-flatten labels))
 
     (cond
       [(or (eq? source target) (not target)) ; for self associated classes
-       (dia-edge-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
+       (dia-track-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
       [(geo-path-double-angle-bracketed-label? hints)
-       (dia-edge-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
+       (dia-track-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
       [else ; dependency and association
        (case/eq (diacls-association-identify (geo-id source) (geo-id target) (filter symbol? extra-info))
-         [(composition) (dia-edge-style-construct source target labels (default-diacls-composition-arrow-style-make) make-diacls-composition-arrow-style)]
-         [(aggregation) (dia-edge-style-construct source target labels (default-diacls-aggregation-arrow-style-make) make-diacls-aggregation-arrow-style)]
-         [(association) (dia-edge-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
-         [(bidirection) (dia-edge-style-construct source target labels (default-diacls-bidirection-arrow-style-make) make-diacls-bidirection-arrow-style)]
-         [(dependency)  (dia-edge-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
-         [else (let ([stype (dia:node-type source)]
-                     [ttype (dia:node-type target)])
+         [(composition) (dia-track-style-construct source target labels (default-diacls-composition-arrow-style-make) make-diacls-composition-arrow-style)]
+         [(aggregation) (dia-track-style-construct source target labels (default-diacls-aggregation-arrow-style-make) make-diacls-aggregation-arrow-style)]
+         [(association) (dia-track-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
+         [(bidirection) (dia-track-style-construct source target labels (default-diacls-bidirection-arrow-style-make) make-diacls-bidirection-arrow-style)]
+         [(dependency)  (dia-track-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
+         [else (let ([stype (dia:block-type source)]
+                     [ttype (dia:block-type target)])
                  (if (and (eq? stype 'Class) (eq? ttype 'Interface))
-                     (dia-edge-style-construct source target labels
-                                               (default-diacls-realization-arrow-style-make)
-                                               make-diacls-realization-arrow-style)
-                     (dia-edge-style-construct source target labels
-                                               (default-diacls-generalization-arrow-style-make)
-                                               make-diacls-generalization-arrow-style)))])])))
+                     (dia-track-style-construct source target labels
+                                                (default-diacls-realization-arrow-style-make)
+                                                make-diacls-realization-arrow-style)
+                     (dia-track-style-construct source target labels
+                                                (default-diacls-generalization-arrow-style-make)
+                                                make-diacls-generalization-arrow-style)))])])))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diacls-association-identify : (-> Symbol Symbol (Listof Symbol) (Option DiaCls-RelationShip-Type))

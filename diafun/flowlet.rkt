@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide diaflowlet-node-construct diaflowlet-arrow-identify)
+(provide diaflowlet-block-construct diaflowlet-arrow-identify)
 
 (require racket/symbol)
 (require racket/list)
@@ -15,16 +15,16 @@
 (require geofun/digitama/dc/composite)
 
 (require "flowchart.rkt")
-(require "digitama/path/self.rkt")
-(require "digitama/node/style.rkt")
+(require "digitama/track/self.rkt")
+(require "digitama/block/style.rkt")
 (require "digitama/flowchart/flowlet.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflowlet-block-width : (Parameterof Nonnegative-Flonum) (make-parameter 150.0))
 (define default-diaflowlet-block-height : (Parameterof Nonnegative-Flonum) (make-parameter (* (default-diaflowlet-block-width) 0.50)))
 
-(define default-diaflowlet-node-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'xx-large)))
-(define default-diaflowlet-edge-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'x-large)))
+(define default-diaflowlet-block-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'xx-large)))
+(define default-diaflowlet-path-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'x-large)))
 (define default-diaflowlet-file-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 'xx-large)))
 (define default-diaflowlet-stroke-thickness : (Parameterof Nonnegative-Flonum) (make-parameter 1.5))
 
@@ -37,17 +37,17 @@
            #:grid-width [grid-width : Real+% '(81 %)] #:grid-height [grid-height : Real+% '(81 %)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0] #:file-position [file-position : Real 0.45]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:file-font [file-font : (Option Font) (default-diaflowlet-file-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
            #:reader [f : (-> Input-Port Any) read] #:peek-size [peek-size : Index 8]
@@ -64,11 +64,11 @@
                    [default-diaflow-storage-block-width  (* base-height 0.80)]
                    [default-diaflow-storage-block-height (* base-height 0.618)]
                    [default-diaflow-storage-font (or file-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?]
-                   [default-dia-node-text-alignment 'left]
-                   [default-dia-node-text-trim? #false])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+                   [default-dia-block-text-alignment 'left]
+                   [default-dia-block-text-trim? #false])
+      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
 
       (if (or downward?)
           (for ([idx (in-range (+ repeats 1))]
@@ -101,9 +101,9 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -115,16 +115,16 @@
            #:grid-width [grid-width : Real+% '(81 %)] #:grid-height [grid-height : Real+% '(81 %)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:input-desc [alt-in : (U False DC-Markup-Text (-> In (U Void DC-Markup-Text))) #false]
            #:output-desc [alt-out : (U False DC-Markup-Text (-> Out (U Void DC-Markup-Text))) #false]
            [f : (U (-> In Out) Symbol String)] [in : In]] : Dia:Flow
@@ -133,10 +133,10 @@
     (parameterize ([default-diaflow-block-width  base-width]
                    [default-diaflow-block-height (~length block-height ((default-diaflow-block-height)))]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
-                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       
       (if (or downward?)
           (with-gomamon! path
@@ -149,9 +149,9 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -163,16 +163,16 @@
            #:grid-width [grid-width : Real+% '(81 %)] #:grid-height [grid-height : Real+% '(81 %)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Option (-> Any (U Void DC-Markup-Text))) #false]
            [in : T] [f : (-> T T)] . [fs : (-> T T) *]] : Dia:Flow
@@ -183,10 +183,10 @@
     (parameterize ([default-diaflow-block-width  base-width]
                    [default-diaflow-block-height (~length block-height ((default-diaflow-block-height)))]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
-                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
 
       (if (or downward?)
           (let ([out (for/fold ([v : T in])
@@ -205,9 +205,9 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -220,16 +220,16 @@
            #:grid-width [grid-width : Real+% '(65 %)] #:grid-height [grid-height : Real+% '(65 %)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:input-desc [alt-in : (Listof (Option DC-Markup-Text)) null]
            #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Any (U Void DC-Markup-Text)))) null]
            [f : (U (-> In Any) (Pairof (-> In Any) (Listof (-> In Any))))] [ins : (Pairof In (Listof In))]] : Dia:Flow
@@ -244,12 +244,12 @@
     (parameterize ([default-diaflow-block-width  base-width]
                    [default-diaflow-block-height base-height]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
-                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if and? '=* '-+))
       
       (if (or downward?)
@@ -277,9 +277,9 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label #:node-desc diaflowlet-node-label-string
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -292,16 +292,16 @@
            #:grid-width [grid-width : Real+% '(65 %)] #:grid-height [grid-height : Real+% '(65 %)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:input-desc [alt-in : (Option DC-Markup-Text) #false]
            #:output-desc [alt-out : (Listof (U False DC-Markup-Text (-> Out (U Void DC-Markup-Text)))) null]
            [f : (-> In Out)] [ins : (Pairof In (Listof In))]] : Dia:Flow
@@ -314,12 +314,12 @@
     (parameterize ([default-diaflow-block-width  base-width]
                    [default-diaflow-block-height base-height]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
-                   [default-diaflow-storage-font (or node-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))]
+                   [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-path #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if or? '-+ '=*))
       (define in-ratio (if downward? 1.0 0.85))
       (define din-ratio (* in-ratio 2.0))
@@ -352,9 +352,9 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -366,16 +366,16 @@
            #:grid-width [grid-width : Real+% '(100 %)] #:grid-height [grid-height : Real+% '(85 %)]
            #:xstep [xstep : Real 1.00] #:ystep [ystep : Real 0.618]
            #:stroke-width [stroke-width : (Option Real) (default-diaflowlet-stroke-thickness)]
-           #:node-font [node-font : (Option Font) (default-diaflowlet-node-font)]
-           #:edge-font [edge-font : (Option Font) (default-diaflowlet-edge-font)]
+           #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
+           #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier diaflowlet-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) diaflowlet-node-construct]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
            #:read-desc [read-desc : Any "Read"] #:write-desc [write-desc : Any "Write"]
            [variable : Symbol] [f : Symbol] [out-desc : Any]] : Dia:Flow
     (define base-width  : Nonnegative-Flonum (~length block-width  ((default-diaflow-block-width))))
@@ -386,10 +386,10 @@
                    [default-diaflow-storage-block-width  base-height]
                    [default-diaflow-storage-block-height (* base-height 0.618)]
                    [default-diaflow-process-stroke-width (if stroke-width (~length stroke-width) ((default-diaflow-process-stroke-width)))]
-                   [default-diaflow-storage-font (or edge-font ((default-diaflow-storage-font)))]
-                   [default-diaflow-storage-arrow-font (or edge-font ((default-diaflow-storage-arrow-font)))])
+                   [default-diaflow-storage-font (or path-font ((default-diaflow-storage-font)))]
+                   [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))])
       (define v : Symbol (string->symbol (format "/proc/~a" variable)))
-      (define path (dia-initial-path #false grid-width grid-height 0.5 0.0+0.0i v base-width))
+      (define path (dia-initial-track #false grid-width grid-height 0.5 0.0+0.0i v base-width))
     
       (with-gomamon! path
         (move-right xstep f (cons read-desc (symbol->immutable-string variable)))
@@ -400,8 +400,8 @@
       (define flowlet
         (dia-path-flow path
                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:λblock block-detect #:λarrow arrow-detect
-                       #:λnode make-node #:λnode-label make-node-label
-                       #:λedge make-edge #:λedge-label make-edge-label))
+                       #:block-detect block-detect #:track-detect track-detect
+                       #:λblock make-block #:λbrief make-brief
+                       #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))

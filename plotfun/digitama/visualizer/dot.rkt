@@ -57,8 +57,10 @@
                    (normalize rest (point2ds-nan-cons stod) lx ty rx by)))
              (point2ds-rational-reverse stod lx ty rx by))))]
     [(pts xmin xmax ymin ymax transform)
-     (let ([flmin (real->double-flonum ymin)]
-           [flmax (real->double-flonum ymax)])
+     (let ([xflmin (real->double-flonum xmin)]
+           [xflmax (real->double-flonum xmax)]
+           [yflmin (real->double-flonum ymin)]
+           [yflmax (real->double-flonum ymax)])
        (let normalize ([pts : (Listof Complex) pts]
                        [stod : (Listof Float-Complex) null]
                        [lx : Flonum +inf.0]
@@ -67,11 +69,12 @@
                        [by : Flonum -inf.0])
          (if (pair? pts)
              (let*-values ([(self rest) (values (car pts) (cdr pts))]
-                           [(flx fly) (values (real-part self) (real->double-flonum (imag-part self)))])
-               (cond [(> flx xmax) (normalize null stod lx ty rx by)]
-                     [(< flx xmin) (normalize rest stod lx ty rx by)]
-                     [(<= flmin fly flmax)
-                      (let*-values ([(dot) (transform (real->double-flonum flx) fly)]
+                           [(flx) (real->double-flonum (real-part self))]
+                           [(fly) (real->double-flonum (imag-part self))])
+               (cond [(or (< flx xflmin) (> flx xflmax))
+                      (normalize rest stod lx ty rx by)]
+                     [(<= yflmin fly yflmax)
+                      (let*-values ([(dot) (transform flx fly)]
                                     [(scr-x scr-y) (values (real-part dot) (imag-part dot))])
                         (normalize rest (cons dot stod)
                                    (min lx scr-x) (min ty scr-y)

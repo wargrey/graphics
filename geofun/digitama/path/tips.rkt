@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (struct-out geo-tip))
-(provide Geo-Tip-Placement Geo-Tip-Shape Option-Geo-Tip Maybe-Geo-Tip)
+(provide Geo-Tip-Placement Geo-Tip-Named-Shape Option-Geo-Tip Maybe-Geo-Tip)
 
 (provide make-geo:tip:arrow default-arrow-tip default-generalization-tip)
 (provide make-geo:tip:diamond default-aggregation-tip default-composition-tip)
@@ -25,7 +25,7 @@
          (cond [(geo-tip? self) self]
                [else (geo-tip-from-name self)]))))
 
-(define geo-tip-from-name : (case-> [Geo-Tip-Shape -> geo-tip]
+(define geo-tip-from-name : (case-> [Geo-Tip-Named-Shape -> geo-tip]
                                     [Symbol -> (Option geo-tip)])
   (lambda [name]
     (case/eq name

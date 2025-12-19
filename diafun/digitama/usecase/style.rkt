@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "../node/style.rkt"))
-(provide (all-from-out "../edge/style.rkt"))
+(provide (all-from-out "../block/style.rkt"))
+(provide (all-from-out "../track/style.rkt"))
 
 (require digimon/struct)
 
@@ -13,30 +13,29 @@
 (require geofun/digitama/path/tip/self)
 (require geofun/digitama/path/tip/arrow)
 
-(require "../node/style.rkt")
-(require "../edge/style.rkt")
-
+(require "../block/style.rkt")
+(require "../track/style.rkt")
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diauc-association-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Association-Arrow-Style))) (make-parameter #false))
-(define default-diauc-include-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Include-Arrow-Style))) (make-parameter #false))
-(define default-diauc-extend-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Extend-Arrow-Style))) (make-parameter #false))
-(define default-diauc-generalization-arrow-style-make : (Parameterof (Option (Dia-Edge-Style-Make DiaUC-Generalization-Arrow-Style))) (make-parameter #false))
-(define default-diauc-free-track-style-make : (Parameterof (Option (Dia-Free-Edge-Style-Make DiaUC-Free-Track-Style))) (make-parameter #false))
+(define default-diauc-association-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaUC-Association-Arrow-Style))) (make-parameter #false))
+(define default-diauc-include-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaUC-Include-Arrow-Style))) (make-parameter #false))
+(define default-diauc-extend-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaUC-Extend-Arrow-Style))) (make-parameter #false))
+(define default-diauc-generalization-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaUC-Generalization-Arrow-Style))) (make-parameter #false))
+(define default-diauc-free-track-style-make : (Parameterof (Option (Dia-Free-Track-Style-Make DiaUC-Free-Track-Style))) (make-parameter #false))
 
-(define-configuration diauc-edge-fallback-style : DiaUC-Edge-Style #:as dia-edge-base-style
-  #:format "default-diauc-edge-~a"
-  ([font : (Option Font) default-edge-label-font]
+(define-configuration diauc-track-fallback-style : DiaUC-Track-Style #:as dia-track-base-style
+  #:format "default-diauc-track-~a"
+  ([font : (Option Font) default-track-label-font]
    [font-paint : Option-Fill-Paint 'DimGray]
-   [line-paint : Maybe-Stroke-Paint default-edge-stroke]
+   [line-paint : Maybe-Stroke-Paint default-track-stroke]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
 
-(define-configuration diauc-association-arrow-style : DiaUC-Association-Arrow-Style #:as dia-edge-style
+(define-configuration diauc-association-arrow-style : DiaUC-Association-Arrow-Style #:as dia-track-style
   #:format "default-diauc-association-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -49,7 +48,7 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diauc-include-arrow-style : DiaUC-Include-Arrow-Style #:as dia-edge-style
+(define-configuration diauc-include-arrow-style : DiaUC-Include-Arrow-Style #:as dia-track-style
   #:format "default-diauc-include-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -62,7 +61,7 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diauc-extend-arrow-style : DiaUC-Extend-Arrow-Style #:as dia-edge-style
+(define-configuration diauc-extend-arrow-style : DiaUC-Extend-Arrow-Style #:as dia-track-style
   #:format "default-diauc-extend-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -75,7 +74,7 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diauc-generalization-arrow-style : DiaUC-Generalization-Arrow-Style #:as dia-edge-style
+(define-configuration diauc-generalization-arrow-style : DiaUC-Generalization-Arrow-Style #:as dia-track-style
   #:format "default-diauc-generalization-arrow-~a"
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -88,9 +87,9 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diauc-free-track-style : DiaUC-Free-Track-Style #:as dia-edge-style
+(define-configuration diauc-free-track-style : DiaUC-Free-Track-Style #:as dia-track-style
   #:format "default-diauc-free-track-~a"
-  ([font : (Option Font) default-node-label-font]
+  ([font : (Option Font) default-block-brief-font]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
@@ -102,20 +101,20 @@
    [label-distance : (U Void Flonum) -16.0]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diauc-actor-style-make : (Parameterof (Option (Dia-Path-Node-Style-Make DiaUC-Actor-Style))) (make-parameter #false))
-(define default-diauc-ucase-style-make : (Parameterof (Option (Dia-Path-Node-Style-Make DiaUC-UCase-Style))) (make-parameter #false))
+(define default-diauc-actor-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaUC-Actor-Style))) (make-parameter #false))
+(define default-diauc-ucase-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaUC-UCase-Style))) (make-parameter #false))
 
-(define-configuration diauc-node-fallback-style : DiaUC-Node-Style #:as dia-node-base-style
+(define-configuration diauc-block-fallback-style : DiaUC-Block-Style #:as dia-block-base-style
   #:format "default-diauc-~a"
   ([block-width : Nonnegative-Flonum 160.0]
    [block-height : Nonnegative-Flonum 50.0]
-   [font : (Option Font) default-node-label-font]
+   [font : (Option Font) default-block-brief-font]
    [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint default-node-stroke]
+   [stroke-paint : Maybe-Stroke-Paint default-block-stroke]
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration diauc-actor-style : DiaUC-Actor-Style #:as dia-node-style
+(define-configuration diauc-actor-style : DiaUC-Actor-Style #:as dia-block-style
   #:format "default-diauc-actor-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) (* ((default-diauc-block-height)) 2.0)]
@@ -126,7 +125,7 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LawnGreen]))
 
-(define-configuration diauc-ucase-style : DiaUC-UCase-Style #:as dia-node-style
+(define-configuration diauc-ucase-style : DiaUC-UCase-Style #:as dia-block-style
   #:format "default-diauc-ucase-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]

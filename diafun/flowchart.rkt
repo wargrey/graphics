@@ -16,8 +16,8 @@
 (require geofun/digitama/layer/type)
 
 (require "digitama/base.rkt")
-(require "digitama/path/self.rkt")
-(require "digitama/path/sticker.rkt")
+(require "digitama/track/self.rkt")
+(require "digitama/track/sticker.rkt")
 
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
@@ -40,7 +40,7 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-path pid gw gh ts home anchor ((default-diaflow-block-width)))]
+       (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diaflow-block-width)))]
               [chart (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
            (dia-path-flow chart args ...))))]))
@@ -56,28 +56,28 @@
   (lambda [#:id [id : (Option Symbol) #false] #:start-name [start : (Option String) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier default-diaflow-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
-           #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
-           #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-dia-path-free-edge-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier default-diaflow-track-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) #false]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
+           #:λfree-path [make-free-path : Dia-Free-Track->Path default-dia-free-track->path]
+           #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
            [self : Geo:Track]] : (U Dia:Flow Geo:Track)
-    (parameterize ([default-dia-node-base-style make-diaflow-node-fallback-style]
-                   [default-dia-edge-base-style make-diaflow-edge-fallback-style]
+    (parameterize ([default-dia-block-base-style make-diaflow-block-fallback-style]
+                   [default-dia-track-base-style make-diaflow-track-fallback-style]
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-track self])
-      (define-values (nodes edges)
-        (dia-path-stick self block-detect make-node make-node-label node-desc
-                        arrow-detect make-edge make-edge-label
-                        make-free-track make-free-label (default-diaflow-free-track-style-make)
-                        default-diaflow-node-fallback-construct make-diaflow-free-track-style
+      (define-values (blocks tracks)
+        (dia-path-stick self block-detect make-block make-brief block-desc
+                        track-detect make-path make-label
+                        make-free-path make-free-label (default-diaflow-free-track-style-make)
+                        default-diaflow-block-fallback-construct make-diaflow-free-track-style
                         (geo:track-foot-infos self) ignore))
-      (define stickers : (Listof (GLayerof Geo)) (append edges nodes))
+      (define stickers : (Listof (GLayerof Geo)) (append tracks blocks))
 
       (if (pair? stickers)
           (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
@@ -92,21 +92,21 @@
           self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-flow-node
+(define dia-flow-block
   (lambda [#:id [id : (Option Symbol) #false] #:scale [scale : Real 0.5]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diaflow-block-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
-           #:node-desc [node-desc : (Option Dia-Path-Id->Label-String) #false]
-           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Node)
+           #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) #false]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
     (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
                    [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
-                   [default-dia-node-margin (* (default-dia-node-margin) ns)]
-                   [default-dia-node-base-style make-diaflow-node-fallback-style]
+                   [default-dia-block-margin (* (default-dia-block-margin) ns)]
+                   [default-dia-block-base-style make-diaflow-block-fallback-style]
                    [current-master-track #false])
-      (dia-make-node block-detect make-node make-node-label node-desc
-                     default-diaflow-node-fallback-construct
+      (dia-make-block block-detect make-block make-brief block-desc
+                     default-diaflow-block-fallback-construct
                      (cond [(symbol? caption) caption]
                            [(keyword? caption) caption]
                            [(string? caption) (string->symbol caption)]

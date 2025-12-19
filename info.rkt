@@ -1,7 +1,7 @@
 #lang info
 
 (define collection 'multi)
-(define pkg-desc "Essential Computer Graphics for Typed Racket")
+(define pkg-desc "A typed technical graphics family for Racket: essentials, diagrams, plots, and more...")
 (define pkg-authors '(wargrey))
 (define test-omit-paths 'all)
 

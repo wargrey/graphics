@@ -41,7 +41,7 @@
            #:color [strk-color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
-           #:opacity [opacity : Real 1.0]
+           #:opacity [opacity : (Option Real) #false]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
            #:safe-df/dx [alt-df/dx : (Option (-> Real Real)) #false]
            #:safe-dff/dxx [alt-ddf/dxx : (Option (-> Real Real)) #false]
@@ -67,7 +67,8 @@
 
         (define pen : Pen
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
-                         #:color (plot-select-pen-color strk-color idx bg-color)))
+                         #:color (plot-select-pen-color strk-color idx bg-color)
+                         (default-plot-function-pen)))
         
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
@@ -93,6 +94,7 @@
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
            #:color [strk-color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
+           #:opacity [opacity : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:%.lf [%.lf : Natural 2]
            [k : Real] [b : Real]
@@ -128,8 +130,9 @@
         (define dynamic-angle : (-> Real (Option Real)) (plot-function-pin-angle k 0 placement))
 
         (define pen : Pen
-          (plot-desc-pen #:width strk-width #:dash strk-dash
-                         #:color (plot-select-pen-color strk-color idx bg-color)))
+          (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
+                         #:color (plot-select-pen-color strk-color idx bg-color)
+                         (default-plot-function-pen)))
         
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
@@ -180,4 +183,5 @@
         (define pos (geo:visualizer-position self))
         (dc_line cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
                  (geo:line:visualizer-dots self)
-                 (geo-select-stroke-paint* alt-stroke))))))
+                 (geo-select-stroke-paint* alt-stroke)
+                 #false)))))

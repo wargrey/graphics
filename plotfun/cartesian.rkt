@@ -4,16 +4,17 @@
 (provide Plot:Cartesian plot:cartesian?)
 (provide default-plot-cartesian-layer-order)
 (provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out "digitama/visualizer.rkt"))
+(provide (all-from-out "digitama/singleton.rkt"))
 (provide (all-from-out "digitama/axis/view.rkt"))
 (provide (all-from-out "digitama/axis/style.rkt"))
 (provide (all-from-out "digitama/axis/interface.rkt"))
-(provide (all-from-out "digitama/axis/singleton.rkt"))
 (provide (all-from-out "digitama/marker/self.rkt"))
 (provide (all-from-out "digitama/marker/style.rkt"))
 (provide (all-from-out "digitama/axis/tick/self.rkt"))
 (provide (all-from-out "digitama/axis/tick/engine.rkt"))
-(provide (all-from-out "digitama/axis/grid/self.rkt"))
-(provide (all-from-out "digitama/visualizer.rkt"))
+(provide (all-from-out "digitama/visualizer/grid/self.rkt"))
+(provide (all-from-out "digitama/visualizer/vaid/self.rkt"))
 
 (require racket/case)
 
@@ -41,12 +42,13 @@
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/visualizer.rkt")
+(require "digitama/singleton.rkt")
+
 (require "digitama/axis/self.rkt")
 (require "digitama/axis/view.rkt")
 (require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/interface.rkt")
-(require "digitama/axis/singleton.rkt")
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/tick.rkt")
 (require "digitama/axis/tick/self.rkt")
@@ -58,14 +60,16 @@
 (require "digitama/marker/config.rkt")
 (require "digitama/marker/anchor.rkt")
 
-(require "digitama/axis/grid/self.rkt")
-(require "digitama/axis/grid/tick.rkt")
-(require "digitama/axis/grid/config.rkt")
-
 (require "digitama/visualizer/self.rkt")
 (require "digitama/visualizer/layer.rkt")
 (require "digitama/visualizer/realize.rkt")
 (require "digitama/visualizer/interface.rkt")
+
+(require "digitama/visualizer/grid/self.rkt")
+(require "digitama/visualizer/grid/tick.rkt")
+(require "digitama/visualizer/grid/config.rkt")
+
+(require "digitama/visualizer/vaid/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -329,8 +333,7 @@
              
              (cons 'tick (append x-tick-layers y-tick-layers))
 
-             (cons 'projection
-                   null)
+             (cons 'aid null)
 
              (cons 'annotation annotation-layers))))
     

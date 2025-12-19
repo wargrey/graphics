@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "../path/self.rkt")
+(require "../track/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia:class dia:path ()
+(struct dia:class dia:track ()
   #:type-name Dia:Class
   #:transparent)

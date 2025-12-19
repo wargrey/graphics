@@ -150,16 +150,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-siblings->table : (-> (Listof Geo) Positive-Integer (GLayerof Geo) (Vectorof (GLayerof Geo)))
-  (lambda [siblings size cont]
-    (list->n:vector* siblings size cont geo-own-layer)))
+  (lambda [siblings size placeholder]
+    (list->n:vector* siblings size placeholder geo-own-layer)))
 
 (define geo-siblings*->table : (-> (Listof (Listof (Option Geo))) Positive-Index (GLayerof Geo) (Vectorof (GLayerof Geo)))
-  (lambda [siblings ncols cont]
-    (define fill-row ((inst λoption Geo (GLayerof Geo)) geo-own-layer cont))
+  (lambda [siblings ncols placeholder]
+    (define fill-row ((inst λoption Geo (GLayerof Geo)) geo-own-layer placeholder))
 
     (apply vector-append
-           (for/list : (Listof (Vectorof (GLayerof Geo))) ([rows : (Listof (Option Geo)) (in-list siblings)])
-             (list->n:vector* rows ncols cont fill-row)))))
+           (for/list : (Listof (Vectorof (GLayerof Geo))) ([row (in-list siblings)])
+             (list->n:vector* row ncols placeholder fill-row)))))
 
 (define geo-table-metrics : (-> (Vectorof (GLayerof Geo)) Positive-Index Positive-Index
                                 (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor)

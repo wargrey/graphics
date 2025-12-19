@@ -11,13 +11,13 @@
 (require geofun/digitama/paint/self)
 
 (require "anchor.rkt")
-(require "../axis/singleton.rkt")
+(require "../singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-mark-style : Plot-Mark-Style
   ([font : (Option Font) #false]
    [color : (Option Color) #false]
-   [pin-stroke : (Option Pen) default-marker-pin-stroke]
+   [pin-pen : (Option Pen) default-marker-pin-pen]
    [pin-length : Real+% '(100 %)]
    [pin-angle : Real +nan.0]
    [gap-length : Real+% 0.0]

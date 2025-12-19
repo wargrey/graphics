@@ -7,6 +7,7 @@
 
 (require geofun/digitama/layer/sticker)
 
+(require "vaid/self.rkt")
 (require "../marker/self.rkt")
 
 (require (for-syntax racket/base))
@@ -16,7 +17,7 @@
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Visualizer-Tree (Listof (U Plot-Visualizer Plot-Visualizer-Tree)))
+(define-type Plot-Visualizer-Tree (Listof (U Plot-Visualizer False Void Plot-Visualizer-Tree)))
 
 (define-type Plot-Visualizer-Tick-Range (Pairof (Option Real) (Option Real)))
 (define-type Plot-Visualizer-Data-Range (-> Real Real (Pairof Real Real)))
@@ -47,9 +48,10 @@
                                ([<field> (in-list (reverse (syntax->list #'(field ...))))])
                        (define <id-field> (datum->syntax <field> (string->symbol (format "~a-~a" (syntax-e #'id) (syntax-e <field>)))))
                        (define <abs-field> (datum->syntax <field> (string->symbol (format "~a-~a" (syntax-e #'id<%>) (syntax-e <field>)))))
-                       (values (cons <id-field> id-fields) (cons <abs-field> abs-fields)))])
+                       (values (cons <id-field> id-fields)
+                               (cons <abs-field> abs-fields)))])
        (syntax/loc stx
-         (begin (define-type GID (U ID (Pairof Geo-Sticker-Datum ID<%>)))
+         (begin (define-type GID (U ID (Pairof Geo-Sticker ID<%>)))
 
                 (struct id<%> ([field : FieldType] ...) #:transparent #:type-name ID<%>)
                 (struct id geo ([interface : ID<%>]) #:type-name ID)
@@ -91,7 +93,7 @@
    [legend : (Option Geo) #false]
    [pin-angle : (Option (-> Real (Option Real))) #false]
    [gap-angle : (Option (-> Real (Option Real))) #false]
-   [projection-lines : (Listof Float-Complex) null]))
+   [visual-aids : (Listof Plot-Visual-Aid) null]))
 
 (struct geo:line:visualizer geo:visualizer
   ([dots : (Listof Float-Complex)])
@@ -109,20 +111,22 @@
          [sreredner : (Listof Plot-Visualizer) null])
         (if (pair? ts)
             (let-values ([(self rest) (values (car ts) (cdr ts))])
-              (if (list? self)
-                  (let-values ([(sbus xsmin xsmax ysmin ysmax) (flatten self xmin xmax ymin ymax sreredner)])
-                    (flatten rest xsmin xsmax ysmin ysmax sbus))
-                  (let*-values ([(sxrng syrng) (values (plot-visualizer-xrng self) (plot-visualizer-yrng self))]
-                                [(sxmin sxmax) (values (car sxrng) (cdr sxrng))]
-                                [(symin symax) (values (car syrng) (cdr syrng))])
-                    (flatten rest
-                             (if (rational? sxmin) (min xmin sxmin) xmin)
-                             (if (rational? sxmax) (max xmax sxmax) xmax)
-                             (if (rational? symin) (min ymin symin) ymin)
-                             (if (rational? symax) (max ymax symax) ymax)
-                             (cons self sreredner)))))
+              (cond [(plot-visualizer? self)
+                     (let*-values ([(sxrng syrng) (values (plot-visualizer-xrng self) (plot-visualizer-yrng self))]
+                                   [(sxmin sxmax) (values (car sxrng) (cdr sxrng))]
+                                   [(symin symax) (values (car syrng) (cdr syrng))])
+                       (flatten rest
+                                (if (rational? sxmin) (min xmin sxmin) xmin)
+                                (if (rational? sxmax) (max xmax sxmax) xmax)
+                                (if (rational? symin) (min ymin symin) ymin)
+                                (if (rational? symax) (max ymax symax) ymax)
+                                (cons self sreredner)))]
+                    [(list? self)
+                     (let-values ([(sbus xsmin xsmax ysmin ysmax) (flatten self xmin xmax ymin ymax sreredner)])
+                       (flatten rest xsmin xsmax ysmin ysmax sbus))]
+                    [else (flatten rest xmin xmax ymin ymax sreredner)]))
             (values sreredner xmin xmax ymin ymax))))
-
+    
     (values (reverse sreredner)
             (plot-range-normalize xmin xmax)
             (plot-range-normalize ymin ymax))))

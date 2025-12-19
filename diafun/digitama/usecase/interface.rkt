@@ -4,11 +4,11 @@
 
 (require racket/case)
 
-(require "node.rkt")
-(require "../path/interface.rkt")
+(require "block.rkt")
+(require "../track/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diauc-node-fallback-construct : Dia-Path-Id->Node-Shape
+(define default-diauc-block-fallback-construct : Dia-Anchor->Block
   (lambda [id label style width height direction hint]
     (case/eq (object-name style)
              [(diauc-actor-style) (diauc-block-actor id label style width height direction hint)]

@@ -27,7 +27,7 @@
     (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset) #false)
     (cairo-render cr stroke)
 
-    ; `cairo_clear_path` above has already translated by `(dx, dy)`
+    ; `cairo_clean_path` above has already translated by `(dx, dy)`
     (dc-edge-draw-shape cr src-mkr-prints src-mkr-pen src-mkr-brush src-pos)
     (dc-edge-draw-shape cr tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-pos)))
 

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "../node/style.rkt"))
+(provide (all-from-out "../block/style.rkt"))
 
 (require digimon/struct)
 
@@ -9,16 +9,16 @@
 (require geofun/paint)
 (require geofun/digitama/base)
 
-(require "../node/style.rkt")
+(require "../block/style.rkt")
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct ram-location-base-style dia-node-base-style
+(struct ram-location-base-style dia-block-base-style
   ([ignored-paint : Option-Fill-Paint])
   #:type-name RAM-Location-Base-Style
   #:transparent)
 
-(struct ram-location-style dia-node-style
+(struct ram-location-style dia-block-style
   ([ignored-paint : Option-Fill-Paint])
   #:type-name RAM-Location-Style
   #:transparent)
@@ -46,7 +46,7 @@
 (define default-ram-snapshot-gapsize : (Parameterof Nonnegative-Flonum) (make-parameter 64.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (RAM-Location-Style-Make S) (Dia-Node-Style-Make* S Symbol))
+(define-type (RAM-Location-Style-Make S) (Dia-Block-Style-Make* S Symbol))
 
 (define default-ram-variable-style-make  : (Parameterof (Option (RAM-Location-Style-Make RAM-Variable-Style)))  (make-parameter #false))
 (define default-ram-pointer-style-make : (Parameterof (Option (RAM-Location-Style-Make RAM-Pointer-Style))) (make-parameter #false))

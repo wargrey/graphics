@@ -8,4 +8,5 @@
 (require/provide "class.rkt")
 (require/provide "flowlet.rkt")
 
+(require/provide "matrix.rkt")
 (require/provide "memory.rkt")

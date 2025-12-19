@@ -52,8 +52,5 @@
     (λ [self cr x0 y0 width height]
       (when (geo:grid? self)
         (dc_grid cr x0 y0 width height
-                 (geo:grid-major-xs self) (geo:grid-major-ys self)
-                 (geo-select-stroke-paint alt-major-stroke))
-        (dc_grid cr x0 y0 width height
-                 (geo:grid-minor-xs self) (geo:grid-minor-ys self)
-                 (geo-select-stroke-paint alt-minor-stroke))))))
+                 (geo:grid-major-xs self) (geo:grid-major-ys self) (geo-select-stroke-paint alt-major-stroke)
+                 (geo:grid-minor-xs self) (geo:grid-minor-ys self) (geo-select-stroke-paint alt-minor-stroke))))))

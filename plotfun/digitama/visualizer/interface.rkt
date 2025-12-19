@@ -5,6 +5,7 @@
 
 (require geofun/color)
 (require geofun/stroke)
+(require geofun/fill)
 
 (require geofun/digitama/base)
 (require geofun/digitama/paint/self)
@@ -26,16 +27,18 @@
 (define default-plot-visualizer-label-position-range : (Parameterof (Pairof Real Real)) (make-parameter (cons 0.0 1.0)))
 (define default-plot-visualizer-label-placement : (Parameterof Plot-Visualizer-Label-Placement) (make-parameter 'auto))
 
-(define default-plot-function-stroke : (Parameterof Pen) (make-parameter default-function-stroke))
+(define default-plot-function-pen : (Parameterof Pen) (make-parameter default-visualizer-stroke))
+(define default-plot-sticker-pen : (Parameterof Pen) (make-parameter default-visualizer-stroke))
+(define default-plot-sticker-brush : (Parameterof Brush) (make-parameter default-visualizer-brush))
 (define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
 (define plot-sampling? : (Parameterof Boolean) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-desc-pen : (->* ()
-                             (Pen #:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
+(define plot-desc-pen : (->* (Pen)
+                             (#:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
                              Pen)
   (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false] #:dash [dash+offset #false]
-           [baseline (default-plot-function-stroke)]]
+           baseline]
     (define-values (dash offset)
       (if (pair? dash+offset)
           (values (car dash+offset) (cdr dash+offset))
@@ -43,6 +46,14 @@
     
     (desc-stroke #:color color #:opacity opacity #:width width #:dash dash #:offset offset
                  baseline)))
+
+(define plot-desc-brush : (->* (Brush)
+                               (#:color (Option Color) #:opacity (Option Real) #:rule (Option Fill-Rule))
+                               Brush)
+  (lambda [#:color [color #false] #:opacity [opacity #false] #:rule [fill-rule #false]
+           baseline]
+    (desc-brush #:color color #:opacity opacity #:rule fill-rule
+                baseline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; For the sake of simplicity

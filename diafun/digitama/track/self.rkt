@@ -9,15 +9,15 @@
 (require geofun/digitama/dc/composite)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia:path geo:group
+(struct dia:track geo:group
   ([skeleton : Geo:Track])
-  #:type-name Dia:Path
+  #:type-name Dia:Track
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-initial-path : (-> (Option Symbol) Real+% Real+% Real
-                               Geo-Print-Datum Geo-Anchor-Name Nonnegative-Flonum
-                               Gomamon)
+(define dia-initial-track : (-> (Option Symbol) Real+% Real+% Real
+                                Geo-Print-Datum Geo-Anchor-Name Nonnegative-Flonum
+                                Gomamon)
   (lambda [id gw gh ts home anchor 100%]
     (define grid-width  (~length gw 100%))
     (define grid-height (~length gh grid-width))

@@ -41,7 +41,7 @@
            #:raw-data-radix [rd-radix : Positive-Byte (default-ram-raw-data-radix)]
            #:layout [layout : Dia-RAM-Variable-Layout dia-ram-variable-layout]
            [variables : Dia-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : (U Dia:RAM Geo:Blank)
-    (parameterize ([default-dia-node-base-style make-ram-location-fallback-style])
+    (parameterize ([default-dia-block-base-style make-ram-location-fallback-style])
       (define (realize [self : RAM-Variable]) : (Pairof Geo (Listof Geo))
         (layout (ram-variable-name self) (ram-variable-address self)
                 (ram-variable-datum self) (ram-variable-shape self)))

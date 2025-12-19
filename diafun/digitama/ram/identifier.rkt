@@ -28,4 +28,4 @@
                                                (Values Symbol (∩ S RAM-Location-Style)))
   (lambda [variable segment mk-style mk-fallback-style]
     (values variable
-            ((inst dia-node-style-construct (∩ S RAM-Location-Style) Symbol) variable mk-style mk-fallback-style segment))))
+            ((inst dia-block-style-construct (∩ S RAM-Location-Style) Symbol) variable mk-style mk-fallback-style segment))))

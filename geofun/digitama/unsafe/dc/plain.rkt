@@ -33,26 +33,35 @@
     (cairo-render cr border background)
     (cairo-composite cr src (+ x0 dest-x) (+ y0 dest-y) dest-width dest-height filter s s)))
 
-(define dc_grid : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Pen)
-                      Any)
-  (lambda [cr x0 y0 width height xs ys stroke]
-    (unless (not stroke)
-      (define xn (+ x0 width))
-      (define yn (+ y0 height))
-      
-      (let draw-grid ([xs : (Listof Nonnegative-Flonum) xs])
-        (when (pair? xs)
-          (define x (+ x0 (car xs)))
-          
-          (cairo-add-line cr x y0 x yn)
-          (draw-grid (cdr xs))))
-      
-      (let draw-grid ([ys : (Listof Nonnegative-Flonum) ys])
-        (when (pair? ys)
-          (define y (+ y0 (car ys)))
-          
-          (cairo-add-line cr x0 y xn y)
-          (draw-grid (cdr ys))))
-      
-      (cairo-render cr stroke #false))))
+(define dc_grid : (case-> [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                     (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Pen)
+                                     -> Any]
+                          [Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                     (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Pen)
+                                     (Listof Nonnegative-Flonum) (Listof Nonnegative-Flonum) (Option Pen)
+                                     -> Any])
+  (case-lambda
+    [(cr x0 y0 width height xs ys stroke)
+     (unless (not stroke)
+       (define xn (+ x0 width))
+       (define yn (+ y0 height))
+
+       (cairo_new_path cr)
+       (let draw-grid ([xs : (Listof Nonnegative-Flonum) xs])
+         (when (pair? xs)
+           (define x (+ x0 (car xs)))
+           
+           (cairo-add-line cr x y0 x yn)
+           (draw-grid (cdr xs))))
+       
+       (let draw-grid ([ys : (Listof Nonnegative-Flonum) ys])
+         (when (pair? ys)
+           (define y (+ y0 (car ys)))
+           
+           (cairo-add-line cr x0 y xn y)
+           (draw-grid (cdr ys))))
+       
+       (cairo-render cr stroke #false))]
+    [(cr x0 y0 width height major-xs major-ys major-stroke minor-xs minor-ys minor-stroke)
+     (dc_grid cr x0 y0 width height minor-xs minor-ys minor-stroke)
+     (dc_grid cr x0 y0 width height major-xs major-ys major-stroke)]))

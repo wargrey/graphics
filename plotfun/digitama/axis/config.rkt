@@ -27,7 +27,7 @@
                                           [Plot-Axis-Style (-> FlRGBA FlRGBA) -> (Values Font Font Font Font Pen Nonnegative-Flonum FlRGBA FlRGBA FlRGBA FlRGBA)])
   (case-lambda
     [(self)
-     (let* ([axis-pen (plot-axis-style-stroke self)]
+     (let* ([axis-pen (plot-axis-style-pen self)]
             [axis-color (pen-color axis-pen)]
             [label-color (plot-axis-style-label-color self)]
             [axis-font (plot-axis-style-font self)]
@@ -42,7 +42,7 @@
                (or label-color axis-color)
                (or (plot-axis-style-desc-color self) label-color axis-color)))]
     [(self adjust)
-     (let* ([axis-pen (plot-axis-style-stroke self)]
+     (let* ([axis-pen (plot-axis-style-pen self)]
             [axis-color (pen-color axis-pen)]
             [adjusted-color (adjust axis-color)]
             [digit-color (plot-axis-style-digit-color self)]
@@ -92,7 +92,7 @@
     (define view-height : Nonnegative-Flonum (max (real->double-flonum (* view-width ratio)) 0.0))
     (define-values (neg-margin pos-margin) (plot-axis-margin-values tip view-width))
 
-    (values (+ view-height neg-margin pos-margin (pen-width (plot-axis-style-stroke self)))
+    (values (+ view-height neg-margin pos-margin (pen-width (plot-axis-style-pen self)))
             view-height neg-margin pos-margin)))
 
 (define plot-axis-margin-values : (-> Plot-Axis-Tip-Style Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
@@ -112,7 +112,7 @@
     (values fllength
             (max (- fllength neg-margin pos-margin
                     (~length (plot-axis-style-tick-thickness self)
-                             (pen-width (plot-axis-style-stroke self)))) 0.0)
+                             (pen-width (plot-axis-style-pen self)))) 0.0)
             neg-margin pos-margin)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

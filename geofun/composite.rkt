@@ -29,6 +29,8 @@
 
 (require digimon/digitama/unsafe/release/ops)
 
+(require racket/vector)
+
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
 (require "digitama/layer/pyramid.rkt")
@@ -193,7 +195,8 @@
 (define geo-rb-find : (-> Geo Geo (Option Float-Complex)) (λ [master target] (geo-find 'rb master target)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-frame : (-> Geo [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)]
+(define geo-frame : (-> Geo
+                        [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)]
                         [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint]
                         [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
                         [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
@@ -203,39 +206,48 @@
            geo]
     (make-geo:group id base-op operator (geo-own-layers geo) margin inset border bg-fill)))
 
+;;; NOTE
+; As a lower-level compositor, 
+; Don't waste time to support vectors as input,
+; since the vector is intentionally used as a mutable data structure,
+; in which case it requires strictly type checking.
+; as a result, you somehow have to produce immutable vectors.
+; so, why not just use lists? given that
+; there almost is no way to flexibly create an immutable vector at runtime. 
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
-                         Geo)
+                         (U Geo:Table Geo:Blank))
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            ncols siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define size : Index (length siblings))
-    (define cont : Geo (geo-blank))
+    (define placeholder : Geo:Blank (geo-blank))
+    
     (or (and (> size 0)
              (> ncols 0) (index? ncols)
              (let-values ([(maybe-nrows extra-ncols) (quotient/remainder size ncols)])
                (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
                (and (> nrows 0) (index? nrows)
                     (create-geometry-table geo:table id base-op sibs-op
-                                           (geo-siblings->table siblings (* nrows ncols) (geo-own-layer cont))
+                                           (geo-siblings->table siblings (* nrows ncols) (geo-own-layer placeholder))
                                            ncols nrows col-anchors row-anchors col-gaps row-gaps))))
-        cont)))
+        placeholder)))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
                           (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
                            (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
-                          Geo)
+                          (U Geo:Table Geo:Blank))
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
+    (define placeholder : Geo:Blank (geo-blank))
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
-    (define cont : Geo (geo-blank))
-
+    
     (or (and (> ncols 0) (> nrows 0)
              (create-geometry-table geo:table id base-op sibs-op
-                                    (geo-siblings*->table siblings ncols (geo-own-layer cont))
+                                    (geo-siblings*->table siblings ncols (geo-own-layer placeholder))
                                     ncols nrows col-anchors row-anchors col-gaps row-gaps))
-        cont)))
+        placeholder)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-pyramid : (->* ((Listof Geo))

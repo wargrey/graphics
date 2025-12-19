@@ -16,12 +16,11 @@
 
 (require "../flowchart/style.rkt")
 
-(require "../node/dc.rkt")
-(require "../edge/style.rkt")
-(require "../path/interface.rkt")
+(require "../block/dc.rkt")
+(require "../track/style.rkt")
+(require "../track/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-blank : Geo:Blank (geo-blank))
 (define diaflow-delim : String (string #\rubout))
 (define diaflow-delim-format : String (string-append diaflow-delim "~a" diaflow-delim ":~a"))
 
@@ -90,7 +89,7 @@
       
       ((inst procedure-rename F) f name))))
 
-(define diaflowlet-node-label-string : (-> Geo-Anchor-Name String (U String Void False))
+(define diaflowlet-block-describe : (-> Geo-Anchor-Name String (U String Void False))
   (lambda [id text]
     (and (> (string-length text) 0)
          (eq? (string-ref text 0) (string-ref diaflow-delim 0))
@@ -99,47 +98,47 @@
                 (car ts))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-node-construct : Dia-Path-Id->Node-Shape
-  (lambda [id label style width height direction hint]
+(define diaflowlet-block-construct : Dia-Anchor->Block
+  (lambda [id brief style width height direction hint]
     (case/eq (object-name style)
-             [(diaflow-process-style) (diaflowlet-block-process  id label style width height direction hint)]
-             [(diaflow-start-style)   (diaflowlet-block-terminal id label style width height direction hint)]
-             [(diaflow-stop-style)    (diaflowlet-block-terminal id label style width height direction hint)]
+             [(diaflow-process-style) (diaflowlet-block-process  id brief style width height direction hint)]
+             [(diaflow-start-style)   (diaflowlet-block-terminal id brief style width height direction hint)]
+             [(diaflow-stop-style)    (diaflowlet-block-terminal id brief style width height direction hint)]
              [(diaflow-storage-style) (when (eq? hint 'File)
-                                        (diaflowlet-block-document id label style width height direction hint))])))
+                                        (diaflowlet-block-document id brief style width height direction hint))])))
 
-(define diaflowlet-arrow-identify : Dia-Path-Arrow-Identifier
+(define diaflowlet-arrow-identify : Dia-Track-Identifier
   (lambda [source target labels extra]
-    (dia-edge-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)))
+    (dia-track-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflowlet-block-process : Dia-Path-Block-Create
-  (lambda [id label style width height direction hint]
+(define diaflowlet-block-process : Dia-Block-Create
+  (lambda [id brief style width height direction hint]
     (define fbox : Geo:Sandglass
-      (geo-sandglass #:fill (dia-node-select-fill-paint style)
-                     #:stroke (dia-node-select-stroke-paint style)
+      (geo-sandglass #:fill (dia-block-select-fill-paint style)
+                     #:stroke (dia-block-select-stroke-paint style)
                      #:neck-width (* width 0.22) #:neck-height (* width 0.12)
                      (* width 0.25)))
     
     (if (or (not direction) (not (zero? direction)))
-        (create-dia-node #:id id #:type 'Process hint #:fit-ratio 1.00 0.36 #:position 0.50 0.20 fbox label)
-        (create-dia-node #:id id #:type 'Process hint #:fit-ratio 1.00 0.64 #:position 0.50 0.48 (geo-rotate fbox (- direction (* pi 0.5))) label))))
+        (create-dia-block #:id id #:type 'Process hint #:fit-ratio 1.00 0.36 #:position 0.50 0.20 fbox brief)
+        (create-dia-block #:id id #:type 'Process hint #:fit-ratio 1.00 0.64 #:position 0.50 0.48 (geo-rotate fbox (- direction (* pi 0.5))) brief))))
 
-(define diaflowlet-block-terminal : Dia-Path-Block-Create
-  (lambda [id label style width height direction hint]
-    (create-dia-node #:id id #:type 'Storage #false
-                     diaflowlet-blank #false)))
+(define diaflowlet-block-terminal : Dia-Block-Create
+  (lambda [id brief style width height direction hint]
+    (create-dia-block #:id id #:type 'Storage #false
+                      (geo-blank) #false)))
 
-(define diaflowlet-block-document : Dia-Path-Block-Create
-  (lambda [node-key label style width height direction hint]
+(define diaflowlet-block-document : Dia-Block-Create
+  (lambda [block-key brief style width height direction hint]
     (define hratio : Nonnegative-Flonum 0.85)
-    (define xpos : Nonnegative-Flonum (max (* (/ (default-dia-node-margin) width)  0.5) 0.0))
-    (define ypos : Nonnegative-Flonum (max (* (/ (default-dia-node-margin) height) 0.5) 0.0))
-    (create-dia-node #:id node-key #:type 'Storage hint
-                     #:fit-ratio 1.0 hratio
-                     #:position xpos ypos 0.0 0.0
-                     (geo-document #:id (dia-node-shape-id node-key)
-                                   #:stroke (dia-node-select-stroke-paint style)
-                                   #:fill (dia-node-select-fill-paint style)
-                                   width height `(,(* (- 1.0 hratio) 0.5) :))
-                     label)))
+    (define xpos : Nonnegative-Flonum (max (* (/ (default-dia-block-margin) width)  0.5) 0.0))
+    (define ypos : Nonnegative-Flonum (max (* (/ (default-dia-block-margin) height) 0.5) 0.0))
+    (create-dia-block #:id block-key #:type 'Storage hint
+                      #:fit-ratio 1.0 hratio
+                      #:position xpos ypos 0.0 0.0
+                      (geo-document #:id (dia-block-shape-id block-key)
+                                    #:stroke (dia-block-select-stroke-paint style)
+                                    #:fill (dia-block-select-fill-paint style)
+                                    width height `(,(* (- 1.0 hratio) 0.5) :))
+                      brief)))

@@ -21,24 +21,24 @@
 (require geofun/digitama/dc/path)
 (require geofun/digitama/path/label)
 
+(require "style.rkt")
+(require "refine.rkt")
 (require "interface.rkt")
 
-(require "../node/dc.rkt")
-(require "../node/style.rkt")
-(require "../edge/style.rkt")
-(require "../edge/refine.rkt")
+(require "../block/dc.rkt")
+(require "../block/style.rkt")
 
 (require (for-syntax racket/base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Path-Arrow-Label-Info (List Index Geo-Path-Labels Nonnegative-Flonum))
+(define-type Dia-Track-Label-Info (List Index Geo-Path-Labels Nonnegative-Flonum))
 
 (define-syntax (dia-label-info->label stx)
   (syntax-case stx []
     [(_ source target edge-style make-label rinfos)
      (syntax/loc stx
        (let info->label ([labels : (Listof Geo:Path:Label) null]
-                         [sofni : (Listof Dia-Path-Arrow-Label-Info) rinfos])
+                         [sofni : (Listof Dia-Track-Label-Info) rinfos])
          (if (pair? sofni)
              (let ([label (apply make-label source target edge-style (car sofni))])
                (info->label (dia-cons-labels label labels) (cdr sofni)))
@@ -47,12 +47,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-path-stick
   (lambda [[master : Geo:Track]
-           [block-identify : Dia-Path-Block-Identifier] [make-node : (Option Dia-Path-Id->Node-Shape)]
-           [make-node-label : Dia-Path-Id->Node-Label] [node-desc : (Option Dia-Path-Id->Label-String)]
-           [arrow-identify : Dia-Path-Arrow-Identifier] [make-arrow : Dia-Path-Arrow->Edge] [make-arrow-label : Dia-Path-Arrow->Edge-Label]
-           [make-free-track : Dia-Path-Free-Track->Edge] [make-free-label : Dia-Path-Free-Track->Edge-Label]
-           [make-free-style : (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))]
-           [fallback-node : Dia-Path-Id->Node-Shape] [fallback-free-style : (-> (∩ Dia-Edge-Style S))]
+           [block-identify : Dia-Block-Identifier] [make-block : (Option Dia-Anchor->Block)]
+           [make-block->brief : Dia-Anchor->Brief] [block-desc : (Option Dia-Block-Describe)]
+           [track-identify : Dia-Track-Identifier] [make-track : Dia-Track->Path] [make-track-label : Dia-Track->Label]
+           [make-free-track : Dia-Free-Track->Path] [make-free-label : Dia-Free-Track->Label]
+           [make-free-style : (Option (Dia-Track-Style-Make* Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint (∩ Dia-Track-Style S)))]
+           [fallback-block : Dia-Anchor->Block] [fallback-free-style : (-> (∩ Dia-Track-Style S))]
            [infobase : Geo-Track-Infobase] [ignore : (Listof Symbol)]] : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)))
     (define gpath : Geo-Trail (geo:track-trail master))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
@@ -60,69 +60,69 @@
 
     ; NOTICE: the footprints are initially reversed
     (let stick ([stnirp : Geo-Path-Prints (geo:track-footprints master)]
-                [arrows : (Listof (GLayerof Geo)) null]
-                [nodes : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Node))) (hasheq)]
-                [tracks : Geo-Path-Prints null]
-                [target : (Option (GLayerof Dia:Node)) #false]
+                [tracks : (Listof (GLayerof Geo)) null]
+                [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
+                [prints : Geo-Path-Prints null]
+                [target : (Option (GLayerof Dia:Block)) #false]
                 [last-pt : (Option Float-Complex) #false])
       (if (pair? stnirp)
 
           (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
             (define next-pt : (Option Float-Complex) (gpp-position self last-pt))
             (define anchor : (Option Geo-Anchor-Name) (and next-pt (hash-ref anchor-base next-pt (λ [] #false))))
-            (define tracks++ : (Pairof GPath:Datum Geo-Path-Prints) (cons self tracks))
+            (define prints++ : (Pairof GPath:Datum Geo-Path-Prints) (cons self prints))
 
-            (define-values (source nodes++)
-              (cond [(or (not anchor) (not next-pt)) (values #false nodes)]
-                    [(hash-has-key? nodes anchor) (values (hash-ref nodes anchor) nodes)]
+            (define-values (source blocks++)
+              (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
+                    [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-node (dia-make-node-layer block-identify make-node make-node-label node-desc
-                                                                fallback-node anchor next-pt direction ignore)])
-                            (values new-node (hash-set nodes anchor new-node)))]))
+                                 [new-block (dia-make-block-layer block-identify make-block make-block->brief block-desc
+                                                                  fallback-block anchor next-pt direction ignore)])
+                            (values new-block (hash-set blocks anchor new-block)))]))
             
             (cond [(glayer? source)
                    (cond [(eq? (gpath:datum-cmd self) #\M)
-                          (let ([arrows++ (dia-arrow-cons source target tracks++ arrow-identify make-arrow arrows make-arrow-label infobase)])
-                            (stick rest arrows++ nodes++ null #false next-pt))]
+                          (let ([tracks++ (dia-track-cons source target prints++ track-identify make-track tracks make-track-label infobase)])
+                            (stick rest tracks++ blocks++ null #false next-pt))]
                          [(and target)
-                          (let ([arrows++ (dia-arrow-cons source target tracks++ arrow-identify make-arrow arrows make-arrow-label infobase)])
-                            (stick rest arrows++ nodes++ (list self) source next-pt))]
+                          (let ([tracks++ (dia-track-cons source target prints++ track-identify make-track tracks make-track-label infobase)])
+                            (stick rest tracks++ blocks++ (list self) source next-pt))]
                          [(pair? tracks)
-                          (let ([arrows++ (dia-arrow-cons source #false tracks++ arrow-identify make-arrow arrows make-arrow-label infobase)])
-                            (stick rest arrows++ nodes++ (list self) source next-pt))]
-                         [else (stick rest arrows nodes++ tracks++ source next-pt)])]
+                          (let ([tracks++ (dia-track-cons source #false prints++ track-identify make-track tracks make-track-label infobase)])
+                            (stick rest tracks++ blocks++ (list self) source next-pt))]
+                         [else (stick rest tracks blocks++ prints++ source next-pt)])]
                    
                    [(eq? (gpath:datum-cmd self) #\M)
-                    (let ([ct (gpp-cleanse tracks++)])
+                    (let ([ct (gpp-cleanse prints++)])
                       (if (and (pair? ct) (pair? (cdr ct)))
-                          (let ([arrows++ (dia-free-track-cons anchor-base ct make-free-track arrows make-free-label infobase
+                          (let ([tracks++ (dia-free-track-cons anchor-base ct make-free-track tracks make-free-label infobase
                                                                make-free-style fallback-free-style)])
-                            (stick rest arrows++ nodes++ null #false next-pt))
-                          (stick rest arrows nodes null #false next-pt)))]
+                            (stick rest tracks++ blocks++ null #false next-pt))
+                          (stick rest tracks blocks null #false next-pt)))]
 
-                   [else (stick rest arrows nodes tracks++ target next-pt)]))
+                   [else (stick rest tracks blocks prints++ target next-pt)]))
 
           (values
-           (let sort : (Listof (GLayerof Geo)) ([ordered-nodes : (Listof (GLayerof Geo)) null]
+           (let sort : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
                                                 [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
              (if (pair? srohcna)
-                 (let ([node (hash-ref nodes (car srohcna) (λ [] #false))])
-                   (sort (if (not node) ordered-nodes (cons node ordered-nodes)) (cdr srohcna)))
-                 ordered-nodes))
+                 (let ([block (hash-ref blocks (car srohcna) (λ [] #false))])
+                   (sort (if (not block) ordered-blocks (cons block ordered-blocks)) (cdr srohcna)))
+                 ordered-blocks))
            
            ;;; NOTE
-           ; We need to draw arrows backwards,
+           ; We need to draw tracks backwards,
            ;   as we usually create archtectural path before jumping back for various branches.
            ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
-           (reverse arrows))))))
+           (reverse tracks))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-arrow-cons : (-> (GLayerof Dia:Node) (Option (GLayerof Dia:Node)) Geo-Path-Prints
-                             Dia-Path-Arrow-Identifier Dia-Path-Arrow->Edge (Listof (GLayerof Geo))
-                             Dia-Path-Arrow->Edge-Label Geo-Track-Infobase
+(define dia-track-cons : (-> (GLayerof Dia:Block) (Option (GLayerof Dia:Block)) Geo-Path-Prints
+                             Dia-Track-Identifier Dia-Track->Path (Listof (GLayerof Geo))
+                             Dia-Track->Label Geo-Track-Infobase
                              (Listof (GLayerof Geo)))
-  (lambda [src-layer tgt-layer tracks arrow-identify make-arrow arrows make-label infobase]
-    (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse tracks))
+  (lambda [src-layer tgt-layer prints track-identify make-track tracks make-label infobase]
+    (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
 
     (or (and (pair? ctracks)
              (pair? (cdr ctracks))
@@ -134,23 +134,23 @@
                      (dia-2-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                      (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
                
-               (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase ctracks retracks))
-               (define edge-style : (Option Dia-Edge-Style) (arrow-identify source target labels extra-info))
+               (define-values (labels sofni extra-info) (dia-track-label-info-filter infobase ctracks retracks))
+               (define edge-style : (Option Dia-Track-Style) (track-identify source target labels extra-info))
 
-               (define arrow : (U Geo:Path Void False)
+               (define track : (U Geo:Path Void False)
                  (and edge-style
-                      (make-arrow source target edge-style retracks
+                      (make-track source target edge-style retracks
                                   (dia-label-info->label source target edge-style make-label sofni))))
 
-               (and (geo? arrow) (cons (geo-path-self-pin-layer arrow) arrows))))
+               (and (geo? track) (cons (geo-path-self-pin-layer track) tracks))))
         
-        arrows)))
+        tracks)))
 
-(define dia-arrow-label-info-filter : (-> Geo-Track-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
-                                          (Values (Listof Geo-Path-Labels) (Listof Dia-Path-Arrow-Label-Info)
+(define dia-track-label-info-filter : (-> Geo-Track-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
+                                          (Values (Listof Geo-Path-Labels) (Listof Dia-Track-Label-Info)
                                                   (Listof Geo-Track-Info-Datum)))
   (lambda [infobase tracks refined-tracks]
-    (let label-filter ([sofni : (Listof Dia-Path-Arrow-Label-Info) null]
+    (let label-filter ([sofni : (Listof Dia-Track-Label-Info) null]
                        [slebal : (Listof Geo-Path-Labels) null]
                        [extra-infos : (Listof Geo-Track-Info-Datum) null]
                        [orig-tracks : Geo-Path-Clean-Prints tracks]
@@ -186,7 +186,7 @@
                                    (cons maybe-label slebal))
                            (values #false slebal)))
 
-                     (define mult-info : (Option Dia-Path-Arrow-Label-Info)
+                     (define mult-info : (Option Dia-Track-Label-Info)
                        (let ([labels (and maybe-mult (geo-track-multiplicities-map (geo:track:multiplicity-source maybe-mult)
                                                                                    (geo:track:multiplicity-target maybe-mult)))])
                          (and labels
@@ -209,62 +209,62 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name)
-                                               Geo-Path-Clean-Prints* Dia-Path-Free-Track->Edge (Listof (GLayerof Geo))
-                                               Dia-Path-Free-Track->Edge-Label Geo-Track-Infobase
-                                               (Option (Dia-Edge-Style-Make* Dia-Free-Edge-Endpoint Dia-Free-Edge-Endpoint (∩ Dia-Edge-Style S)))
-                                               (-> (∩ Dia-Edge-Style S))
+                                               Geo-Path-Clean-Prints* Dia-Free-Track->Path (Listof (GLayerof Geo))
+                                               Dia-Free-Track->Label Geo-Track-Infobase
+                                               (Option (Dia-Track-Style-Make* Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint (∩ Dia-Track-Style S)))
+                                               (-> (∩ Dia-Track-Style S))
                                                (Listof (GLayerof Geo)))
-  (lambda [anchorbase tracks make-edge arrows make-label infobase make-free-style fallback-free-style]
-    (define src-endpt : Float-Complex (gpp-clean-position (car tracks)))
-    (define tgt-endpt : Float-Complex (gpp-clean-position (last tracks)))
-    (define source : Dia-Free-Edge-Endpoint (hash-ref anchorbase src-endpt (λ [] src-endpt)))
-    (define target : Dia-Free-Edge-Endpoint (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt)))
-    (define-values (labels sofni extra-info) (dia-arrow-label-info-filter infobase tracks tracks))
-    (define edge-style : Dia-Edge-Style (dia-edge-style-construct source target labels make-free-style fallback-free-style))
+  (lambda [anchorbase prints make-edge tracks make-label infobase make-free-style fallback-free-style]
+    (define src-endpt : Float-Complex (gpp-clean-position (car prints)))
+    (define tgt-endpt : Float-Complex (gpp-clean-position (last prints)))
+    (define source : Dia-Free-Track-Endpoint (hash-ref anchorbase src-endpt (λ [] src-endpt)))
+    (define target : Dia-Free-Track-Endpoint (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt)))
+    (define-values (labels sofni extra-info) (dia-track-label-info-filter infobase prints prints))
+    (define edge-style : Dia-Track-Style (dia-track-style-construct source target labels make-free-style fallback-free-style))
 
-    (define arrow : (U Geo:Path Void False)
-      (make-edge source target edge-style tracks
+    (define track : (U Geo:Path Void False)
+      (make-edge source target edge-style prints
                  (dia-label-info->label source target edge-style make-label sofni)))
     
-    (if (geo? arrow) (cons (geo-path-self-pin-layer arrow) arrows) arrows)))
+    (if (geo? track) (cons (geo-path-self-pin-layer track) tracks) tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-make-node : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
-                            Dia-Path-Id->Node-Shape Geo-Anchor-Name (Option Flonum) (Listof Symbol)
-                            (Option Dia:Node))
-  (lambda [block-identify make-node make-node-label node-desc fallback-node anchor direction ignore]
+(define dia-make-block : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+                            Dia-Anchor->Block Geo-Anchor-Name (Option Flonum) (Listof Symbol)
+                            (Option Dia:Block))
+  (lambda [block-identify make-block make-brief block-desc fallback-block anchor direction ignore]
     (define blk-datum (block-identify anchor))
 
     (and blk-datum
          (let-values ([(id) (geo-anchor->symbol anchor)]
                       [(style hint) (values (cadr blk-datum) (caddr blk-datum))])
            (define maybe-desc : (U DC-Markup-Text Void False)
-             (and node-desc
-                  (if (hash? node-desc)
-                      (hash-ref node-desc anchor (λ [] #false))
-                      (node-desc anchor (car blk-datum)))))
+             (and block-desc
+                  (if (hash? block-desc)
+                      (hash-ref block-desc anchor (λ [] #false))
+                      (block-desc anchor (car blk-datum)))))
            
-           (define label : (Option Geo) (make-node-label id (if (dc-markup-text? maybe-desc) maybe-desc (car blk-datum)) style hint))
-           (define-values (width height) (dia-node-smart-size label style))
-           (define node : (U Dia:Node Void False)
+           (define brief : (Option Geo) (make-brief id (if (dc-markup-text? maybe-desc) maybe-desc (car blk-datum)) style hint))
+           (define-values (width height) (dia-block-smart-size brief style))
+           (define block : (U Dia:Block Void False)
              (cond [(memq id ignore) #false]
-                   [(not make-node) (void)]
-                   [else (make-node id label style width height direction hint)]))
+                   [(not make-block) (void)]
+                   [else (make-block id brief style width height direction hint)]))
 
-           (if (void? node)
-               (let ([fallback-node (fallback-node id label style width height direction hint)])
-                 (and (dia:node? fallback-node)
-                      fallback-node))
-               node)))))
+           (if (void? block)
+               (let ([fallback-block (fallback-block id brief style width height direction hint)])
+                 (and (dia:block? fallback-block)
+                      fallback-block))
+               block)))))
 
-(define dia-make-node-layer : (-> Dia-Path-Block-Identifier (Option Dia-Path-Id->Node-Shape) Dia-Path-Id->Node-Label (Option Dia-Path-Id->Label-String)
-                                  Dia-Path-Id->Node-Shape Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
-                                  (Option (GLayerof Dia:Node)))
-  (lambda [block-identify make-node make-node-label node-desc fallback-node anchor position direction ignore]
-    (define maybe-node (dia-make-node block-identify make-node make-node-label node-desc fallback-node anchor direction ignore))
+(define dia-make-block-layer : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+                                  Dia-Anchor->Block Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
+                                  (Option (GLayerof Dia:Block)))
+  (lambda [block-identify make-block make-brief block-desc fallback-block anchor position direction ignore]
+    (define maybe-block (dia-make-block block-identify make-block make-brief block-desc fallback-block anchor direction ignore))
 
-    (and maybe-node
-         (geo-own-pin-layer 'cc position maybe-node 0.0+0.0i))))
+    (and maybe-block
+         (geo-own-pin-layer 'cc position maybe-block 0.0+0.0i))))
 
 (define dia-cons-labels : (-> (U (Listof Geo:Path:Label) Geo:Path:Label Void False) (Listof Geo:Path:Label) (Listof Geo:Path:Label))
   (lambda [label alabels]

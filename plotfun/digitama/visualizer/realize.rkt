@@ -4,6 +4,7 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/convert)
+(require geofun/digitama/layer/sticker)
 
 (require colorspace/palette)
 
@@ -32,8 +33,8 @@
     (define color-pool ((inst make-hasheq Symbol FlRGBA)))
     (define polyline-pool ((inst make-hasheq Symbol Plot-Visualizer)))
 
-    (define (update-pool! [self : Plot-Visualizer] [vself : Geo:Visualizer]) : Void
-      (define vid (geo-id vself))
+    (define (update-pool! [self : Plot-Visualizer] [vself : Geo-Visualizer]) : Void
+      (define vid (geo-id (if (geo? vself) vself (geo-sticker-self (car vself)))))
       (unless (symbol-interned? vid)
         (unless (plot-visualizer-skip-palette? self)
           (hash-set! color-pool vid (geo:visualizer-color vself)))
@@ -54,8 +55,7 @@
 
                     (if (or vself)
                         (let ([idx++ (if (plot-visualizer-skip-palette? self) idx (+ idx 1))])
-                          (when (geo:visualizer? vself)
-                            (update-pool! self vself))
+                          (update-pool! self vself)
                           (realize rest idx++ (cons vself sreyalv)))
                         (realize rest idx sreyalv)))
                   (let 2nd-stage-realize ([sreyalv : (Listof Geo-Visualizer) sreyalv]

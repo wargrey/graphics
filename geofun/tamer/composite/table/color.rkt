@@ -27,7 +27,7 @@
   (lambda [[bgcolor 'black]]
     (geo-frame #:background bgcolor #:padding 4.0
                (geo-table 16
-                          (for/list ([xidx (in-range 256)])
+                          (for/list : (Listof Geo) ([xidx (in-range 256)])
                                (geo-text #:color (xterm (assert xidx byte?))
                                          (number->string xidx) label-font))
                           'cc 'cc 8.0 8.0))))

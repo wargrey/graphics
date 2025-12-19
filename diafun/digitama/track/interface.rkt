@@ -1,0 +1,105 @@
+#lang typed/racket/base
+
+(provide (all-defined-out))
+
+(require geofun/digitama/convert)
+(require geofun/digitama/markup)
+(require geofun/digitama/geometry/anchor)
+(require geofun/digitama/geometry/footprint)
+(require geofun/digitama/track/self)
+
+(require geofun/digitama/path/label)
+(require geofun/digitama/dc/path)
+
+(require "style.rkt")
+(require "../block/style.rkt")
+(require "../block/dc.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Dia-Block-Info (List String Dia-Block-Style (Option Symbol)))
+
+(define-type Dia-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Block-Info)))
+(define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
+(define-type Dia-Block-Create (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Block))
+(define-type Dia-Block-Describe (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
+(define-type Dia-Anchor->Brief (-> Symbol DC-Markup-Text Dia-Block-Style (Option Symbol) (Option Geo)))
+
+(define-type Dia-Anchor->Block
+  (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
+      (U Void  ; use default
+         False ; invisible block
+         Dia:Block)))
+
+(define-type Dia-Track->Path
+  (-> Dia:Block (Option Dia:Block) Dia-Track-Style
+      Geo-Path-Clean-Prints* (Listof Geo:Path:Label)
+      (U Geo:Path Void False)))
+
+(define-type Dia-Track->Label
+  (-> Dia:Block (Option Dia:Block) Dia-Track-Style
+      Index Geo-Path-Labels Nonnegative-Flonum
+      (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
+
+(define-type Dia-Free-Track->Path
+  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style
+      Geo-Path-Clean-Prints* (Listof Geo:Path:Label)
+      (U Geo:Path Void False)))
+
+(define-type Dia-Free-Track->Label
+  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style
+      Index Geo-Path-Labels Nonnegative-Flonum
+      (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-dia-anchor->brief : Dia-Anchor->Brief
+  (lambda [id desc style hint]
+    (dia-block-text-brief id desc style)))
+
+(define default-dia-track->path : Dia-Track->Path
+  (lambda [source target style tracks labels]
+    (geo-path-attach-label
+     (geo-path* #:id (dia-track-id-merge (geo-id source) (and target (geo-id target)) #true)
+                #:stroke (dia-track-select-line-paint style)
+                #:source-tip (dia-track-select-source-tip style)
+                #:target-tip (and target (not (dia:block:label? target)) (dia-track-select-target-tip style))
+                #:tip-placement 'inside
+                tracks)
+     labels)))
+
+(define default-dia-track->label : Dia-Track->Label
+  (lambda [source target style idx label base-position]
+    (make-geo-path-labels #:font (dia-track-select-font style)
+                          #:color (dia-track-select-font-paint style)
+                          #:rotate? (dia-track-select-label-rotate? style)
+                          #:distance (and (dia-track-select-label-inline? style) 0.0)
+                          #:index idx
+                          label base-position)))
+
+(define default-dia-free-track->path : Dia-Free-Track->Path
+  (lambda [source target style tracks labels]
+    (geo-path-attach-label
+     (geo-path* #:id (dia-track-id-merge source target #false)
+                #:stroke (dia-track-select-line-paint style)
+                #:source-tip (dia-track-select-source-tip style)
+                #:target-tip (dia-track-select-target-tip style)
+                #:tip-placement 'inside
+                tracks)
+     labels)))
+
+(define default-dia-free-track->label : Dia-Free-Track->Label
+  (lambda [source target style idx label base-position]
+    (make-geo-path-labels #:font (dia-track-select-font style)
+                          #:color (dia-track-select-font-paint style)
+                          #:rotate? (dia-track-select-label-rotate? style)
+                          #:distance (if (dia-track-select-label-inline? style) 0.0 (dia-track-select-label-distance style))
+                          #:index idx
+                          label base-position)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) dia-block-info : (->* (Geo-Anchor-Name String
+                                                            (Option (Dia-Block-Style-Make* (∩ S Dia-Block-Style) (Option Symbol)))
+                                                            (-> (∩ S Dia-Block-Style)))
+                                           ((Option Symbol))
+                                           Dia-Block-Info)
+  (lambda [anchor text mk-style mk-fallback-style [hint #false]]
+    (list text (dia-block-style-construct anchor mk-style mk-fallback-style hint) hint)))

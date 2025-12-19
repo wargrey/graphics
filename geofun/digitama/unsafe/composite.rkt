@@ -30,7 +30,8 @@
         (geo-composite-layer cr (car geos) x0 y0)
         (combine (cdr geos))))
 
-    (cairo_set_operator cr saved-op)))
+    (when (or base-op sibs-op)
+      (cairo_set_operator cr saved-op))))
 
 (define geo_framed_composite : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                    (Option Byte) (Option Byte) Geo-Layer-Group Flonum Flonum

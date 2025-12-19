@@ -20,6 +20,7 @@
 
 (require "../self.rkt")
 (require "../interface.rkt")
+(require "../vaid/self.rkt")
 (require "../../axis/view.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,8 +29,9 @@
            #:color [color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
-           #:stroke-opacity [strk-opacity : Real 1.0]
-           #:fill-opacity [fll-opacity : Real 0.618]
+           #:stroke-opacity [strk-opacity : (Option Real) #false]
+           #:fill-opacity [fll-opacity : (Option Real) #false]
+           #:fill-rule [fll-rule : (Option Fill-Rule) #false]
            #:scale? [scale? : Boolean #false]
            #:skip-palette? [skip-palette? : Boolean #false]
            #:offset [offset : Complex 0.0+0.0i]
@@ -46,21 +48,23 @@
 
     (define sticker-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
-        (define brush : Brush
-          (desc-brush #:color (plot-select-brush-color color idx bg-color) #:opacity fll-opacity))
         (define pen : Pen
           (plot-desc-pen #:dash strk-dash #:width strk-width #:opacity strk-opacity
-                         #:color (plot-select-pen-color color idx bg-color)))
+                         #:color (plot-select-pen-color color idx bg-color)
+                         (default-plot-sticker-pen)))
+        (define brush : Brush
+          (plot-desc-brush #:color (plot-select-brush-color color idx bg-color) #:rule fll-rule #:opacity fll-opacity
+                           (default-plot-sticker-brush)))
 
         (define xunit (real-part (plot-vxunit transform)))
         (define yunit (imag-part (plot-vyunit transform)))
         (define adjusted-anchor (if (< yunit 0.0) (geo-anchor-vertical-flip anchor) anchor))
 
         (and (<= xmin px xmax) (<= ymin py ymax)
-             (let ([the-sticker (geo-try-repaint self #:stroke pen #:fill brush)]
+             (let ([the-sticker (geo-try-repaint self #:id id #:stroke pen #:fill brush)]
                    [descriptor (desc-geo:visualizer #:position (transform flpos)
                                                     #:color (pen-color pen)
-                                                    #:projection-lines (list flpos))])
+                                                    #:visual-aids (list))])
                (if (or scale?)      
                    (cons (make-sticker (geo-scale the-sticker (abs xunit) (abs yunit))
                                        adjusted-anchor

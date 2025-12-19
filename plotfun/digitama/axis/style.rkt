@@ -12,7 +12,7 @@
 (require geofun/digitama/path/tick)
 (require geofun/digitama/path/tip/self)
 
-(require "singleton.rkt")
+(require "../singleton.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror 'digit-mirror 'mirror-digit))
@@ -45,7 +45,7 @@
    [negative-margin : Real+% 0.0]))
 
 (define-struct/parameter plot-axis-style : Plot-Axis-Style
-  ([stroke : Pen default-axis-stroke]
+  ([pen : Pen default-axis-pen]
    [font : Font default-axis-font]
    [tick-thickness : Real+% 1.0]
    [tick-length : Real+% '(300 %)]

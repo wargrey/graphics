@@ -7,8 +7,8 @@
 (provide (all-from-out "digitama/class/style.rkt"))
 
 (provide DiaCls-RelationShip-Type DiaCls-RelationShip-Identifier)
-(provide default-diacls-block-identify default-diacls-arrow-identify)
-(provide default-dia-node-margin create-dia-node)
+(provide default-diacls-block-identify default-diacls-track-identify)
+(provide default-dia-block-margin create-dia-block)
 
 (require geofun/paint)
 
@@ -19,8 +19,8 @@
 (require geofun/digitama/layer/type)
 
 (require "digitama/base.rkt")
-(require "digitama/path/sticker.rkt")
-(require "digitama/path/self.rkt")
+(require "digitama/track/sticker.rkt")
+(require "digitama/track/self.rkt")
 
 (require "digitama/class/self.rkt")
 (require "digitama/class/style.rkt")
@@ -43,7 +43,7 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-path pid gw gh ts home anchor ((default-diacls-block-width)))]
+       (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diacls-block-width)))]
               [dia (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
            (dia-path-simple-class dia args ...))))]))
@@ -59,28 +59,28 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
-           #:λblock [block-detect : Dia-Path-Block-Identifier default-diacls-block-identify]
-           #:λarrow [arrow-detect : Dia-Path-Arrow-Identifier default-diacls-arrow-identify]
-           #:λnode [make-node : (Option Dia-Path-Id->Node-Shape) #false]
-           #:λnode-label [make-node-label : Dia-Path-Id->Node-Label default-dia-path-node-label-construct]
+           #:block-detect [block-detect : Dia-Block-Identifier default-diacls-block-identify]
+           #:track-detect [track-detect : Dia-Track-Identifier default-diacls-track-identify]
+           #:λblock [make-block : (Option Dia-Anchor->Block) #false]
+           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
            #:relationship [class-type : (Option DiaCls-RelationShip-Identifier) (default-diacls-relationship-identifier)]
-           #:λedge [make-edge : Dia-Path-Arrow->Edge default-dia-path-edge-construct]
-           #:λedge-label [make-edge-label : Dia-Path-Arrow->Edge-Label default-dia-path-edge-label-construct]
-           #:λfree-edge [make-free-track : Dia-Path-Free-Track->Edge default-dia-path-free-edge-construct]
-           #:λfree-edge-label [make-free-label : Dia-Path-Free-Track->Edge-Label default-dia-path-free-edge-label-construct]
+           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
+           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
+           #:λfree-path [make-free-track : Dia-Free-Track->Path default-dia-free-track->path]
+           #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
            [self : Geo:Track]] : (U Dia:Class Geo:Track)
-    (parameterize ([default-dia-node-base-style make-diacls-node-fallback-style]
-                   [default-dia-edge-base-style make-diacls-edge-fallback-style]
+    (parameterize ([default-dia-block-base-style make-diacls-block-fallback-style]
+                   [default-dia-track-base-style make-diacls-track-fallback-style]
                    [default-diacls-relationship-identifier class-type]
                    [current-master-track self])
-      (define-values (nodes edges)
-        (dia-path-stick self block-detect make-node make-node-label #false
-                        arrow-detect make-edge make-edge-label
+      (define-values (blocks paths)
+        (dia-path-stick self block-detect make-block make-brief #false
+                        track-detect make-path make-label
                         make-free-track make-free-label (default-diacls-free-track-style-make)
-                        default-diacls-node-fallback-construct make-diacls-free-track-style
+                        default-diacls-block-fallback-construct make-diacls-free-track-style
                         (geo:track-foot-infos self) ignore))
-      (define stickers : (Listof (GLayerof Geo)) (append nodes edges))
+      (define stickers : (Listof (GLayerof Geo)) (append blocks paths))
 
       (if (pair? stickers)
           (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])

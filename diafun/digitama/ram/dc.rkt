@@ -35,13 +35,13 @@
            [ram : Bytes] [base : Positive-Byte]
            [start : Nonnegative-Fixnum 0] [maybe-end : Nonnegative-Fixnum (bytes-length ram)]] : (Listof RAM-Variable)
     (define end : Index (if (<= maybe-end (bytes-length ram)) maybe-end (bytes-length ram)))
-    (define font : (Option Font) (dia-node-select-font style))
-    (define color : Option-Fill-Paint (dia-node-select-font-paint style))
-    (define loc-stroke : Maybe-Stroke-Paint (dia-node-select-stroke-paint style))
-    (define loc-fill : Maybe-Fill-Paint (dia-node-select-fill-paint style))
+    (define font : (Option Font) (dia-block-select-font style))
+    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
+    (define loc-stroke : Maybe-Stroke-Paint (dia-block-select-stroke-paint style))
+    (define loc-fill : Maybe-Fill-Paint (dia-block-select-fill-paint style))
     (define igr-color : Option-Fill-Paint
-      (dia-node-select-font-paint (ram-location-style-ignored-paint style)
-                                  ram-location-fallback-style? ram-location-base-style-ignored-paint))
+      (dia-block-select-font-paint (ram-location-style-ignored-paint style)
+                                   ram-location-fallback-style? ram-location-base-style-ignored-paint))
 
     (let gen-row ([idx : Nonnegative-Fixnum start]
                   [swor : (Listof RAM-Variable) null])
@@ -59,7 +59,7 @@
                    (geo-text binary-desc font #:lines '(line-through) #:color igr-color))
                   (geo-text binary-desc font #:color color)))
             
-            (define-values (loc-width loc-height) (dia-node-smart-size label style))
+            (define-values (loc-width loc-height) (dia-block-smart-size label style))
             (define loc-box : Geo (geo-rectangle #:id (ram-address->id address) #:stroke loc-stroke #:fill loc-fill loc-width loc-height))
             (define-values (var addr)
               (if (= idx start)
@@ -80,15 +80,15 @@
            [style : RAM-Location-Style] [id : Symbol] [address : Natural] [mask : Natural]
            [datum : Any] [base : Positive-Byte]] : (List RAM-Variable)
     (define datum-desc : String (ram-datum->string style datum base mask))
-    (define font : (Option Font) (dia-node-select-font style))
-    (define color : Option-Fill-Paint (dia-node-select-font-paint style))
-    (define label : (Option Geo) (dia-node-text-label id datum-desc style #:color color #:font font))
-    (define-values (loc-width loc-height) (dia-node-smart-size label style))
+    (define font : (Option Font) (dia-block-select-font style))
+    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
+    (define label : (Option Geo) (dia-block-text-brief id datum-desc style #:color color #:font font))
+    (define-values (loc-width loc-height) (dia-block-smart-size label style))
     
     (define loc-box : Geo
       (geo-rectangle #:id (ram-address->id address)
-                     #:stroke (dia-node-select-stroke-paint style)
-                     #:fill (dia-node-select-fill-paint style)
+                     #:stroke (dia-block-select-stroke-paint style)
+                     #:fill (dia-block-select-fill-paint style)
                      loc-width loc-height))
 
     (define-values (var addr)
@@ -96,48 +96,48 @@
                         #:lines (if (and rsegment (not (eq? vsegment rsegment))) '(line-through) null)
                         id font)
               (geo-text #:lines '(line-through)
-                        #:color (dia-node-select-font-paint (ram-location-style-ignored-paint style)
-                                                            ram-location-fallback-style?
-                                                            ram-location-base-style-ignored-paint)
+                        #:color (dia-block-select-font-paint (ram-location-style-ignored-paint style)
+                                                             ram-location-fallback-style?
+                                                             ram-location-base-style-ignored-paint)
                         (ram-address->string address mask) font)))
     
     (list (RAM-Variable var addr label loc-box))))
 
 (define dia-padding-raw
   (lambda [[style : RAM-Location-Style] [addr0 : Index] [mask : Natural]
-           [ram : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof RAM-Variable)
+                                        [ram : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof RAM-Variable)
     (define size : Index (bytes-length ram))
     (define limit : Index (min size (or maybe-limit size)))
-    (define font : (Option Font) (dia-node-select-font style))
-    (define color : Option-Fill-Paint (dia-node-select-font-paint style))
-    (define loc-stroke : Maybe-Stroke-Paint (dia-node-select-stroke-paint style))
-    (define loc-fill : Maybe-Fill-Paint (dia-node-select-fill-paint style))
+    (define font : (Option Font) (dia-block-select-font style))
+    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
+    (define loc-stroke : Maybe-Stroke-Paint (dia-block-select-stroke-paint style))
+    (define loc-fill : Maybe-Fill-Paint (dia-block-select-fill-paint style))
 
     (let gen-row ([idx : Nonnegative-Fixnum 0]
                   [swor : (Listof RAM-Variable) null])
-        (if (and (< idx size) (<= idx limit))
-            (let*-values ([(address raw-datum) (values (+ addr0 idx) (bytes-ref ram idx))])
-              (define datum-desc : String
-                (if (< idx limit)
-                    (case base
-                      [(16) (~r raw-datum #:base '(up 16) #:min-width 2 #:pad-string "0")]
-                      [(8)  (~r raw-datum #:base 8        #:min-width 3 #:pad-string "0")]
-                      [else (byte->binstring raw-datum 8)])
-                    (format "(+~a)" (- size limit))))
+      (if (and (< idx size) (<= idx limit))
+          (let*-values ([(address raw-datum) (values (+ addr0 idx) (bytes-ref ram idx))])
+            (define datum-desc : String
+              (if (< idx limit)
+                  (case base
+                    [(16) (~r raw-datum #:base '(up 16) #:min-width 2 #:pad-string "0")]
+                    [(8)  (~r raw-datum #:base 8        #:min-width 3 #:pad-string "0")]
+                    [else (byte->binstring raw-datum 8)])
+                  (format "(+~a)" (- size limit))))
 
-              (define label : Geo (geo-text datum-desc font #:color color))
-              (define-values (loc-width loc-height) (dia-node-smart-size label style))
-              (define addr : Geo (geo-text (ram-address->string address mask) font #:color color))
-              (define loc-box : Geo
-                (geo-rectangle #:id (ram-address->id address)
-                               #:stroke loc-stroke
-                               #:fill loc-fill
-                               loc-width loc-height))
+            (define label : Geo (geo-text datum-desc font #:color color))
+            (define-values (loc-width loc-height) (dia-block-smart-size label style))
+            (define addr : Geo (geo-text (ram-address->string address mask) font #:color color))
+            (define loc-box : Geo
+              (geo-rectangle #:id (ram-address->id address)
+                             #:stroke loc-stroke
+                             #:fill loc-fill
+                             loc-width loc-height))
               
-              (gen-row (+ idx 1)
-                       (cons (RAM-Variable #false addr label loc-box)
-                             swor)))
-            swor))))
+            (gen-row (+ idx 1)
+                     (cons (RAM-Variable #false addr label loc-box)
+                           swor)))
+          swor))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-variable-data
@@ -195,7 +195,7 @@
               address)
           
           (if (or datum)
-              (let ([fit-label (geo-fit datum shape 1.0 1.0 (default-dia-node-margin))])
+              (let ([fit-label (geo-fit datum shape 1.0 1.0 (default-dia-block-margin))])
                 (geo-cc-superimpose shape fit-label))
               shape))))
 

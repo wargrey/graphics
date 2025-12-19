@@ -8,8 +8,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Tip-Placement (U 'inside 'outside 'center))
-(define-type Geo-Tip-Shape (U 'arrow 'diamond 'triangle 'dot 'point 'pixel 'bullet 'circle))
-(define-type Geo-Tip (U geo-tip Geo-Tip-Shape))
+(define-type Geo-Tip-Named-Shape (U 'arrow 'diamond 'triangle 'dot 'point 'pixel 'bullet 'circle))
+(define-type Geo-Tip (U geo-tip Geo-Tip-Named-Shape))
 (define-type Option-Geo-Tip (Option Geo-Tip))
 (define-type Maybe-Geo-Tip (U Option-Geo-Tip Void))
 
