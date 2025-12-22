@@ -46,7 +46,7 @@
        (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diacls-block-width)))]
               [dia (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
-           (dia-path-simple-class dia args ...))))]))
+           (dia-track-simple-class dia args ...))))]))
 
 (define-syntax (define-simple-class! stx)
   (syntax-parse stx #:literals []
@@ -55,7 +55,7 @@
        (define name (make-simple-class! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-path-simple-class
+(define dia-track-simple-class
   (lambda [#:id [id : (Option Symbol) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
@@ -75,11 +75,11 @@
                    [default-diacls-relationship-identifier class-type]
                    [current-master-track self])
       (define-values (blocks paths)
-        (dia-path-stick self block-detect make-block make-brief #false
-                        track-detect make-path make-label
-                        make-free-track make-free-label (default-diacls-free-track-style-make)
-                        default-diacls-block-fallback-construct make-diacls-free-track-style
-                        (geo:track-foot-infos self) ignore))
+        (dia-track-stick self block-detect make-block make-brief #false
+                         track-detect make-path make-label
+                         make-free-track make-free-label (default-diacls-free-track-style-make)
+                         default-diacls-block-fallback-construct make-diacls-free-track-style
+                         (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append blocks paths))
 
       (if (pair? stickers)

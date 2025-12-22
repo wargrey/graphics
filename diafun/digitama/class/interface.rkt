@@ -9,7 +9,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diacls-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id label style width height direction hint]
+  (lambda [id label style width height direction subtype]
     (case/eq (object-name style)
-             [(diacls-interface-style) (diacls-block-interface id label style width height direction hint)]
-             [(diacls-class-style)     (diacls-block-class id label style width height direction hint)])))
+             [(diacls-interface-style) (diacls-block-interface id label style width height direction subtype)]
+             [(diacls-class-style)     (diacls-block-class id label style width height direction subtype)])))

@@ -16,19 +16,26 @@
 (require "../block/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Block-Info (List String Dia-Block-Style (Option Symbol)))
+(define-type (Dia-Block-Info* Brief Urgent) (List Brief Dia-Block-Style Urgent))
+(define-type (Dia-Block-Identifier* Brief Urgent) (-> Geo-Anchor-Name (Option (Dia-Block-Info* Brief Urgent))))
+(define-type (Dia-Anchor->Brief* Urgent) (-> Symbol DC-Markup-Text Dia-Block-Style Urgent (Option Geo)))
+(define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
 
-(define-type Dia-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Block-Info)))
-(define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
-(define-type Dia-Block-Create (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Block))
-(define-type Dia-Block-Describe (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
-(define-type Dia-Anchor->Brief (-> Symbol DC-Markup-Text Dia-Block-Style (Option Symbol) (Option Geo)))
-
-(define-type Dia-Anchor->Block
-  (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
+(define-type (Dia-Anchor->Block* Urgent)
+  (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
       (U Void  ; use default
          False ; invisible block
          Dia:Block)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Dia-Block-Info (Dia-Block-Info* String (Option Symbol)))
+
+(define-type Dia-Block-Identifier (Dia-Block-Identifier* String (Option Symbol)))
+(define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
+(define-type Dia-Block-Describe (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
+(define-type Dia-Anchor->Brief (Dia-Anchor->Brief* (Option Symbol)))
+(define-type Dia-Block-Create (Dia-Block-Create* (Option Symbol)))
+(define-type Dia-Anchor->Block (Dia-Anchor->Block* (Option Symbol)))
 
 (define-type Dia-Track->Path
   (-> Dia:Block (Option Dia:Block) Dia-Track-Style
@@ -51,8 +58,8 @@
       (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-dia-anchor->brief : Dia-Anchor->Brief
-  (lambda [id desc style hint]
+(define #:forall (D) default-dia-anchor->brief : (Dia-Anchor->Brief* D)
+  (lambda [id desc style datum]
     (dia-block-text-brief id desc style)))
 
 (define default-dia-track->path : Dia-Track->Path
@@ -96,10 +103,18 @@
                           label base-position)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S B U) dia-block-info* : (-> Geo-Anchor-Name B
+                                               (Option (Dia-Block-Style-Make* (∩ S Dia-Block-Style) U))
+                                               (-> (∩ S Dia-Block-Style))
+                                               U
+                                               (Dia-Block-Info* B U))
+  (lambda [anchor text mk-style mk-fallback-style datum]
+    (list text (dia-block-style-construct anchor mk-style mk-fallback-style datum) datum)))
+
 (define #:forall (S) dia-block-info : (->* (Geo-Anchor-Name String
                                                             (Option (Dia-Block-Style-Make* (∩ S Dia-Block-Style) (Option Symbol)))
                                                             (-> (∩ S Dia-Block-Style)))
                                            ((Option Symbol))
                                            Dia-Block-Info)
-  (lambda [anchor text mk-style mk-fallback-style [hint #false]]
-    (list text (dia-block-style-construct anchor mk-style mk-fallback-style hint) hint)))
+  (lambda [anchor text mk-style mk-fallback-style [datum #false]]
+    (dia-block-info* anchor text mk-style mk-fallback-style datum)))

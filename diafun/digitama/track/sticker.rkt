@@ -41,14 +41,14 @@
                          [sofni : (Listof Dia-Track-Label-Info) rinfos])
          (if (pair? sofni)
              (let ([label (apply make-label source target edge-style (car sofni))])
-               (info->label (dia-cons-labels label labels) (cdr sofni)))
+               (info->label (dia-labels-cons label labels) (cdr sofni)))
              labels)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-path-stick
+(define #:forall (S) dia-track-stick
   (lambda [[master : Geo:Track]
            [block-identify : Dia-Block-Identifier] [make-block : (Option Dia-Anchor->Block)]
-           [make-block->brief : Dia-Anchor->Brief] [block-desc : (Option Dia-Block-Describe)]
+           [anchor->brief : Dia-Anchor->Brief] [block-desc : (Option Dia-Block-Describe)]
            [track-identify : Dia-Track-Identifier] [make-track : Dia-Track->Path] [make-track-label : Dia-Track->Label]
            [make-free-track : Dia-Free-Track->Path] [make-free-label : Dia-Free-Track->Label]
            [make-free-style : (Option (Dia-Track-Style-Make* Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint (∩ Dia-Track-Style S)))]
@@ -76,7 +76,7 @@
               (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
                     [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-block (dia-make-block-layer block-identify make-block make-block->brief block-desc
+                                 [new-block (dia-block-layer-make block-identify make-block anchor->brief block-desc
                                                                   fallback-block anchor next-pt direction ignore)])
                             (values new-block (hash-set blocks anchor new-block)))]))
             
@@ -92,15 +92,15 @@
                             (stick rest tracks++ blocks++ (list self) source next-pt))]
                          [else (stick rest tracks blocks++ prints++ source next-pt)])]
                    
-                   [(eq? (gpath:datum-cmd self) #\M)
-                    (let ([ct (gpp-cleanse prints++)])
-                      (if (and (pair? ct) (pair? (cdr ct)))
-                          (let ([tracks++ (dia-free-track-cons anchor-base ct make-free-track tracks make-free-label infobase
-                                                               make-free-style fallback-free-style)])
-                            (stick rest tracks++ blocks++ null #false next-pt))
-                          (stick rest tracks blocks null #false next-pt)))]
+                  [(eq? (gpath:datum-cmd self) #\M)
+                   (let ([ct (gpp-cleanse prints++)])
+                     (if (and (pair? ct) (pair? (cdr ct)))
+                         (let ([tracks++ (dia-free-track-cons anchor-base ct make-free-track tracks make-free-label infobase
+                                                              make-free-style fallback-free-style)])
+                           (stick rest tracks++ blocks++ null #false next-pt))
+                         (stick rest tracks blocks null #false next-pt)))]
 
-                   [else (stick rest tracks blocks prints++ target next-pt)]))
+                  [else (stick rest tracks blocks prints++ target next-pt)]))
 
           (values
            (let sort : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
@@ -229,44 +229,44 @@
     (if (geo? track) (cons (geo-path-self-pin-layer track) tracks) tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-make-block : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
-                            Dia-Anchor->Block Geo-Anchor-Name (Option Flonum) (Listof Symbol)
-                            (Option Dia:Block))
+(define dia-block-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+                             Dia-Anchor->Block Geo-Anchor-Name (Option Flonum) (Listof Symbol)
+                             (Option Dia:Block))
   (lambda [block-identify make-block make-brief block-desc fallback-block anchor direction ignore]
-    (define blk-datum (block-identify anchor))
+    (define blk-info (block-identify anchor))
 
-    (and blk-datum
+    (and blk-info
          (let-values ([(id) (geo-anchor->symbol anchor)]
-                      [(style hint) (values (cadr blk-datum) (caddr blk-datum))])
+                      [(text style datum) (values (car blk-info) (cadr blk-info) (caddr blk-info))])
            (define maybe-desc : (U DC-Markup-Text Void False)
              (and block-desc
                   (if (hash? block-desc)
                       (hash-ref block-desc anchor (λ [] #false))
-                      (block-desc anchor (car blk-datum)))))
+                      (block-desc anchor text))))
            
-           (define brief : (Option Geo) (make-brief id (if (dc-markup-text? maybe-desc) maybe-desc (car blk-datum)) style hint))
+           (define brief : (Option Geo) (make-brief id (if (dc-markup-text? maybe-desc) maybe-desc text) style datum))
            (define-values (width height) (dia-block-smart-size brief style))
            (define block : (U Dia:Block Void False)
              (cond [(memq id ignore) #false]
                    [(not make-block) (void)]
-                   [else (make-block id brief style width height direction hint)]))
+                   [else (make-block id brief style width height direction datum)]))
 
            (if (void? block)
-               (let ([fallback-block (fallback-block id brief style width height direction hint)])
+               (let ([fallback-block (fallback-block id brief style width height direction datum)])
                  (and (dia:block? fallback-block)
                       fallback-block))
                block)))))
 
-(define dia-make-block-layer : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
-                                  Dia-Anchor->Block Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
-                                  (Option (GLayerof Dia:Block)))
+(define dia-block-layer-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+                                   Dia-Anchor->Block Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
+                                   (Option (GLayerof Dia:Block)))
   (lambda [block-identify make-block make-brief block-desc fallback-block anchor position direction ignore]
-    (define maybe-block (dia-make-block block-identify make-block make-brief block-desc fallback-block anchor direction ignore))
+    (define maybe-block (dia-block-make block-identify make-block make-brief block-desc fallback-block anchor direction ignore))
 
     (and maybe-block
          (geo-own-pin-layer 'cc position maybe-block 0.0+0.0i))))
 
-(define dia-cons-labels : (-> (U (Listof Geo:Path:Label) Geo:Path:Label Void False) (Listof Geo:Path:Label) (Listof Geo:Path:Label))
+(define dia-labels-cons : (-> (U (Listof Geo:Path:Label) Geo:Path:Label Void False) (Listof Geo:Path:Label) (Listof Geo:Path:Label))
   (lambda [label alabels]
     (cond [(list? label) (append label alabels)]
           [(geo:path:label? label) (cons label alabels)]

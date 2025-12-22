@@ -28,12 +28,12 @@
               (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-              (~optional (~seq #:position wpos hpos (~optional (~seq lwpos lhpos)))
-                         #:defaults ([wpos #'0.5] [hpos #'0.5] [lwpos #'0.5] [lhpos #'0.5]))) ...
-        shape label argl ...)
+              (~optional (~seq #:position block-wpos block-hpos (~optional (~seq brief-wpos brief-hpos)))
+                         #:defaults ([block-wpos #'0.5] [block-hpos #'0.5] [brief-wpos #'0.5] [brief-hpos #'0.5]))) ...
+        shape brief argl ...)
      (syntax/loc stx
        (create-geometry-group Geo name base-op op #:outline (geo-outline shape)
-                              (dia-block-layers label shape wratio hratio wpos hpos lwpos lhpos)
+                              (dia-block-layers brief shape wratio hratio block-wpos block-hpos brief-wpos brief-hpos)
                               intersect type subtype
                               argl ...))]))
 
@@ -129,8 +129,9 @@
 (define dia-block-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum
                                Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
                                (GLayer-Groupof Geo))
-  (lambda [label shape wratio hratio wpos hpos lwpos lhpos]
-    (cond [(not label) (geo-own-layers shape)]
-          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape label wpos hpos lwpos lhpos)]
-          [else (let ([fit-label (geo-fit label shape wratio hratio (default-dia-block-margin))])
-                  (geo-composite-layers shape fit-label wpos hpos lwpos lhpos))])))
+  (lambda [brief shape wratio hratio block-wpos block-hpos brief-wpos brief-hpos]
+    (cond [(not brief) (geo-own-layers shape)]
+          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape brief block-wpos block-hpos brief-wpos brief-hpos)]
+          [else (let ([fit-brief (geo-fit brief shape wratio hratio (default-dia-block-margin))])
+                  (cond [(not fit-brief) (geo-own-layers shape)]
+                        [else (geo-composite-layers shape fit-brief block-wpos block-hpos brief-wpos brief-hpos)]))])))

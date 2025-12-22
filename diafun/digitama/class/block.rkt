@@ -13,8 +13,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diacls-block-interface : Dia-Block-Create
-  (lambda [block-key brief style width height direction hint]
-    (create-dia-block #:id block-key #:type 'Interface hint
+  (lambda [block-key brief style width height direction subtype]
+    (create-dia-block #:id block-key #:type 'Interface subtype
                       #:fit-ratio 0.85 1.0
                       (geo-rectangle #:id (dia-block-shape-id block-key)
                                      #:stroke (dia-block-select-stroke-paint style)
@@ -27,8 +27,8 @@
                                           brief)))))
 
 (define diacls-block-class : Dia-Block-Create
-  (lambda [block-key brief style width height direction hint]
-    (create-dia-block #:id block-key #:type 'Class hint
+  (lambda [block-key brief style width height direction subtype]
+    (create-dia-block #:id block-key #:type 'Class subtype
                       #:fit-ratio 0.85 1.0
                       (geo-rectangle #:id (dia-block-shape-id block-key)
                                      #:stroke (dia-block-select-stroke-paint style)

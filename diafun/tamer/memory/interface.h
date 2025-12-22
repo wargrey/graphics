@@ -13,6 +13,7 @@
 #define define_const(type, name, datum) const type name = datum; register_variable(#name, #type, &name, "stack")
 #define define_bss(type, name) static type name; register_variable(#name, #type, &name, "bss")
 #define define_static(type, name, datum) static type name = datum; register_variable(#name, #type, &name, "data")
+#define define_string_literal(name, datum) const char* name = datum; register_array(#name, "char", name, "rodata", strlen(name))
 
 #define watch_proc(name) register_variable(#name, "uintptr_t", &name, "text")
 #define watch_text(type, name) register_variable(#name, #type, &name, "rodata")

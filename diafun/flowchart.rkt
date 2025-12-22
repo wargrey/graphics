@@ -43,7 +43,7 @@
        (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diaflow-block-width)))]
               [chart (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
-           (dia-path-flow chart args ...))))]))
+           (dia-track-flow chart args ...))))]))
 
 (define-syntax (define-flowchart! stx)
   (syntax-parse stx #:literals []
@@ -52,7 +52,7 @@
        (define name (make-flowchart! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-path-flow
+(define dia-track-flow
   (lambda [#:id [id : (Option Symbol) #false] #:start-name [start : (Option String) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
@@ -72,11 +72,11 @@
                    [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-track self])
       (define-values (blocks tracks)
-        (dia-path-stick self block-detect make-block make-brief block-desc
-                        track-detect make-path make-label
-                        make-free-path make-free-label (default-diaflow-free-track-style-make)
-                        default-diaflow-block-fallback-construct make-diaflow-free-track-style
-                        (geo:track-foot-infos self) ignore))
+        (dia-track-stick self block-detect make-block make-brief block-desc
+                         track-detect make-path make-label
+                         make-free-path make-free-label (default-diaflow-free-track-style-make)
+                         default-diaflow-block-fallback-construct make-diaflow-free-track-style
+                         (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append tracks blocks))
 
       (if (pair? stickers)
@@ -105,10 +105,10 @@
                    [default-dia-block-margin (* (default-dia-block-margin) ns)]
                    [default-dia-block-base-style make-diaflow-block-fallback-style]
                    [current-master-track #false])
-      (dia-make-block block-detect make-block make-brief block-desc
-                     default-diaflow-block-fallback-construct
-                     (cond [(symbol? caption) caption]
-                           [(keyword? caption) caption]
-                           [(string? caption) (string->symbol caption)]
-                           [else (string->symbol (format "~a" caption))])
-                     direction null))))
+      (dia-block-make block-detect make-block make-brief block-desc
+                      default-diaflow-block-fallback-construct
+                      (cond [(symbol? caption) caption]
+                            [(keyword? caption) caption]
+                            [(string? caption) (string->symbol caption)]
+                            [else (string->symbol (format "~a" caption))])
+                      direction null))))

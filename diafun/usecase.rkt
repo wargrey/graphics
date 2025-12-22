@@ -45,7 +45,7 @@
        (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diauc-block-width)))]
               [dia (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
-           (dia-path-use-case dia args ...))))]))
+           (dia-track-use-case dia args ...))))]))
 
 (define-syntax (define-use-case! stx)
   (syntax-parse stx #:literals []
@@ -54,7 +54,7 @@
        (define name (make-use-case! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-path-use-case
+(define dia-track-use-case
   (lambda [#:id [id : (Option Symbol) #false]
            #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
            #:operator [sibs-op : (Option Geo-Pin-Operator) #false] 
@@ -75,11 +75,11 @@
                    [default-dia-track-base-style make-diauc-track-fallback-style]
                    [current-master-track self])
       (define-values (blocks paths)
-        (dia-path-stick self block-detect make-block make-brief block-desc
-                        track-detect make-path make-label
-                        make-free-track make-free-label (default-diauc-free-track-style-make)
-                        default-diauc-block-fallback-construct make-diauc-free-track-style
-                        (geo:track-foot-infos self) ignore))
+        (dia-track-stick self block-detect make-block make-brief block-desc
+                         track-detect make-path make-label
+                         make-free-track make-free-label (default-diauc-free-track-style-make)
+                         default-diauc-block-fallback-construct make-diauc-free-track-style
+                         (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append paths blocks))
 
       (if (pair? stickers)

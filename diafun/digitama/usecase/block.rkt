@@ -16,7 +16,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diauc-block-actor : Dia-Block-Create
-  (lambda [block-key brief style width height direction hint]
+  (lambda [block-key brief style width height direction subtype]
     (define head-color : Maybe-Fill-Paint (dia-block-select-fill-paint style))
     (define body-color (if (color? head-color) (rgb-transform-scale head-color 0.75) head-color))
     
@@ -29,17 +29,17 @@
                     #:arm-color head-color
                     height))
     
-    (create-dia-block #:id block-key #:type 'Actor hint
+    (create-dia-block #:id block-key #:type 'Actor subtype
                       (if (not brief) stickman (geo-vc-append stickman brief))
                       #false)))
 
 (define diauc-block-ucase : Dia-Block-Create
-  (lambda [block-key brief style width height direction hint]
+  (lambda [block-key brief style width height direction subtype]
     (define pen (dia-block-select-stroke-paint style))
     (define thickness (pen-maybe-width pen))
     
     (create-dia-block #:block dia:block:ellipse
-                      #:id block-key #:type 'UseCase hint
+                      #:id block-key #:type 'UseCase subtype
                       #:intersect dia-ellipse-intersect
                       #:fit-ratio 0.81 0.81
                       (geo-ellipse #:id (dia-block-shape-id block-key)

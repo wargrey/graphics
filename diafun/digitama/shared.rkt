@@ -16,4 +16,6 @@
 
 (define default-track-stroke : Pen (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
 (define default-block-stroke : Pen (desc-stroke #:width 2.0 #:color 'DarkGrey))
+(define default-cell-stroke : Pen (desc-stroke #:width 1.0 #:color 'Silver))
+
 (define default-black-stroke : Pen (desc-stroke #:width 2.0 #:color 'Black))

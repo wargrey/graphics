@@ -9,7 +9,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diauc-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id label style width height direction hint]
+  (lambda [id label style width height direction subtype]
     (case/eq (object-name style)
-             [(diauc-actor-style) (diauc-block-actor id label style width height direction hint)]
-             [(diauc-ucase-style) (diauc-block-ucase id label style width height direction hint)])))
+             [(diamtx-body-style) (diauc-block-ucase id label style width height direction subtype)]
+             [(diamtx-row-head-style) (diauc-block-actor id label style width height direction subtype)]
+             [(diamtx-column-head-style) (diauc-block-ucase id label style width height direction subtype)])))

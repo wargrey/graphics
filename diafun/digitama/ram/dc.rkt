@@ -196,7 +196,8 @@
           
           (if (or datum)
               (let ([fit-label (geo-fit datum shape 1.0 1.0 (default-dia-block-margin))])
-                (geo-cc-superimpose shape fit-label))
+                (cond [(not fit-label) shape]
+                      [else (geo-cc-superimpose shape fit-label)]))
               shape))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

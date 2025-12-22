@@ -99,13 +99,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflowlet-block-construct : Dia-Anchor->Block
-  (lambda [id brief style width height direction hint]
+  (lambda [id brief style width height direction subtype]
     (case/eq (object-name style)
-             [(diaflow-process-style) (diaflowlet-block-process  id brief style width height direction hint)]
-             [(diaflow-start-style)   (diaflowlet-block-terminal id brief style width height direction hint)]
-             [(diaflow-stop-style)    (diaflowlet-block-terminal id brief style width height direction hint)]
-             [(diaflow-storage-style) (when (eq? hint 'File)
-                                        (diaflowlet-block-document id brief style width height direction hint))])))
+             [(diaflow-process-style) (diaflowlet-block-process  id brief style width height direction subtype)]
+             [(diaflow-start-style)   (diaflowlet-block-terminal id brief style width height direction subtype)]
+             [(diaflow-stop-style)    (diaflowlet-block-terminal id brief style width height direction subtype)]
+             [(diaflow-storage-style) (when (eq? subtype 'File)
+                                        (diaflowlet-block-document id brief style width height direction subtype))])))
 
 (define diaflowlet-arrow-identify : Dia-Track-Identifier
   (lambda [source target labels extra]
@@ -113,7 +113,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflowlet-block-process : Dia-Block-Create
-  (lambda [id brief style width height direction hint]
+  (lambda [id brief style width height direction subtype]
     (define fbox : Geo:Sandglass
       (geo-sandglass #:fill (dia-block-select-fill-paint style)
                      #:stroke (dia-block-select-stroke-paint style)
@@ -121,20 +121,20 @@
                      (* width 0.25)))
     
     (if (or (not direction) (not (zero? direction)))
-        (create-dia-block #:id id #:type 'Process hint #:fit-ratio 1.00 0.36 #:position 0.50 0.20 fbox brief)
-        (create-dia-block #:id id #:type 'Process hint #:fit-ratio 1.00 0.64 #:position 0.50 0.48 (geo-rotate fbox (- direction (* pi 0.5))) brief))))
+        (create-dia-block #:id id #:type 'Process subtype #:fit-ratio 1.00 0.36 #:position 0.50 0.20 fbox brief)
+        (create-dia-block #:id id #:type 'Process subtype #:fit-ratio 1.00 0.64 #:position 0.50 0.48 (geo-rotate fbox (- direction (* pi 0.5))) brief))))
 
 (define diaflowlet-block-terminal : Dia-Block-Create
-  (lambda [id brief style width height direction hint]
+  (lambda [id brief style width height direction subtype]
     (create-dia-block #:id id #:type 'Storage #false
                       (geo-blank) #false)))
 
 (define diaflowlet-block-document : Dia-Block-Create
-  (lambda [block-key brief style width height direction hint]
+  (lambda [block-key brief style width height direction subtype]
     (define hratio : Nonnegative-Flonum 0.85)
     (define xpos : Nonnegative-Flonum (max (* (/ (default-dia-block-margin) width)  0.5) 0.0))
     (define ypos : Nonnegative-Flonum (max (* (/ (default-dia-block-margin) height) 0.5) 0.0))
-    (create-dia-block #:id block-key #:type 'Storage hint
+    (create-dia-block #:id block-key #:type 'Storage subtype
                       #:fit-ratio 1.0 hratio
                       #:position xpos ypos 0.0 0.0
                       (geo-document #:id (dia-block-shape-id block-key)

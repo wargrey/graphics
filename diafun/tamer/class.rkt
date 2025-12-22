@@ -6,7 +6,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define class-color : (Dia-Block-Style-Make DiaCls-Class-Style)
-  (lambda [anchor hint]
+  (lambda [anchor datum]
     (cond [(memq anchor '(Sprite Atlas Tracklet Continent Dimensionlet))
            (make-diacls-class-style #:fill-paint 'RoyalBlue)]
           [(memq anchor '(IPlotlet IShapelet ICanvaslet ITextlet IValuelet))

@@ -68,19 +68,19 @@
                    [default-diaflow-storage-arrow-label-rotate? rotation?]
                    [default-dia-block-text-alignment 'left]
                    [default-dia-block-text-trim? #false])
-      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
 
       (if (or downward?)
           (for ([idx (in-range (+ repeats 1))]
                 [r (in-list funcs)])
             (if (< idx repeats)
                 (let ([f-anchor (diaflowlet-function->anchor r)])
-                  (with-gomamon! path
+                  (with-gomamon! self
                     (move-down ystep f-anchor (if (> idx 0) (diaflowlet-output-desc (r in) alt-out) in-desc))
                     (jump-left (* xstep offset))
                     (jump-up (* ystep (if (> idx 0) 0.5 0.618)) (diaflowlet-file-anchor in peek-size))
                     (jump-to f-anchor)))
-                (with-gomamon! path
+                (with-gomamon! self
                   (move-down ystep '$ (diaflowlet-output-desc (r in) alt-out))
                   (jump-left (* xstep offset))
                   (jump-up (* ystep 0.382) (diaflowlet-file-anchor in peek-size)))))
@@ -88,22 +88,22 @@
                 [r (in-list funcs)])
             (if (< idx repeats)
                 (let ([f-anchor (diaflowlet-function->anchor r)])
-                  (gomamon-move-right! path xstep f-anchor (if (> idx 0) (diaflowlet-output-desc (r in) alt-out) in-desc))
-                  (with-gomamon! path
+                  (gomamon-move-right! self xstep f-anchor (if (> idx 0) (diaflowlet-output-desc (r in) alt-out) in-desc))
+                  (with-gomamon! self
                     (jump-down (* ystep offset))
                     (jump-left (* xstep (if (> idx 0) 0.5 0.618)) (diaflowlet-file-anchor in peek-size))
                     (jump-to f-anchor)))
-                (with-gomamon! path
+                (with-gomamon! self
                   (move-right xstep '$ (diaflowlet-output-desc (r in) alt-out))
                   (jump-down (* ystep offset))
                   (jump-left (* xstep 0.382) (diaflowlet-file-anchor in peek-size))))))
             
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -136,22 +136,22 @@
                    [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       
       (if (or downward?)
-          (with-gomamon! path
+          (with-gomamon! self
             (move-down ystep (diaflowlet-function->anchor f) (diaflowlet-input-desc in alt-in))
             (move-down ystep '$ (diaflowlet-output-desc alt-out f in)))
-          (with-gomamon! path
+          (with-gomamon! self
             (move-right xstep (diaflowlet-function->anchor f) (diaflowlet-input-desc in alt-in))
             (move-right xstep '$ (diaflowlet-output-desc alt-out f in))))
       
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -186,28 +186,28 @@
                    [default-diaflow-storage-font (or block-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
 
       (if (or downward?)
           (let ([out (for/fold ([v : T in])
                                ([f (in-list funcs)]
                                 [idx (in-naturals)])
-                       (gomamon-move-down! path ystep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
+                       (gomamon-move-down! self ystep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
                        (f v))])
-            (gomamon-move-down! path ystep '$ (diaflowlet-output-desc out alt-out)))
+            (gomamon-move-down! self ystep '$ (diaflowlet-output-desc out alt-out)))
           (let ([out (for/fold ([v : T in])
                                ([f (in-list funcs)]
                                 [idx (in-naturals)])
-                       (gomamon-move-right! path xstep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
+                       (gomamon-move-right! self xstep (diaflowlet-function->anchor f) (if (> idx 0) (diaflowlet-output-desc v alt-out) in-desc))
                        (f v))])
-            (gomamon-move-right! path xstep '$ (diaflowlet-output-desc out alt-out))))
+            (gomamon-move-right! self xstep '$ (diaflowlet-output-desc out alt-out))))
             
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -249,37 +249,37 @@
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if and? '=* '-+))
       
       (if (or downward?)
           (let ([xjoin (* (sub1 size) xstep 0.5)])
-            (gomamon-jump-to! path (make-rectangular xjoin (* ystep 2.0)) symbol-anchor)
-            (gomamon-move-down! path (* ystep 0.5) '$)
+            (gomamon-jump-to! self (make-rectangular xjoin (* ystep 2.0)) symbol-anchor)
+            (gomamon-move-down! self (* ystep 0.5) '$)
             (for ([f (in-list funcs)]
                   [in (in-list ins)]
                   [idx (in-naturals)])
-              (with-gomamon! path
+              (with-gomamon! self
                 (jump-to (make-rectangular (* idx xstep) 0.0) (diaflowlet-start->anchor idx))
                 (move-down ystep (diaflowlet-function->anchor f) (diaflowlet-input-desc in (vector-ref in-descs idx)))
                 (L-step symbol-anchor (diaflowlet-output-desc (vector-ref out-descs idx) f in)))))
           (let ([yjoin (* (sub1 size) ystep 0.5)])
-            (gomamon-jump-to! path (make-rectangular (* xstep 2.0) yjoin) symbol-anchor)
-            (gomamon-move-right! path (* xstep 0.5) '$)
+            (gomamon-jump-to! self (make-rectangular (* xstep 2.0) yjoin) symbol-anchor)
+            (gomamon-move-right! self (* xstep 0.5) '$)
             (for ([f (in-list funcs)]
                   [in (in-list ins)]
                   [idx (in-naturals)])
-              (with-gomamon! path
+              (with-gomamon! self
                 (jump-to (make-rectangular 0.0 (* idx ystep)) (diaflowlet-start->anchor idx))
                 (move-right xstep (diaflowlet-function->anchor f) (diaflowlet-input-desc in (vector-ref in-descs idx)))
                 (T-step symbol-anchor (diaflowlet-output-desc (vector-ref out-descs idx) f in))))))
           
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -319,7 +319,7 @@
                    [default-diaflow-selection-block-height (* base-height 0.25)]
                    [default-diaflow-junction-block-height (* base-height 0.25)]
                    [default-diaflow-storage-arrow-label-rotate? rotation?])
-      (define path (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
+      (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:home base-width))
       (define symbol-anchor (if or? '-+ '=*))
       (define in-ratio (if downward? 1.0 0.85))
       (define din-ratio (* in-ratio 2.0))
@@ -327,34 +327,34 @@
       
       (if (or downward?)
           (let ([xfork (* (sub1 size) xstep 0.5)])
-            (gomamon-jump-right! path xfork '^)
-            (gomamon-move-down! path (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
-            (gomamon-move-down! path (* xstep in-ratio) symbol-anchor)
+            (gomamon-jump-right! self xfork '^)
+            (gomamon-move-down! self (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
+            (gomamon-move-down! self (* xstep in-ratio) symbol-anchor)
             (for ([out (in-list outs)]
                   [idx (in-naturals)])
-              (with-gomamon! path
+              (with-gomamon! self
                 (jump-to symbol-anchor)
                 (move-to (make-rectangular (* xstep idx) (* ystep din-ratio)))
                 (move-down (* ystep out-ratio) (diaflowlet-terminal->anchor idx)
                            (diaflowlet-output-desc (vector-ref out-descs idx) (inst car Out) out)))))
           (let ([yfork (* (sub1 size) ystep 0.5)])
-            (gomamon-jump-down! path yfork '^)
-            (gomamon-move-right! path (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
-            (gomamon-move-right! path (* xstep in-ratio) symbol-anchor)
+            (gomamon-jump-down! self yfork '^)
+            (gomamon-move-right! self (* xstep in-ratio) (diaflowlet-function->anchor f) alt-in)
+            (gomamon-move-right! self (* xstep in-ratio) symbol-anchor)
             (for ([out (in-list outs)]
                   [idx (in-naturals)])
-              (with-gomamon! path
+              (with-gomamon! self
                 (jump-to symbol-anchor)
                 (move-to (make-rectangular (* xstep din-ratio) (* idx ystep)))
                 (move-right (* xstep out-ratio) (diaflowlet-terminal->anchor idx)
                             (diaflowlet-output-desc (vector-ref out-descs idx) (inst car Out) out))))))
           
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))
 
@@ -389,19 +389,19 @@
                    [default-diaflow-storage-font (or path-font ((default-diaflow-storage-font)))]
                    [default-diaflow-storage-arrow-font (or path-font ((default-diaflow-storage-arrow-font)))])
       (define v : Symbol (string->symbol (format "/proc/~a" variable)))
-      (define path (dia-initial-track #false grid-width grid-height 0.5 0.0+0.0i v base-width))
+      (define self (dia-initial-track #false grid-width grid-height 0.5 0.0+0.0i v base-width))
     
-      (with-gomamon! path
+      (with-gomamon! self
         (move-right xstep f (cons read-desc (symbol->immutable-string variable)))
         (move-right (* xstep 0.618) #false out-desc)
         (move-down ystep)
         (T-step v #false write-desc))
       
       (define flowlet
-        (dia-path-flow path
-                       #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                       #:block-detect block-detect #:track-detect track-detect
-                       #:λblock make-block #:λbrief make-brief
-                       #:λpath make-path #:λlabel make-label))
+        (dia-track-flow self
+                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                        #:block-detect block-detect #:track-detect track-detect
+                        #:λblock make-block #:λbrief make-brief
+                        #:λpath make-path #:λlabel make-label))
       
       (assert flowlet dia:flow?))))

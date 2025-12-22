@@ -20,7 +20,7 @@
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Block-Style-Make* S Hint) (-> Geo-Anchor-Name Hint (U S False Void)))
+(define-type (Dia-Block-Style-Make* S Urgent) (-> Geo-Anchor-Name Urgent (U S False Void)))
 (define-type (Dia-Block-Style-Make S) (Dia-Block-Style-Make* S (Option Symbol)))
 
 (struct dia-block-style
@@ -83,10 +83,12 @@
                      #:error-color 'GhostWhite #:error-background 'Firebrick
                      text font))))
 
-(define dia-block-smart-size : (-> (Option Geo) Dia-Block-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [brief s]
-    (define maybe-width  (dia-block-style-width s))
-    (define maybe-height (dia-block-style-height s))
+(define dia-block-smart-size : (->* ((Option Geo) Dia-Block-Style)
+                                    (#:width (Option Real) #:height (Option Real))
+                                    (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [brief s #:width [alt-width #false] #:height [alt-height #false]]
+    (define maybe-width  (if (not alt-width)  (dia-block-style-width s)  (real->double-flonum alt-width)))
+    (define maybe-height (if (not alt-height) (dia-block-style-height s) (real->double-flonum alt-height)))
 
     (define fallback-style : Dia-Block-Base-Style
       (if (and maybe-width maybe-height)
@@ -176,10 +178,14 @@
   (lambda [anchor]
     (string->symbol (string-append "&" (geo-anchor->string anchor)))))
 
+(define dia-block-cell-id : (-> Symbol Symbol Index Index Symbol)
+  (lambda [id type row col]
+    (string->symbol (format "~a:~a:~a:~a" id type row col))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S H) dia-block-style-construct : (-> Geo-Anchor-Name (Option (Dia-Block-Style-Make* S H)) (-> S) H S)
-  (lambda [anchor mk-style mk-fallback-style hint]
-    (define maybe-style (and mk-style (mk-style anchor hint)))
+(define #:forall (S U) dia-block-style-construct : (-> Geo-Anchor-Name (Option (Dia-Block-Style-Make* S U)) (-> S) U S)
+  (lambda [anchor mk-style mk-fallback-style urgent]
+    (define maybe-style (and mk-style (mk-style anchor urgent)))
 
     (if (or (not maybe-style) (void? maybe-style))
         (mk-fallback-style)
