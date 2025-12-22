@@ -16,6 +16,9 @@
 (define-type Dia-Matrix-Id->Block (Dia-Anchor->Block* Dia-Matrix-Urgent-Datum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type (Dia-Arrayof M)
+  (U (Listof (U M Void)) (Vectorof (U M Void))))
+
 (define-type (Dia-Matrixof M)
   (U (Listof (U (Listof (U M Void)) (Vectorof (U M Void))))
      (Vectorof (U (Listof (U M Void)) (Vectorof (U M Void))))))

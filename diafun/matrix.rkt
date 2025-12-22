@@ -6,7 +6,8 @@
 (provide (all-from-out "digitama/matrix/style.rkt"))
 (provide (all-from-out "digitama/matrix/interface.rkt"))
 
-(require digimon/metrics)
+(require racket/list)
+(require racket/vector)
 
 (require geofun/font)
 (require geofun/paint)
@@ -39,10 +40,12 @@
            #:col-header-rotate [col-head-angle : Real 0.0]
            #:gap [gap : Real 0.0] #:row-gap [row-gap : (Option Real) #false] #:col-gap [col-gap : (Option Real) #false]
            #:λblock [make-cell : (Option Dia-Matrix-Id->Block) #false]
+           #:λentry [make-entry : (Option (Dia-Matrix-Block-Style-Make DiaMtx-Entry-Style)) (default-diamtx-entry-style-make)]
            #:mask? [mask? : (Option Dia-Matrix-Mask) #false]
            #:hole? [hole? : (Option (-> M Any)) #false]
            [mtx : (Dia-Matrixof M)] [cell-width : (Option Real) #false] [cell-height : (Option Real) cell-width]] : (U Geo:Table Geo:Blank)
-    (parameterize ([default-dia-block-base-style make-diamtx-fallback-style])
+    (parameterize ([default-dia-block-base-style make-diamtx-fallback-style]
+                   [default-diamtx-entry-style-make make-entry])
       (define id (or id0 (gensym 'dia:mtx:)))
       (define row-desc (or maybe-rheader-desc maybe-header-desc ((inst list (Option DC-Markup-Text)))))
       (define col-desc (or maybe-cheader-desc maybe-header-desc ((inst list (Option DC-Markup-Text)))))
@@ -108,3 +111,43 @@
                         [(> cheader-count 0) (cons col-headers entries)]
                         [else entries])
                   'rc 'cb (or col-gap gap) (or row-gap gap)))))
+
+(define #:forall (M) dia-matrix
+  (lambda [#:id [id0 : (Option Symbol) #false]
+           #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
+           #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
+           #:desc [desc-value : (Option (Dia-Matrix-Entry M)) #false]
+           #:corner-desc [maybe-corner-desc : (Option Dia-Matrix-Optional-Entry) #false]
+           #:header-desc [maybe-header-desc : (Option Dia-Matrix-Headers) #false]
+           #:row-header-desc [maybe-rheader-desc : (Option Dia-Matrix-Sub-Headers) #false]
+           #:col-header-desc [maybe-cheader-desc : (Option Dia-Matrix-Sub-Headers) #false]
+           #:col-header-rotate [col-head-angle : Real 0.0]
+           #:gap [gap : Real 0.0] #:row-gap [row-gap : (Option Real) #false] #:col-gap [col-gap : (Option Real) #false]
+           #:λblock [make-cell : (Option Dia-Matrix-Id->Block) #false]
+           #:λentry [make-entry : (Option (Dia-Matrix-Block-Style-Make DiaMtx-Entry-Style)) (default-diamtx-entry-style-make)]
+           #:mask? [mask? : (Option Dia-Matrix-Mask) #false]
+           #:hole? [hole? : (Option (-> M Any)) #false]
+           [ncols : Integer] [array : (Dia-Arrayof M)] [cell-width : (Option Real) #false] [cell-height : (Option Real) cell-width]] : (U Geo:Table Geo:Blank)
+    (define mtx : (Dia-Matrixof M)
+      (if (list? array)
+          (let make-matrix ([arr : (Listof (U M Void)) array]
+                            [mtx : (Listof (Listof (U M Void))) null])
+            (cond [(null? arr) (reverse mtx)]
+                  [(<= (length arr) ncols) (reverse (cons arr mtx))]
+                  [else (let-values ([(self rest) (split-at arr ncols)])
+                          (make-matrix rest (cons self mtx)))]))
+          (let make-matrix ([arr : (Vectorof (U M Void)) array]
+                            [mtx : (Listof (Vectorof (U M Void))) null])
+            (define count (vector-length arr))
+            (cond [(= count 0) (reverse mtx)]
+                  [(<= count ncols) (reverse (cons arr mtx))]
+                  [else (let-values ([(self rest) (vector-split-at arr ncols)])
+                          (make-matrix rest (cons self mtx)))]))))
+
+    ((inst dia-matrix* M) #:id id0 #:base-operator base-op #:operator sibs-op
+                          #:desc desc-value #:corner-desc maybe-corner-desc
+                          #:header-desc maybe-header-desc #:row-header-desc maybe-rheader-desc
+                          #:col-header-desc maybe-cheader-desc #:col-header-rotate col-head-angle
+                          #:gap gap #:row-gap row-gap #:col-gap col-gap
+                          #:λblock make-cell #:λentry make-entry #:mask? mask? #:hole? hole?
+                          mtx cell-width cell-height)))
