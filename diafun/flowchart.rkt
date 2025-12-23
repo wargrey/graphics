@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 (provide (all-from-out "digitama/base.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
-(provide (all-from-out "digitama/flowchart/identifier.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 
@@ -22,7 +21,6 @@
 (require "digitama/flowchart/self.rkt")
 (require "digitama/flowchart/style.rkt")
 (require "digitama/flowchart/interface.rkt")
-(require "digitama/flowchart/identifier.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))

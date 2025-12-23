@@ -6,7 +6,6 @@
 (provide (all-from-out "digitama/usecase/self.rkt"))
 (provide (all-from-out "digitama/usecase/style.rkt"))
 
-(provide default-diauc-block-identify default-diauc-track-identify)
 (provide default-dia-block-margin create-dia-block)
 
 (require geofun/paint)
@@ -24,7 +23,6 @@
 (require "digitama/usecase/self.rkt")
 (require "digitama/usecase/style.rkt")
 (require "digitama/usecase/interface.rkt")
-(require "digitama/usecase/identifier.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))

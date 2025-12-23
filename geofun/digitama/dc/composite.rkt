@@ -60,18 +60,22 @@
 (define-syntax (create-geometry-table stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
-        (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+              (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
+              (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
+              (~optional (~seq #:border border) #:defaults ([border #'#false]))
+              (~optional (~seq #:background bgsource) #:defaults ([bgsource #'#false])))
+        ...
         table:expr ncols nrows col-anchors row-anchors col-gaps row-gaps argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let-values ([(layers size anchors gaps) (geo-table-metrics table ncols nrows col-anchors row-anchors col-gaps row-gaps)])
            (create-geometry-group Geo name base-op sibs-op
-                                  #:outline outline
+                                  #:outline outline #:margin margin #:padding inset #:border border #:background bgsource
                                   layers size anchors gaps argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
-(define-type Geo-Frame-Border (Immutable-Vector Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
 
 (struct geo:group geo
   ([base-operator : (Option Symbol)]

@@ -7,11 +7,9 @@
 
 (require geofun/font)
 (require geofun/paint)
-
 (require geofun/digitama/base)
 
 (require "self.rkt")
-
 (require "../block/style.rkt")
 (require "../shared.rkt")
 
@@ -20,7 +18,7 @@
 (define default-diamtx-mask-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Mask-Style))) (make-parameter #false))
 (define default-diamtx-entry-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Entry-Style))) (make-parameter #false))
 (define default-diamtx-row-header-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Row-Header-Style))) (make-parameter #false))
-(define default-diamtx-column-header-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Column-Header-Style))) (make-parameter #false))
+(define default-diamtx-col-header-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Col-Header-Style))) (make-parameter #false))
 (define default-diamtx-corner-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Corner-Style))) (make-parameter #false))
 
 (define-configuration diamtx-fallback-style : DiaMtx-Style #:as dia-block-base-style
@@ -44,8 +42,8 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]))
 
-(define-configuration diamtx-column-header-style : DiaMtx-Column-Header-Style #:as dia-block-style
-  #:format "default-diamtx-column-header-~a"
+(define-configuration diamtx-col-header-style : DiaMtx-Col-Header-Style #:as dia-block-style
+  #:format "default-diamtx-col-header-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) default-table-header-font]

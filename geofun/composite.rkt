@@ -197,9 +197,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-frame : (-> Geo
                         [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)]
-                        [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint]
-                        [#:margin (U Nonnegative-Real (Listof Nonnegative-Real))]
-                        [#:padding (U Nonnegative-Real (Listof Nonnegative-Real))]
+                        [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint] [#:margin Geo-Frame-Blank-Datum] [#:padding Geo-Frame-Blank-Datum]
                         Geo:Group)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [operator #false]
            #:margin [margin 0.0] #:padding [inset 0.0] #:border [border (void)] #:background [bg-fill (void)]
@@ -216,9 +214,11 @@
 ; there almost is no way to flexibly create an immutable vector at runtime. 
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
+                          #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                          (U Geo:Table Geo:Blank))
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
+           #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            ncols siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define size : Index (length siblings))
     (define placeholder : Geo:Blank (geo-blank))
@@ -229,15 +229,18 @@
                (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
                (and (> nrows 0) (index? nrows)
                     (create-geometry-table geo:table id base-op sibs-op
+                                           #:border bdr #:background bg #:margin margin #:padding padding
                                            (geo-siblings->table siblings (* nrows ncols) (geo-own-layer placeholder))
                                            ncols nrows col-anchors row-anchors col-gaps row-gaps))))
         placeholder)))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
                           (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
+                           #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
                            (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                           (U Geo:Table Geo:Blank))
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
+           #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define placeholder : Geo:Blank (geo-blank))
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
@@ -245,6 +248,7 @@
     
     (or (and (> ncols 0) (> nrows 0)
              (create-geometry-table geo:table id base-op sibs-op
+                                    #:border bdr #:background bg #:margin margin #:padding padding
                                     (geo-siblings*->table siblings ncols (geo-own-layer placeholder))
                                     ncols nrows col-anchors row-anchors col-gaps row-gaps))
         placeholder)))

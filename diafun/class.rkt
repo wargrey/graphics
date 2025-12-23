@@ -6,8 +6,6 @@
 (provide (all-from-out "digitama/class/self.rkt"))
 (provide (all-from-out "digitama/class/style.rkt"))
 
-(provide DiaCls-RelationShip-Type DiaCls-RelationShip-Identifier)
-(provide default-diacls-block-identify default-diacls-track-identify)
 (provide default-dia-block-margin create-dia-block)
 
 (require geofun/paint)
@@ -25,7 +23,6 @@
 (require "digitama/class/self.rkt")
 (require "digitama/class/style.rkt")
 (require "digitama/class/interface.rkt")
-(require "digitama/class/identifier.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))

@@ -16,12 +16,11 @@
 (define-type Dia-Matrix-Id->Block (Dia-Anchor->Block* Dia-Matrix-Urgent-Datum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Arrayof M)
-  (U (Listof (U M Void)) (Vectorof (U M Void))))
+(define-type (Dia-Arrayof M) (U (Listof M) (Vectorof M)))
 
 (define-type (Dia-Matrixof M)
-  (U (Listof (U (Listof (U M Void)) (Vectorof (U M Void))))
-     (Vectorof (U (Listof (U M Void)) (Vectorof (U M Void))))))
+  (U (Listof (U (Listof M) (Vectorof M)))
+     (Vectorof (U (Listof M) (Vectorof M)))))
 
 (define-type Dia-Matrix-Optional-Entry (U DC-Markup-Text Geo False))
 (define-type (Dia-Matrix-Entry M) (-> Index Index M Dia-Matrix-Optional-Entry))
