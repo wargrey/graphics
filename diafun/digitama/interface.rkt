@@ -11,18 +11,19 @@
 (require geofun/digitama/path/label)
 (require geofun/digitama/dc/path)
 
-(require "style.rkt")
-(require "../block/style.rkt")
-(require "../block/dc.rkt")
+(require "track/style.rkt")
+(require "block/style.rkt")
+(require "block/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Block-Info* Brief Urgent) (List Brief Dia-Block-Style Urgent))
 (define-type (Dia-Block-Identifier* Brief Urgent) (-> Geo-Anchor-Name (Option (Dia-Block-Info* Brief Urgent))))
-(define-type (Dia-Anchor->Brief* Urgent) (-> Symbol DC-Markup-Text Dia-Block-Style Urgent (Option Geo)))
 (define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
 
-(define-type (Dia-Anchor->Block* Urgent)
-  (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
+; designed mainly for track based diagrams
+(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name DC-Markup-Text Dia-Block-Style Urgent (Option Geo)))
+(define-type (Dia-Anchor->Block* T Urgent)
+  (-> T (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
       (U Void  ; use default
          False ; invisible block
          Dia:Block)))
@@ -35,7 +36,7 @@
 (define-type Dia-Block-Describe (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
 (define-type Dia-Anchor->Brief (Dia-Anchor->Brief* (Option Symbol)))
 (define-type Dia-Block-Create (Dia-Block-Create* (Option Symbol)))
-(define-type Dia-Anchor->Block (Dia-Anchor->Block* (Option Symbol)))
+(define-type Dia-Anchor->Block (Dia-Anchor->Block* Symbol (Option Symbol)))
 
 (define-type Dia-Track->Path
   (-> Dia:Block (Option Dia:Block) Dia-Track-Style
@@ -60,7 +61,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (D) default-dia-anchor->brief : (Dia-Anchor->Brief* D)
   (lambda [id desc style datum]
-    (dia-block-text-brief id desc style)))
+    (dia-block-text-brief #:id id desc style)))
 
 (define default-dia-track->path : Dia-Track->Path
   (lambda [source target style tracks labels]
@@ -103,16 +104,16 @@
                           label base-position)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S B U) dia-block-info* : (-> Geo-Anchor-Name B
-                                               (Option (Dia-Block-Style-Make* (∩ S Dia-Block-Style) U))
-                                               (-> (∩ S Dia-Block-Style))
-                                               U
-                                               (Dia-Block-Info* B U))
+(define #:forall (T S B U) dia-block-info* : (-> T B
+                                                 (Option (Dia-Block-Style-Make* T (∩ S Dia-Block-Style) U))
+                                                 (-> (∩ S Dia-Block-Style))
+                                                 U
+                                                 (Dia-Block-Info* B U))
   (lambda [anchor text mk-style mk-fallback-style datum]
     (list text (dia-block-style-construct anchor mk-style mk-fallback-style datum) datum)))
 
 (define #:forall (S) dia-block-info : (->* (Geo-Anchor-Name String
-                                                            (Option (Dia-Block-Style-Make* (∩ S Dia-Block-Style) (Option Symbol)))
+                                                            (Option (Dia-Block-Style-Make* Geo-Anchor-Name (∩ S Dia-Block-Style) (Option Symbol)))
                                                             (-> (∩ S Dia-Block-Style)))
                                            ((Option Symbol))
                                            Dia-Block-Info)

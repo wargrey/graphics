@@ -211,12 +211,12 @@
 ; in which case it requires strictly type checking.
 ; as a result, you somehow have to produce immutable vectors.
 ; so, why not just use lists? given that
-; there almost is no way to flexibly create an immutable vector at runtime. 
+; there almost is no way to flexibly create an immutable vector at runtime.
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
                           #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
-                         (U Geo:Table Geo:Blank))
+                         Geo:Table)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            ncols siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
@@ -232,13 +232,16 @@
                                            #:border bdr #:background bg #:margin margin #:padding padding
                                            (geo-siblings->table siblings (* nrows ncols) (geo-own-layer placeholder))
                                            ncols nrows col-anchors row-anchors col-gaps row-gaps))))
-        placeholder)))
+        (create-geometry-table geo:table id base-op sibs-op
+                               #:border bdr #:background bg #:margin margin #:padding padding
+                               (geo-siblings->table (list placeholder) 1 (geo-own-layer placeholder))
+                               1 1 col-anchors row-anchors col-gaps row-gaps))))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
                           (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
                            #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
                            (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
-                          (U Geo:Table Geo:Blank))
+                          Geo:Table)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
@@ -246,12 +249,15 @@
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
     
-    (or (and (> ncols 0) (> nrows 0)
-             (create-geometry-table geo:table id base-op sibs-op
-                                    #:border bdr #:background bg #:margin margin #:padding padding
-                                    (geo-siblings*->table siblings ncols (geo-own-layer placeholder))
-                                    ncols nrows col-anchors row-anchors col-gaps row-gaps))
-        placeholder)))
+    (if (and (> ncols 0) (> nrows 0))
+        (create-geometry-table geo:table id base-op sibs-op
+                               #:border bdr #:background bg #:margin margin #:padding padding
+                               (geo-siblings*->table siblings ncols (geo-own-layer placeholder))
+                               ncols nrows col-anchors row-anchors col-gaps row-gaps)
+        (create-geometry-table geo:table id base-op sibs-op
+                               #:border bdr #:background bg #:margin margin #:padding padding
+                               (geo-siblings*->table (list (list placeholder)) 1 (geo-own-layer placeholder))
+                               1 1 col-anchors row-anchors col-gaps row-gaps))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-pyramid : (->* ((Listof Geo))

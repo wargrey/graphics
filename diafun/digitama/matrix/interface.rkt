@@ -9,25 +9,29 @@
 (require "style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Matrix-Block-Type-Abbr (U 'entry 'hole 'mask 'rhdr 'chdr 'cnr))
+(define-type Mtx-Block-Type (U 'entry 'hole 'mask 'rhdr 'chdr 'cnr))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diamtx-block-identify : (-> Symbol Dia-Matrix-Block-Type-Abbr Index Index Dia-Block-Style)
-  (lambda [self type r c]
+(define default-mtx-block-identify : (-> Any Mtx-Block-Type Mtx-Indices Dia-Block-Style)
+  (lambda [self type indices]
     (case/eq type
-      [(entry) (dia-block-style-construct self (default-diamtx-entry-style-make) make-diamtx-entry-style (cons r c))]
-      [(hole) (dia-block-style-construct self (default-diamtx-hole-style-make) make-diamtx-hole-style (cons r c))]
-      [(mask) (dia-block-style-construct self (default-diamtx-mask-style-make) make-diamtx-mask-style (cons r c))]
-      [(rhdr) (dia-block-style-construct self (default-diamtx-row-header-style-make) make-diamtx-row-header-style (cons r c))]
-      [(chdr) (dia-block-style-construct self (default-diamtx-col-header-style-make) make-diamtx-col-header-style (cons r c))]
-      [else (dia-block-style-construct self (default-diamtx-corner-style-make) make-diamtx-corner-style (cons r c))])))
+      [(entry) (dia-block-style-construct self (default-mtx-entry-style-make) make-mtx-entry-style indices)]
+      [(hole) (dia-block-style-construct self (default-mtx-hole-style-make) make-mtx-hole-style indices)]
+      [(mask) (dia-block-style-construct self (default-mtx-mask-style-make) make-mtx-mask-style indices)]
+      [(rhdr) (dia-block-style-construct self (default-mtx-row-header-style-make) make-mtx-row-header-style indices)]
+      [(chdr) (dia-block-style-construct self (default-mtx-col-header-style-make) make-mtx-col-header-style indices)]
+      [else (dia-block-style-construct self (default-mtx-corner-style-make) make-mtx-corner-style indices)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diamtx-block-fallback-construct : Dia-Matrix-Id->Block
-  (lambda [id label style width height direction indices]
-    (cond [(diamtx-entry-style? style) (diamtx-block-entry id label style width height direction indices)]
-          [(diamtx-hole-style? style) (diamtx-block-hole id label style width height direction indices)]
-          [(diamtx-mask-style? style) (diamtx-block-mask id label style width height direction indices)]
-          [(diamtx-row-header-style? style) (diamtx-block-row-header id label style width height direction indices)]
-          [(diamtx-col-header-style? style) (diamtx-block-col-header id label style width height direction indices)]
-          [(diamtx-corner-style? style) (diamtx-block-corner id label style width height direction indices)])))
+(define #:forall (M) default-mtx-header-fallback-construct : Mtx-Header->Block
+  (lambda [id brief style width height direction indices]
+    (cond [(mtx-row-header-style? style) (mtx-block-row-header id brief style width height direction indices)]
+          [(mtx-col-header-style? style) (mtx-block-col-header id brief style width height direction indices)]
+          [(mtx-corner-style? style) (mtx-block-corner id brief style width height direction indices)])))
+
+(define #:forall (M) default-mtx-entry-fallback-construct : (Mtx-Entry->Block M)
+  (lambda [self brief style width height direction indices]
+    (define id : Symbol (car self))
+    (cond [(mtx-entry-style? style) (mtx-block-entry id brief style width height direction indices)]
+          [(mtx-hole-style? style) (mtx-block-hole id brief style width height direction indices)]
+          [(mtx-mask-style? style) (mtx-block-mask id brief style width height direction indices)])))

@@ -14,15 +14,15 @@
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diamtx-hole-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Hole-Style))) (make-parameter #false))
-(define default-diamtx-mask-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Mask-Style))) (make-parameter #false))
-(define default-diamtx-entry-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Entry-Style))) (make-parameter #false))
-(define default-diamtx-row-header-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Row-Header-Style))) (make-parameter #false))
-(define default-diamtx-col-header-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Col-Header-Style))) (make-parameter #false))
-(define default-diamtx-corner-style-make : (Parameterof (Option (Dia-Matrix-Block-Style-Make DiaMtx-Corner-Style))) (make-parameter #false))
+(define default-mtx-hole-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Hole-Style))) (make-parameter #false))
+(define default-mtx-mask-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Mask-Style))) (make-parameter #false))
+(define default-mtx-entry-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Entry-Style))) (make-parameter #false))
+(define default-mtx-row-header-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Row-Header-Style))) (make-parameter #false))
+(define default-mtx-col-header-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Col-Header-Style))) (make-parameter #false))
+(define default-mtx-corner-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Corner-Style))) (make-parameter #false))
 
-(define-configuration diamtx-fallback-style : DiaMtx-Style #:as dia-block-base-style
-  #:format "default-diamtx-~a"
+(define-configuration mtx-fallback-style : Mtx-Style #:as dia-block-base-style
+  #:format "default-mtx-~a"
   ([block-width : Nonnegative-Flonum 32.0]
    [block-height : Nonnegative-Flonum 32.0]
    [font : (Option Font) default-block-brief-font]
@@ -31,8 +31,8 @@
    [fill-paint : Maybe-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration diamtx-row-header-style : DiaMtx-Row-Header-Style #:as dia-block-style
-  #:format "default-diamtx-row-header-~a"
+(define-configuration mtx-row-header-style : Mtx-Row-Header-Style #:as dia-block-style
+  #:format "default-mtx-row-header-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) default-table-header-font]
@@ -42,8 +42,8 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]))
 
-(define-configuration diamtx-col-header-style : DiaMtx-Col-Header-Style #:as dia-block-style
-  #:format "default-diamtx-col-header-~a"
+(define-configuration mtx-col-header-style : Mtx-Col-Header-Style #:as dia-block-style
+  #:format "default-mtx-col-header-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) default-table-header-font]
@@ -53,8 +53,8 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]))
 
-(define-configuration diamtx-corner-style : DiaMtx-Corner-Style #:as dia-block-style
-  #:format "default-diamtx-corner-~a"
+(define-configuration mtx-corner-style : Mtx-Corner-Style #:as dia-block-style
+  #:format "default-mtx-corner-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) default-table-header-font]
@@ -64,8 +64,8 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]))
 
-(define-configuration diamtx-hole-style : DiaMtx-Hole-Style #:as dia-block-style
-  #:format "default-diamtx-hole-~a"
+(define-configuration mtx-hole-style : Mtx-Hole-Style #:as dia-block-style
+  #:format "default-mtx-hole-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) default-table-header-font]
@@ -73,10 +73,10 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'dot]
-   [fill-paint : Maybe-Fill-Paint 'AliceBlue]))
+   [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]))
 
-(define-configuration diamtx-mask-style : DiaMtx-Mask-Style #:as dia-block-style
-  #:format "default-diamtx-mask-~a"
+(define-configuration mtx-mask-style : Mtx-Mask-Style #:as dia-block-style
+  #:format "default-mtx-mask-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]
@@ -86,8 +86,8 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]))
 
-(define-configuration diamtx-entry-style : DiaMtx-Entry-Style #:as dia-block-style
-  #:format "default-diamtx-entry-~a"
+(define-configuration mtx-entry-style : Mtx-Entry-Style #:as dia-block-style
+  #:format "default-mtx-entry-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) #false]
    [font : (Option Font) #false]

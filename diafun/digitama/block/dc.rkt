@@ -132,6 +132,6 @@
   (lambda [brief shape wratio hratio block-wpos block-hpos brief-wpos brief-hpos]
     (cond [(not brief) (geo-own-layers shape)]
           [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape brief block-wpos block-hpos brief-wpos brief-hpos)]
-          [else (let ([fit-brief (geo-fit brief shape wratio hratio (default-dia-block-margin))])
+          [else (let ([fit-brief (geo-try-fit brief shape wratio hratio (default-dia-block-margin))])
                   (cond [(not fit-brief) (geo-own-layers shape)]
                         [else (geo-composite-layers shape fit-brief block-wpos block-hpos brief-wpos brief-hpos)]))])))

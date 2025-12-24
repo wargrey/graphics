@@ -82,7 +82,7 @@
     (define datum-desc : String (ram-datum->string style datum base mask))
     (define font : (Option Font) (dia-block-select-font style))
     (define color : Option-Fill-Paint (dia-block-select-font-paint style))
-    (define label : (Option Geo) (dia-block-text-brief id datum-desc style #:color color #:font font))
+    (define label : (Option Geo) (dia-block-text-brief datum-desc style #:id id #:color color #:font font))
     (define-values (loc-width loc-height) (dia-block-smart-size label style))
     
     (define loc-box : Geo
@@ -195,7 +195,7 @@
               address)
           
           (if (or datum)
-              (let ([fit-label (geo-fit datum shape 1.0 1.0 (default-dia-block-margin))])
+              (let ([fit-label (geo-try-fit datum shape 1.0 1.0 (default-dia-block-margin))])
                 (cond [(not fit-label) shape]
                       [else (geo-cc-superimpose shape fit-label)]))
               shape))))

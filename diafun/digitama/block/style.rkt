@@ -20,8 +20,8 @@
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Block-Style-Make* S Urgent) (-> Geo-Anchor-Name Urgent (U S False Void)))
-(define-type (Dia-Block-Style-Make S) (Dia-Block-Style-Make* S (Option Symbol)))
+(define-type (Dia-Block-Style-Make* T S Urgent) (-> T Urgent (U S False Void)))
+(define-type (Dia-Block-Style-Make S) (Dia-Block-Style-Make* Geo-Anchor-Name S (Option Symbol)))
 
 (struct dia-block-style
   ([width : (Option Flonum)]
@@ -56,21 +56,18 @@
 (define default-dia-block-base-style : (Parameterof (-> Dia-Block-Base-Style)) (make-parameter make-null-block-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-text-brief : (->* (Geo-Anchor-Name DC-Markup-Text Dia-Block-Style)
-                                    (#:id (Option Symbol) #:color Option-Fill-Paint #:font (Option Font))
+(define dia-block-text-brief : (->* (DC-Markup-Text Dia-Block-Style)
+                                    (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
                                     (Option Geo))
-  (lambda [anchor desc s #:id [alt-id #false] #:color [alt-color #false] #:font [alt-font #false]]
-    (define maybe-font : (Option Font) (or alt-font (dia-block-style-font s)))
-    (define maybe-paint : Option-Fill-Paint (or alt-color (dia-block-style-font-paint s)))
+  (lambda [desc style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
+    (define maybe-font : (Option Font) (or alt-font (dia-block-style-font style)))
+    (define maybe-paint : Option-Fill-Paint (or alt-color (dia-block-style-font-paint style)))
 
     (define fallback-style : Dia-Block-Base-Style
       (if (and maybe-font maybe-paint)
           (make-null-block-style) ; useless but a bit more efficient
           ((default-dia-block-base-style))))
 
-    (define font : (Option Font) (or maybe-font (dia-block-base-style-font fallback-style)))
-    (define paint : Option-Fill-Paint (or maybe-paint (dia-block-base-style-font-paint fallback-style)))
-    (define text-id : Symbol (or alt-id (dia-block-brief-id anchor)))
     (define text : DC-Markup-Text
       (cond [(string? desc) (if (default-dia-block-text-trim?) (string-trim desc) desc)]
             [(bytes? desc) (if (default-dia-block-text-trim?) (regexp-replace* #px"((^\\s*)|(\\s*$))" desc #"") desc)]
@@ -79,16 +76,22 @@
     (and (cond [(string? text) (> (string-length text) 0)]
                [(bytes? text) (> (bytes-length text) 0)]
                [else #true])
-         (geo-markup #:id text-id #:color paint #:alignment (default-dia-block-text-alignment)
+         (geo-markup #:id (dia-block-brief-id (or id (gensym 'dia:block:brief:)))
+                     #:color (or maybe-paint (dia-block-base-style-font-paint fallback-style))
+                     #:alignment (default-dia-block-text-alignment)
                      #:error-color 'GhostWhite #:error-background 'Firebrick
-                     text font))))
+                     text (or maybe-font (dia-block-base-style-font fallback-style))))))
+
+(define dia-block-size : (-> Dia-Block-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [style]
+    (dia-block-smart-size #false style)))
 
 (define dia-block-smart-size : (->* ((Option Geo) Dia-Block-Style)
                                     (#:width (Option Real) #:height (Option Real))
                                     (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [brief s #:width [alt-width #false] #:height [alt-height #false]]
-    (define maybe-width  (if (not alt-width)  (dia-block-style-width s)  (real->double-flonum alt-width)))
-    (define maybe-height (if (not alt-height) (dia-block-style-height s) (real->double-flonum alt-height)))
+  (lambda [brief style #:width [alt-width #false] #:height [alt-height #false]]
+    (define maybe-width  (if (not alt-width)  (dia-block-style-width style)  (real->double-flonum alt-width)))
+    (define maybe-height (if (not alt-height) (dia-block-style-height style) (real->double-flonum alt-height)))
 
     (define fallback-style : Dia-Block-Base-Style
       (if (and maybe-width maybe-height)
@@ -183,7 +186,7 @@
     (string->symbol (format "~a:~a:~a:~a" id type row col))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S U) dia-block-style-construct : (-> Geo-Anchor-Name (Option (Dia-Block-Style-Make* S U)) (-> S) U S)
+(define #:forall (T S U) dia-block-style-construct : (-> T (Option (Dia-Block-Style-Make* T S U)) (-> S) U S)
   (lambda [anchor mk-style mk-fallback-style urgent]
     (define maybe-style (and mk-style (mk-style anchor urgent)))
 

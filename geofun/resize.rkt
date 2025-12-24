@@ -92,11 +92,11 @@
                   (if (zero? w) 1.0 (/ w flwidth))
                   (if (zero? h) 1.0 (/ h flheight))))]))
 
-(define geo-fit : (case-> [Geo Geo -> (Option Geo)]
-                          [Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)])
+(define geo-try-fit : (case-> [Geo Geo -> (Option Geo)]
+                              [Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
+                              [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
+                              [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)]
+                              [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)])
   (case-lambda
     [(self refer) (geo-fit self refer 1.0 1.0)]
     [(self refer wratio hratio) (geo-fit self refer wratio hratio 0.0 0.0)]
@@ -115,4 +115,15 @@
              [(positive? width)  (geo-scale self (/ (min flwidth  (real->double-flonum width))  flwidth))]
              [(positive? height) (geo-scale self (/ (min flheight (real->double-flonum height)) flheight))]
              [else #false]))]))
-    
+
+(define geo-fit : (case-> [Geo Geo -> Geo]
+                          [Geo Nonnegative-Real Nonnegative-Real -> Geo]
+                          [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
+                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo]
+                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo])
+  (case-lambda
+    [(self refer) (or (geo-try-fit self refer) self)]
+    [(self refer wratio hratio) (or (geo-try-fit self refer wratio hratio) self)]
+    [(self refer wratio hratio pad) (or (geo-try-fit self refer wratio hratio pad) self)]
+    [(self refer wratio hratio wpad hpad) (or (geo-try-fit self refer wratio hratio wpad hpad) self)]
+    [(self width height) (or (geo-try-fit self width height) self)]))

@@ -46,7 +46,7 @@
 (define default-ram-snapshot-gapsize : (Parameterof Nonnegative-Flonum) (make-parameter 64.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (RAM-Location-Style-Make S) (Dia-Block-Style-Make* S Symbol))
+(define-type (RAM-Location-Style-Make S) (Dia-Block-Style-Make* Symbol S Symbol))
 
 (define default-ram-variable-style-make  : (Parameterof (Option (RAM-Location-Style-Make RAM-Variable-Style)))  (make-parameter #false))
 (define default-ram-pointer-style-make : (Parameterof (Option (RAM-Location-Style-Make RAM-Pointer-Style))) (make-parameter #false))

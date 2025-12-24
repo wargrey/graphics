@@ -23,10 +23,10 @@
 
 (require "style.rkt")
 (require "refine.rkt")
-(require "interface.rkt")
 
 (require "../block/dc.rkt")
 (require "../block/style.rkt")
+(require "../interface.rkt")
 
 (require (for-syntax racket/base))
 

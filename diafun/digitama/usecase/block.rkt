@@ -4,7 +4,7 @@
 
 (require "../block/style.rkt")
 (require "../block/dc.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 (require geofun/digitama/dc/arc)
 (require geofun/digitama/dc/stickman)

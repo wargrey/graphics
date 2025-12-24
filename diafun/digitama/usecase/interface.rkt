@@ -6,7 +6,7 @@
 (require geofun/digitama/path/label)
 
 (require "../block/dc.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 (require "block.rkt")
 (require "style.rkt")
@@ -44,6 +44,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diauc-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id label style width height direction subtype]
-    (cond [(diauc-ucase-style? style) (diauc-block-ucase id label style width height direction subtype)]
-          [(diauc-actor-style? style) (diauc-block-actor id label style width height direction subtype)])))
+  (lambda [id brief style width height direction subtype]
+    (cond [(diauc-ucase-style? style) (diauc-block-ucase id brief style width height direction subtype)]
+          [(diauc-actor-style? style) (diauc-block-actor id brief style width height direction subtype)])))

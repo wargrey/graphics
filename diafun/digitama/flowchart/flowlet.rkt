@@ -18,7 +18,7 @@
 
 (require "../block/dc.rkt")
 (require "../track/style.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diaflow-delim : String (string #\rubout))

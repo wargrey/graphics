@@ -8,7 +8,7 @@
 (require geofun/digitama/geometry/anchor)
 
 (require "../block/dc.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 (require "style.rkt")
 (require "block.rkt")
@@ -130,25 +130,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diaflow-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id label style width height direction subtype]
-    (cond [(diaflow-preparation-style? style) (diaflow-block-preparation id label style width height direction subtype)]
-          [(diaflow-input-style? style) (diaflow-block-input id label style width height direction subtype)]
-          [(diaflow-output-style? style) (diaflow-block-output id label style width height direction subtype)]
-          [(diaflow-process-style? style) (diaflow-block-process id label style width height direction subtype)]
-          [(diaflow-decision-style? style) (diaflow-block-decision id label style width height direction subtype)]
-          [(diaflow-delay-style? style) (diaflow-block-delay id label style width height direction subtype)]
-          [(diaflow-operation-style? style) (diaflow-block-manual-operation id label style width height direction subtype)]
+  (lambda [id brief style width height direction subtype]
+    (cond [(diaflow-preparation-style? style) (diaflow-block-preparation id brief style width height direction subtype)]
+          [(diaflow-input-style? style) (diaflow-block-input id brief style width height direction subtype)]
+          [(diaflow-output-style? style) (diaflow-block-output id brief style width height direction subtype)]
+          [(diaflow-process-style? style) (diaflow-block-process id brief style width height direction subtype)]
+          [(diaflow-decision-style? style) (diaflow-block-decision id brief style width height direction subtype)]
+          [(diaflow-delay-style? style) (diaflow-block-delay id brief style width height direction subtype)]
+          [(diaflow-operation-style? style) (diaflow-block-manual-operation id brief style width height direction subtype)]
 
-          [(diaflow-start-style? style) (diaflow-block-terminal id label style width height direction subtype)]
-          [(diaflow-stop-style? style) (diaflow-block-terminal id label style width height direction subtype)]
-          [(diaflow-inspection-style? style) (diaflow-block-inspection id label style width height direction subtype)]
-          [(diaflow-reference-style? style) (diaflow-block-reference id label style width height direction subtype)]
+          [(diaflow-start-style? style) (diaflow-block-terminal id brief style width height direction subtype)]
+          [(diaflow-stop-style? style) (diaflow-block-terminal id brief style width height direction subtype)]
+          [(diaflow-inspection-style? style) (diaflow-block-inspection id brief style width height direction subtype)]
+          [(diaflow-reference-style? style) (diaflow-block-reference id brief style width height direction subtype)]
              
-          [(diaflow-selection-style? style) (diaflow-block-selection id label style width height direction subtype)]
-          [(diaflow-junction-style? style) (diaflow-block-junction id label style width height direction subtype)]
-          [(diaflow-extract-style? style) (diaflow-block-extract id label style width height direction subtype)]
-          [(diaflow-merge-style? style) (diaflow-block-merge id label style width height direction subtype)]
+          [(diaflow-selection-style? style) (diaflow-block-selection id brief style width height direction subtype)]
+          [(diaflow-junction-style? style) (diaflow-block-junction id brief style width height direction subtype)]
+          [(diaflow-extract-style? style) (diaflow-block-extract id brief style width height direction subtype)]
+          [(diaflow-merge-style? style) (diaflow-block-merge id brief style width height direction subtype)]
           
-          [(diaflow-storage-style? style) (diaflow-block-storage id label style width height direction subtype)]
-          [(diaflow-collation-style? style) (diaflow-block-collation id label style width height direction subtype)]
-          [(diaflow-sort-style? style) (diaflow-block-sort id label style width height direction subtype)])))
+          [(diaflow-storage-style? style) (diaflow-block-storage id brief style width height direction subtype)]
+          [(diaflow-collation-style? style) (diaflow-block-collation id brief style width height direction subtype)]
+          [(diaflow-sort-style? style) (diaflow-block-sort id brief style width height direction subtype)])))

@@ -8,27 +8,31 @@
 (require geofun/digitama/convert)
 
 (require "../block/style.rkt")
-(require "../track/interface.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Matrix-Urgent-Datum (Pairof Index Index))
-(define-type (Dia-Matrix-Block-Style-Make S) (Dia-Block-Style-Make* S Dia-Matrix-Urgent-Datum))
-(define-type Dia-Matrix-Id->Block (Dia-Anchor->Block* Dia-Matrix-Urgent-Datum))
+(require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Arrayof M) (U (Listof M) (Vectorof M)))
 
 (define-type (Dia-Matrixof M)
   (U (Listof (U (Listof M) (Vectorof M)))
-     (Vectorof (U (Listof M) (Vectorof M)))))
+     (Vectorof (Vectorof M))))
 
-(define-type Dia-Matrix-Optional-Entry (U DC-Markup-Text Geo False))
-(define-type (Dia-Matrix-Entry M) (-> Index Index M Dia-Matrix-Optional-Entry))
-(define-type Dia-Matrix-Mask (-> Index Index Boolean))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Mtx-Indices (List Index Index Index))
+(define-type Mtx-Block-Create (Dia-Block-Create* Mtx-Indices))
+(define-type Mtx-Header->Block (Dia-Anchor->Block* Symbol Mtx-Indices))
+(define-type (Mtx-Entry->Block M) (Dia-Anchor->Block* (Pairof Symbol M) Mtx-Indices))
+(define-type (Mtx-Style-Make S) (Dia-Block-Style-Make* Any S Mtx-Indices))
 
-(define-type Dia-Matrix-Headers
-  (U (-> Index Index Dia-Matrix-Optional-Entry)
-     (Listof Dia-Matrix-Optional-Entry)
-     (Immutable-Vectorof Dia-Matrix-Optional-Entry)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Mtx-Maybe-Desc (U DC-Markup-Text Geo Void False))
+(define-type (Mtx-Entry M) (-> M Dia-Block-Style Mtx-Indices Mtx-Maybe-Desc))
+(define-type Mtx-Mask (-> Index Index Boolean))
 
-(define-type Dia-Matrix-Sub-Headers (U String Dia-Matrix-Headers))
+(define-type Mtx-Static-Headers
+  (U String
+     (Listof Mtx-Maybe-Desc)
+     (Immutable-Vectorof Mtx-Maybe-Desc)))
+
+(define-type Mtx-Headers (U (-> Index Index Mtx-Maybe-Desc) Mtx-Static-Headers))
+(define-type Mtx-Spec-Headers (U (-> Index Mtx-Maybe-Desc) Mtx-Static-Headers))

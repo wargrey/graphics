@@ -5,7 +5,7 @@
 (require "../block/dc.rkt")
 (require "../block/style.rkt")
 (require "../block/shape.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 (require geofun/constructor)
 (require geofun/composite)

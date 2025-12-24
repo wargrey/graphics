@@ -9,7 +9,7 @@
 (require geofun/digitama/geometry/anchor)
 
 (require "../block/dc.rkt")
-(require "../track/interface.rkt")
+(require "../interface.rkt")
 
 (require "style.rkt")
 (require "block.rkt")
@@ -76,6 +76,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diacls-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id label style width height direction subtype]
-    (cond [(diacls-interface-style? style) (diacls-block-interface id label style width height direction subtype)]
-          [(diacls-class-style? style)     (diacls-block-class id label style width height direction subtype)])))
+  (lambda [id brief style width height direction subtype]
+    (cond [(diacls-interface-style? style) (diacls-block-interface id brief style width height direction subtype)]
+          [(diacls-class-style? style)     (diacls-block-class id brief style width height direction subtype)])))
