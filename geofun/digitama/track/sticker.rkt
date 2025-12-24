@@ -2,10 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../geometry/bbox.rkt")
-(require "../geometry/trail.rkt")
-(require "../geometry/anchor.rkt")
-
+(require "../self.rkt")
 (require "../convert.rkt")
 (require "../composite.rkt")
 
@@ -16,6 +13,10 @@
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../layer/merge.rkt")
+
+(require "../geometry/bbox.rkt")
+(require "../geometry/trail.rkt")
+(require "../geometry/anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Track-Anchor->Sticker

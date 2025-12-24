@@ -8,7 +8,8 @@
 (require geofun/font)
 (require geofun/constructor)
 (require geofun/composite)
-(require geofun/digitama/convert)
+
+(require geofun/digitama/self)
 (require geofun/digitama/dc/text)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

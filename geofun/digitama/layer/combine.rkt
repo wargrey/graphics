@@ -4,7 +4,7 @@
 
 (require "type.rkt")
 (require "position.rkt")
-(require "../convert.rkt")
+(require "../self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-own-layer : (->* (Geo) (Float-Complex) (GLayerof Geo))

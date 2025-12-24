@@ -6,6 +6,7 @@
 (provide geo-rotate geo:rotation? Geo:Rotation)
 (provide geo-shear geo-skew geo:shear? Geo:Shear)
 
+(require "digitama/self.rkt")
 (require "digitama/convert.rkt")
 (require "digitama/resize.rkt")
 

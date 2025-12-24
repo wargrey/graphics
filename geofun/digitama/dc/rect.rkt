@@ -5,10 +5,10 @@
 (require racket/math)
 (require digimon/metrics)
 
-(require "../../paint.rkt")
+(require "../self.rkt")
+(require "../convert.rkt")
 
 (require "../paint.rkt")
-(require "../convert.rkt")
 (require "../unsafe/dc/shape.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

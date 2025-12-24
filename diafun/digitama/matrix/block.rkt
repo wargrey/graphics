@@ -2,13 +2,12 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/resize)
 
 (require "../block/style.rkt")
 (require "../block/dc.rkt")
-(require "../interface.rkt")
 
 (require "self.rkt")
 

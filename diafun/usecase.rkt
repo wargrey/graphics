@@ -8,9 +8,9 @@
 
 (provide default-dia-block-margin create-dia-block)
 
-(require geofun/paint)
-
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
+(require geofun/digitama/composite)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/merge)

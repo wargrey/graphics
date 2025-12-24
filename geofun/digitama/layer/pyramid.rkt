@@ -3,12 +3,9 @@
 (provide (all-defined-out))
 
 (require racket/list)
-
 (require digimon/digitama/unsafe/release/ops)
 
-(require "type.rkt")
-(require "position.rkt")
-(require "../convert.rkt")
+(require "../self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-list->pyramid : (->* (Geo (Listof Geo)) ((Option Geo))

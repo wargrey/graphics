@@ -8,7 +8,7 @@
                             [geo-superimpose-layer-make unsafe-superimpose-layer-make]))
 
 (require "type.rkt")
-(require "../convert.rkt")
+(require "../self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (G) geo-superimpose-layer-make : (-> Geo-Pin-Anchor G Nonnegative-Flonum Nonnegative-Flonum

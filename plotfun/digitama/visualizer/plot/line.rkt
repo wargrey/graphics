@@ -2,12 +2,10 @@
 
 (provide (all-defined-out))
 
-(require geofun/paint)
-
 (require geofun/digitama/base)
+(require geofun/digitama/self)
 (require geofun/digitama/paint)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/dot)

@@ -6,13 +6,12 @@
 (require geofun/digitama/path/tip/self)
 
 (require geofun/digitama/base)
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/geometry/anchor)
 
 (require geofun/font)
-(require geofun/paint)
 (require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

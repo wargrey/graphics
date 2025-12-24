@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [stroke-maybe-rgba stroke-maybe-color]))
 
 (require colorspace/misc)
 (require racket/case)
@@ -68,3 +69,17 @@
          (pen-miterlimit baseline)
          dasharray dashoffset
          (if (not alpha) (pen-opacity baseline) (real->alpha alpha)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define stroke-maybe-rgba : (-> Any (Option FlRGBA))
+  (lambda [s]
+    (cond [(pen? s) (pen-color s)]
+          [(color? s) (rgb* s)]
+          [else #false])))
+
+(define stroke-resolve-paint : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Stroke-Paint)
+  (lambda [self master]
+    (cond [(or (pen? self) (not self)) self]
+          [(void? self) master]
+          [(not (pen? master)) self]
+          [else (desc-stroke master #:color self)])))

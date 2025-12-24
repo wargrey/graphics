@@ -5,7 +5,7 @@
 (require "style.rkt")
 
 (require geofun/constructor)
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-polygon-shape : (-> (Option Symbol) Dia-Block-Style (Listof Float-Complex) Geo)

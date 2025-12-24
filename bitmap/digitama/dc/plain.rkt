@@ -13,6 +13,7 @@
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 
+(require "../self.rkt")
 (require "../convert.rkt")
 
 (require digimon/metrics)

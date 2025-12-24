@@ -5,10 +5,10 @@
 (require digimon/metrics)
 (require digimon/constant)
 
-(require "../paint.rkt")
-(require "../../paint.rkt")
-
+(require "../self.rkt")
 (require "../convert.rkt")
+
+(require "../paint.rkt")
 (require "../unsafe/dc/shape.rkt")
 (require "../unsafe/dc/gear.rkt")
 

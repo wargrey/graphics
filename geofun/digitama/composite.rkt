@@ -64,6 +64,8 @@
      hsl-hue hsl-saturation hsl-color hsl-liminosity])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-pin-operator : (Parameterof Geo-Pin-Operator) (make-parameter 'over))
+
 (define geo-operator->integer* : (case-> [(Option Symbol) -> (Option Byte)]
                                          [(Option Symbol) (-> Geo-Pin-Operator) -> Byte])
   (case-lambda

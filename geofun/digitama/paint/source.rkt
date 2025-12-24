@@ -4,15 +4,11 @@
 (provide (rename-out [fill-paint->source* background->source*]))
 
 (require "self.rkt")
+(require "../base.rkt")
+
 (require "../../paint.rkt")
-(require "../../color.rkt")
 (require "../../stroke.rkt")
 (require "../../fill.rkt")
-
-(require "../base.rkt")
-(require "../unsafe/source.rkt")
-(require "../unsafe/visual.rkt")
-(require "../unsafe/typed/c.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-paint->source : (->* (Maybe-Stroke-Paint) (Pen) Pen)

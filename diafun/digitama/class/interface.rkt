@@ -4,15 +4,15 @@
 
 (require racket/case)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/path/label)
 (require geofun/digitama/geometry/anchor)
 
-(require "../block/dc.rkt")
-(require "../interface.rkt")
-
 (require "style.rkt")
 (require "block.rkt")
+
+(require "../block/dc.rkt")
+(require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type DiaCls-RelationShip-Type (U 'association 'aggregation 'composition 'bidirection 'dependency))

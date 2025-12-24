@@ -2,12 +2,11 @@
 
 (provide (all-defined-out))
 
-(require "../../paint.rkt")
-
-(require "../paint.rkt")
+(require "../self.rkt")
 (require "../convert.rkt")
-(require "../unsafe/dc/stickman.rkt")
+(require "../paint.rkt")
 
+(require "../unsafe/dc/stickman.rkt")
 (require "../skeleton/stickman/self.rkt")
 (require "../skeleton/stickman/interface.rkt")
 (require "../skeleton/stickman/transform.rkt")

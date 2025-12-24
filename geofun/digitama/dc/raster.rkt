@@ -3,11 +3,13 @@
 (provide (all-defined-out))
 
 (require digimon/metrics)
-(require bitmap/digitama/convert)
+(require bitmap/digitama/self)
 (require bitmap/digitama/unsafe/image)
 
 (require "../base.rkt")
+(require "../self.rkt")
 (require "../convert.rkt")
+
 (require "../paint/pattern.rkt")
 (require "../unsafe/dc/plain.rkt")
 

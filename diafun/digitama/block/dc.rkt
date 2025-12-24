@@ -5,7 +5,7 @@
 (require racket/math)
 (require geofun/resize)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)

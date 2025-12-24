@@ -4,8 +4,6 @@
 
 (require digimon/constant)
 
-(require "../../paint/self.rkt")
-
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
 

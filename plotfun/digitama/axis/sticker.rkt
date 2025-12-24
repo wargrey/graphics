@@ -6,14 +6,14 @@
 
 (require geofun/font)
 (require geofun/color)
-(require geofun/paint)
 (require geofun/composite)
 
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/path/tick)
+(require geofun/digitama/paint/self)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)

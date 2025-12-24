@@ -5,9 +5,8 @@
 (require digimon/metrics)
 
 (require "../polygon.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/polygon/hexagon.rkt")
-
-(require "../../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-hexagon-tile : (-> Real Real+%

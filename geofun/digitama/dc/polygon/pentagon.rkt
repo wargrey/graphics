@@ -6,9 +6,8 @@
 (require digimon/constant)
 
 (require "../polygon.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/polygon/pentagon.rkt")
-
-(require "../../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-house : (->* (Real Real+%)

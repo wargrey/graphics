@@ -5,9 +5,8 @@
 (require digimon/metrics)
 
 (require geofun/font)
-
 (require geofun/digitama/base)
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Tick->Sticker (-> (Option Symbol) String Font Color (U Geo Void False)))

@@ -6,10 +6,10 @@
 (require digimon/sequence)
 (require digimon/function)
 
-(require "../paint.rkt")
-(require "../../paint.rkt")
-
+(require "../self.rkt")
 (require "../convert.rkt")
+
+(require "../paint.rkt")
 (require "../composite.rkt")
 
 (require "../geometry/ink.rkt")

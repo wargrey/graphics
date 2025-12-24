@@ -5,11 +5,11 @@
 (require digimon/constant)
 (require digimon/metrics)
 
-(require "../../paint/self.rkt")
-(require "../../geometry/bbox.rkt")
-
 (require "self.rkt")
 (require "interface.rkt")
+
+(require "../../paint/self.rkt")
+(require "../../geometry/bbox.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-standing-stickman-snapshot : (-> Geo-Standing-Stickman Geo-Stickman-Skeleton)

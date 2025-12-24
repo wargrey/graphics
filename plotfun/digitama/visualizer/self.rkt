@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/base)
+(require geofun/digitama/self)
 (require geofun/digitama/convert)
 
 (require geofun/digitama/layer/sticker)

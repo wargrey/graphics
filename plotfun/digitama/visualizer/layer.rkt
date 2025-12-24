@@ -4,7 +4,7 @@
 
 (require racket/case)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
 (require geofun/digitama/layer/sticker)

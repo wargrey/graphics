@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/layer/type)
 

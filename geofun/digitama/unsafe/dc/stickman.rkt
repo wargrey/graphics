@@ -6,8 +6,6 @@
 
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
-
-(require "../../paint/self.rkt")
 (require "../../skeleton/stickman/self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

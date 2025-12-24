@@ -3,9 +3,9 @@
 (provide (all-defined-out))
 
 (require typed/racket/unsafe)
-
 (require geofun/digitama/unsafe/typed/c)
-(require "../convert.rkt")
+
+(require "../self.rkt")
 
 (module unsafe racket/base
   (provide (all-defined-out))

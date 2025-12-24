@@ -5,7 +5,7 @@
 (require "type.rkt")
 (require "position.rkt")
 
-(require "../convert.rkt")
+(require "../self.rkt")
 (require "../dc/composite.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -10,7 +10,7 @@
 (require geofun/constructor)
 (require geofun/composite)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/geometry/constants)
 (require geofun/digitama/geometry/polygon/triangle)
 (require geofun/digitama/geometry/polygon/quadrilateral)

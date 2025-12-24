@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../convert.rkt")
+(require "../self.rkt")
 
 (require "type.rkt")
 (require "position.rkt")

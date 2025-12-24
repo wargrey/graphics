@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
+(require "digitama/self.rkt")
 (require "digitama/unsafe/adjust.rkt")
-(require "digitama/convert.rkt")
 
 (require geofun/digitama/resize)
 (require geofun/digitama/unsafe/typed/c)

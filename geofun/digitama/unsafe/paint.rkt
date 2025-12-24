@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require typed/racket/unsafe)
+(provide (all-from-out "../paint/self.rkt"))
 
 (require "../paint/self.rkt")
 (require "typed/c.rkt")

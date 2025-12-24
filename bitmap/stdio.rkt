@@ -7,8 +7,9 @@
 (provide (all-from-out digimon/enumeration))
 (provide (all-from-out digimon/digitama/ioexn))
 
-(provide (all-from-out "digitama/parser/stream.rkt"))
+(provide (all-from-out "digitama/self.rkt"))
 (provide (all-from-out "digitama/convert.rkt"))
+(provide (all-from-out "digitama/parser/stream.rkt"))
 
 (require digimon/stdio)
 (require digimon/struct)
@@ -19,8 +20,9 @@
 (require geofun/digitama/unsafe/typed/cairo)
 (require geofun/digitama/unsafe/surface/image)
 
-(require "digitama/parser/stream.rkt")
+(require "digitama/self.rkt")
 (require "digitama/convert.rkt")
+(require "digitama/parser/stream.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/symbol))

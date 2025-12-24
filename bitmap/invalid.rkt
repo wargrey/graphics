@@ -3,7 +3,7 @@
 (provide (all-defined-out) bitmap-invalid?)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require "digitama/convert.rkt")
+(require "digitama/self.rkt")
 (require "digitama/unsafe/invalid.rkt")
 
 (require geofun/digitama/base)

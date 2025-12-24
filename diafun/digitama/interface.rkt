@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
@@ -24,8 +24,8 @@
 (define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name DC-Markup-Text Dia-Block-Style Urgent (Option Geo)))
 (define-type (Dia-Anchor->Block* T Urgent)
   (-> T (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
-      (U Void  ; use default
-         False ; invisible block
+      (U Void  ; user says: use engine's fallback
+         False ; user says: it should be invisible
          Dia:Block)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

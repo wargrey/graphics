@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out "paint/self.rkt"))
 
 (require "../paint.rkt")
 (require "../fill.rkt")

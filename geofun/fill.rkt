@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [brush-maybe-rgba brush-maybe-color]))
 
 (require colorspace/misc)
 
@@ -38,3 +39,10 @@
            (if (not rule)
                (brush-rule baseline)
                rule))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define brush-maybe-rgba : (-> Any (Option FlRGBA))
+  (lambda [s]
+    (cond [(brush? s) (brush-color s)]
+          [(color? s) (rgb* s)]
+          [else #false])))

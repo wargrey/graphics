@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "convert.rkt")
+(require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define read-bitmap : (->* ((U Path-String Input-Port)) (#:backing-scale Positive-Flonum #:try-@2x? Boolean) Bitmap)

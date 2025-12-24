@@ -2,18 +2,16 @@
 
 (provide (all-defined-out))
 
-(require "../../paint.rkt")
+(require "../self.rkt")
 (require "../paint.rkt")
-(require "../convert.rkt")
+(require "../track/self.rkt")
+(require "../unsafe/dc/path.rkt")
 
 (require "../geometry/dot.rkt")
 (require "../geometry/ink.rkt")
 (require "../geometry/bbox.rkt")
 (require "../geometry/trail.rkt")
 (require "../geometry/footprint.rkt")
-
-(require "../track/self.rkt")
-(require "../unsafe/dc/path.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Print-Datum Point2D)

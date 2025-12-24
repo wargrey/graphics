@@ -2,18 +2,18 @@
 
 (provide (all-defined-out))
 
+(require bitmap/digitama/self)
 (require bitmap/digitama/convert)
 
 (require "../paint.rkt")
 (require "../font.rkt")
 
 (require "base.rkt")
-(require "paint.rkt")
+(require "self.rkt")
 (require "convert.rkt")
 
-(require "paint/self.rkt")
+(require "paint.rkt")
 (require "paint/source.rkt")
-
 (require "unsafe/typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

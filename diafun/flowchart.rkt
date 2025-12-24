@@ -6,11 +6,10 @@
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 
-(require geofun/paint)
-
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/type)
 

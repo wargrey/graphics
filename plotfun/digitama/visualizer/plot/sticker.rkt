@@ -8,9 +8,7 @@
 (require geofun/fill)
 
 (require geofun/digitama/base)
-(require geofun/digitama/paint)
-(require geofun/digitama/convert)
-
+(require geofun/digitama/self)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)

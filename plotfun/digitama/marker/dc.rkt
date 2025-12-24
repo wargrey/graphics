@@ -5,11 +5,10 @@
 (require digimon/metrics)
 
 (require geofun/font)
-(require geofun/paint)
 (require geofun/stroke)
 
 (require geofun/digitama/base)
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/color)
 (require geofun/digitama/markup)
 (require geofun/digitama/path/label)

@@ -4,7 +4,7 @@
 
 (require geofun/digitama/misc)
 
-(require "digitama/convert.rkt")
+(require "digitama/self.rkt")
 
 (require/provide "digitama/dc/fmap.rkt")
 (require/provide "digitama/dc/plain.rkt")

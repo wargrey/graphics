@@ -4,6 +4,7 @@
 
 (require digimon/metrics)
 
+(require "../self.rkt")
 (require "../convert.rkt")
 (require "../unsafe/adjust.rkt")
 

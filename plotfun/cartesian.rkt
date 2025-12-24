@@ -24,12 +24,12 @@
 
 (require geofun/font)
 (require geofun/color)
-(require geofun/paint)
 (require geofun/stroke)
+(require geofun/fill)
 (require geofun/constructor)
 
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)

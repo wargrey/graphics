@@ -6,7 +6,7 @@
 (require geofun/digitama/unsafe/typed/c)
 (require geofun/digitama/unsafe/visual)
 
-(require "../convert.rkt")
+(require "../self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap_invalid : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Bitmap)

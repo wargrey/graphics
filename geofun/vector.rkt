@@ -2,11 +2,9 @@
 
 (provide (all-defined-out))
 (provide 2D-Radius-Type 3D-Radius-Type)
-(provide geo-id)
 
 (require "digitama/base.rkt")
 (require "digitama/misc.rkt")
-(require "digitama/convert.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/paint/source.rkt")
 (require "digitama/geometry/radius.rkt")
@@ -15,7 +13,7 @@
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt" "fill.rkt")
 
 (require/provide "digitama/paint/self.rkt")
-(require/provide "digitama/convert.rkt" "digitama/freeze.rkt")
+(require/provide "digitama/self.rkt" "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -4,10 +4,12 @@
 
 (require digimon/metrics)
 
+(require "../self.rkt")
+(require "../convert.rkt")
+
+(require "../paint/self.rkt")
 (require "../geometry/ink.rkt")
 (require "../unsafe/dc/plain.rkt")
-(require "../paint/self.rkt")
-(require "../convert.rkt")
 
 (require "../../fill.rkt")
 (require "../../color.rkt")

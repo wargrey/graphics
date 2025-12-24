@@ -5,7 +5,7 @@
 (require racket/list)
 (require digimon/digitama/unsafe/ops)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
 (require geofun/digitama/geometry/trail)
 (require geofun/digitama/geometry/anchor)

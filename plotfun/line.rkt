@@ -15,28 +15,23 @@
 (provide (all-from-out "digitama/axis/tick/engine.rkt"))
 
 (require racket/case)
-(require racket/math)
 
 (require digimon/flonum)
 (require digimon/metrics)
 (require digimon/constant)
 
 (require geofun/font)
-(require geofun/paint)
 (require geofun/stroke)
-(require geofun/constructor)
 
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/path/tip)
 (require geofun/digitama/path/tips)
-(require geofun/digitama/path/tick)
 
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)

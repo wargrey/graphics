@@ -3,11 +3,8 @@
 (provide (all-defined-out))
 
 (require "path.rkt")
-
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
-
-(require "../../paint/self.rkt")
 (require "../../geometry/footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

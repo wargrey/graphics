@@ -8,7 +8,6 @@
 (require racket/path)
 (require racket/symbol)
 
-(require digimon/dtrace)
 (require digimon/digitama/system)
 (require digimon/digivice/wisemon/display)
 

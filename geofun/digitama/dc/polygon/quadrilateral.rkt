@@ -2,14 +2,13 @@
 
 (provide (all-defined-out))
 
-(require racket/math)
 (require digimon/metrics)
 
 (require "../polygon.rkt")
+(require "../../paint/self.rkt")
 (require "../../geometry/constants.rkt")
 (require "../../geometry/polygon/quadrilateral.rkt")
 
-(require "../../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-parallelogram : (-> Real Real+% Real

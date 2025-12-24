@@ -4,13 +4,13 @@
 
 (require digimon/metrics)
 
+(require "../self.rkt")
+
 (require "../dc/plain.rkt")
 (require "../dc/path.rkt")
 (require "../dc/composite.rkt")
 
-(require "../convert.rkt")
 (require "../layer/type.rkt")
-(require "../layer/combine.rkt")
 (require "../layer/merge.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

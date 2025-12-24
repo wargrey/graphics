@@ -6,13 +6,13 @@
 (require digimon/digitama/unsafe/release/ops)
 
 (require geofun/font)
-(require geofun/paint)
 (require geofun/composite)
 (require geofun/resize)
 
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/text)
+(require geofun/digitama/paint/self)
 
 (require "style.rkt")
 (require "../shared.rkt")

@@ -4,7 +4,6 @@
 
 (require geofun/font)
 (require geofun/stroke)
-
 (require geofun/digitama/paint/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -6,8 +6,7 @@
 (require "typed/cairo.rkt")
 (require "typed/more.rkt")
 
-(require "../convert.rkt")
-(require "../paint/self.rkt")
+(require "../self.rkt")
 (require "../layer/type.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -6,7 +6,7 @@
 (require digimon/metrics)
 (require geofun/digitama/base)
 
-(require "../convert.rkt")
+(require "../self.rkt")
 (require "../unsafe/image.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

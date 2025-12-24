@@ -5,29 +5,28 @@
 (require racket/math)
 (require digimon/metrics)
 
+(require "../base.rkt")
+(require "../paint.rkt")
+(require "../self.rkt")
+(require "../convert.rkt")
+
 (require "../path/label.rkt")
 (require "../path/tip/self.rkt")
 (require "../path/tick.rkt")
 (require "../path/tip.rkt")
 (require "../path/tips.rkt")
 
-(require "../../paint.rkt")
-(require "../../color.rkt")
-(require "../../stroke.rkt")
-(require "../../fill.rkt")
-
-(require "../base.rkt")
-(require "../paint.rkt")
-(require "../paint/self.rkt")
-(require "../dc/composite.rkt")
-
-(require "../convert.rkt")
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/merge.rkt")
 (require "../geometry/dot.rkt")
 (require "../geometry/footprint.rkt")
+(require "../dc/composite.rkt")
 (require "../unsafe/dc/edge.rkt")
+
+(require "../../color.rkt")
+(require "../../stroke.rkt")
+(require "../../fill.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Path (U Geo:Path:Self Geo:Path))
@@ -122,7 +121,7 @@
             [else (geo-path-attach-label me labels)]))
 
     (cond [(and (positive? tick-step) (positive? tick-length))
-           (geo-path-attach-ticks #:skip-tick0? skip-tick0? #:stroke tick-stroke
+           (geo-path-attach-ticks #:skip-tick0? skip-tick0? #:stroke (stroke-resolve-paint tick-stroke stroke)
                                   #:length tick-length #:placement tick-placement #:index tick-idx
                                   labelled-me tick-step tick-rng)]
           [else labelled-me])))
@@ -269,17 +268,18 @@
       (with-asserts ([self geo:path:self?])
         (define paint (geo-select-stroke-paint alt-stroke))
         (define color (and paint (pen-color paint)))
+        (define opacity (and paint (pen-opacity paint)))
         (define sclr (or alt-srgba color))
         (define tclr (or alt-trgba color))
 
         (define (tip-pen [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
           (if (geo-tip-config-fill? cfg)
-              (desc-stroke #:width 1.0 #:color clr)
+              (desc-stroke #:width 1.0 #:color clr #:opacity opacity)
               (and paint (desc-stroke paint #:color clr #:dash 'solid #:width (geo-tip-config-thickness cfg)))))
 
         (define (tip-brush [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Brush)
           (and (geo-tip-config-fill? cfg)
-               (desc-brush #:color clr)))
+               (desc-brush #:color clr #:opacity opacity)))
 
         (dc_edge cr x0 y0 width height
                  (geo:path:self-footprints self) (geo:path:self-bbox-offset self) paint

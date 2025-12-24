@@ -28,25 +28,27 @@
 (require racket/math)
 (require digimon/metrics)
 
-(require "paint.rkt")
+(require "digitama/self.rkt")
+(require "digitama/convert.rkt")
+(require "digitama/composite.rkt")
+
+(require "digitama/dc/track.rkt")
+(require "digitama/dc/composite.rkt")
+(require "digitama/paint/self.rkt")
+(require "digitama/layer/sticker.rkt")
+(require "digitama/path/label.rkt")
 
 (require "digitama/track/dsl.rkt")
 (require "digitama/track/self.rkt")
 (require "digitama/track/datum.rkt")
 (require "digitama/track/gomamon.rkt")
+(require "digitama/track/sticker.rkt")
 
-(require "digitama/convert.rkt")
 (require "digitama/geometry/dot.rkt")
 (require "digitama/geometry/bbox.rkt")
 (require "digitama/geometry/trail.rkt")
 (require "digitama/geometry/anchor.rkt")
 (require "digitama/geometry/footprint.rkt")
-
-(require "digitama/dc/track.rkt")
-(require "digitama/dc/composite.rkt")
-(require "digitama/path/label.rkt")
-(require "digitama/layer/sticker.rkt")
-(require "digitama/track/sticker.rkt")
 
 (require (for-syntax racket/base))
 

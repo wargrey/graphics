@@ -2,10 +2,11 @@
 
 (provide (all-defined-out))
 
-(require "../base.rkt")
 (require "stroke.rkt")
 
+(require "../base.rkt")
 (require "../unsafe/typed/c.rkt")
+(require "../unsafe/visual.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://svgwg.org/svg2-draft/painting.html
@@ -13,6 +14,13 @@
 (define-type CSS-Linear-Gradient (Vector Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 (define-type CSS-Radial-Gradient (Vector Real Real Real Real Real Real (Listof CSS-Gradient-Stop-Color)))
 
+(define-type Stroke-Paint (U Color Pen))
+(define-type Option-Stroke-Paint (Option Stroke-Paint))
+(define-type Maybe-Stroke-Paint (U Option-Stroke-Paint Void))
+
+(define-type Fill-Paint (U Color Visual-Object<%> Brush))
+(define-type Option-Fill-Paint (Option Fill-Paint))
+(define-type Maybe-Fill-Paint (U Option-Fill-Paint Void))
 (define-type Fill-Rule (U 'winding 'even-odd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

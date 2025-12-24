@@ -6,15 +6,16 @@
 (require racket/match)
 (require digimon/metrics)
 
-(require "../../paint.rkt")
 (require "../../font.rkt")
 
-(require "../dc/text.rkt")
-(require "../dc/resize.rkt")
-(require "../convert.rkt")
+(require "../self.rkt")
 (require "../color.rkt")
 (require "../markup.rkt")
 
+(require "../dc/text.rkt")
+(require "../dc/resize.rkt")
+
+(require "../paint/self.rkt")
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../geometry/computation/line.rkt")

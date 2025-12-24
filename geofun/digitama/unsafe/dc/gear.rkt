@@ -5,8 +5,6 @@
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
 (require "../typed/more.rkt")
-
-(require "../../paint/self.rkt")
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

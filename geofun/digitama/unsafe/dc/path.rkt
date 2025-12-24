@@ -4,7 +4,6 @@
 
 (require racket/math)
 
-(require "../../paint/self.rkt")
 (require "../../geometry/footprint.rkt")
 (require "../../geometry/bezier.rkt")
 

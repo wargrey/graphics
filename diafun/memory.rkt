@@ -13,7 +13,7 @@
 
 (require geofun/composite)
 (require geofun/constructor)
-(require geofun/digitama/convert)
+(require geofun/digitama/self)
 
 (require "digitama/ram/dc.rkt")
 (require "digitama/ram/exec.rkt")

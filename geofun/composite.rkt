@@ -29,7 +29,8 @@
 
 (require digimon/digitama/unsafe/release/ops)
 
-(require racket/vector)
+(require "digitama/self.rkt")
+(require "digitama/composite.rkt")
 
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/combine.rkt")
@@ -39,11 +40,8 @@
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
 
+(require "digitama/paint/self.rkt")
 (require "digitama/path/group.rkt")
-
-(require "digitama/composite.rkt")
-(require "digitama/convert.rkt")
-(require "paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-pin geo-pin-over  #:-> Geo Geo:Group #:as geo-composite #:with 'over #:id)

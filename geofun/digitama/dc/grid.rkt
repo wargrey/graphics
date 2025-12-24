@@ -6,9 +6,9 @@
 
 (require "../unsafe/dc/plain.rkt")
 
+(require "../self.rkt")
 (require "../convert.rkt")
 (require "../paint.rkt")
-(require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:grid geo

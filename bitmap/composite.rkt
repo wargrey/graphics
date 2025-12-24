@@ -22,7 +22,8 @@
                      [bitmap-??-superimpose bitmap-xx-superimpose] [bitmap-??-superimpose* bitmap-xx-superimpose*]))
 
 (require "constructor.rkt")
-(require "digitama/convert.rkt")
+
+(require "digitama/self.rkt")
 (require "digitama/unsafe/composite.rkt")
 
 (require racket/math)

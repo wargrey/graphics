@@ -5,17 +5,18 @@
 (require racket/string)
 (require racket/math)
 
-(require "../paint.rkt")
+(require "../self.rkt")
 (require "../convert.rkt")
 (require "../markup.rkt")
-(require "../font.rkt")
 
+(require "../paint.rkt")
 (require "../paint/source.rkt")
+
+(require "../font.rkt")
+(require "../../font.rkt")
+
 (require "../unsafe/dc/text-layout.rkt")
 (require "../unsafe/font.rkt")
-
-(require "../../font.rkt")
-(require "../../paint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:string geo

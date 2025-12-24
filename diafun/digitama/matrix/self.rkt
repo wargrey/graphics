@@ -2,10 +2,8 @@
 
 (provide (all-defined-out))
 
-(require geofun/paint)
-
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 
 (require "../block/style.rkt")
 (require "../interface.rkt")
@@ -25,7 +23,8 @@
 (define-type (Mtx-Style-Make S) (Dia-Block-Style-Make* Any S Mtx-Indices))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Mtx-Maybe-Desc (U DC-Markup-Text Geo Void False))
+(define-type Mtx-Option-Desc (U DC-Markup-Text Geo False))
+(define-type Mtx-Maybe-Desc (U Mtx-Option-Desc Void))
 (define-type (Mtx-Entry M) (-> M Dia-Block-Style Mtx-Indices Mtx-Maybe-Desc))
 (define-type Mtx-Mask (-> Index Index Boolean))
 

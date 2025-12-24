@@ -4,20 +4,19 @@
 
 (require racket/string)
 
-(require geofun/digitama/geometry/anchor)
+(require geofun/font)
+(require geofun/stroke)
+
 (require geofun/digitama/dc/text)
 (require geofun/digitama/unsafe/dc/text-layout)
 
 (require geofun/digitama/base)
+(require geofun/digitama/self)
 (require geofun/digitama/markup)
-(require geofun/digitama/convert)
 
+(require geofun/digitama/geometry/anchor)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
-
-(require geofun/font)
-(require geofun/paint)
-(require geofun/stroke)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Block-Style-Make* T S Urgent) (-> T Urgent (U S False Void)))

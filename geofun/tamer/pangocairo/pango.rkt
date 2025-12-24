@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require geofun/vector)
+(require bitmap/digitama/self)
 (require bitmap/digitama/convert)
-;(require bitmap/digitama/stdio)
 
 (require "../../digitama/base.rkt")
 (require "../../digitama/unsafe/cairo.rkt")

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "digitama/convert.rkt")
+(require "digitama/self.rkt")
 (require "digitama/unsafe/adjust.rkt")
 
 (require geofun/digitama/base)

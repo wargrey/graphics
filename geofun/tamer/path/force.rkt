@@ -6,13 +6,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font : Font (desc-font #:family 'math #:size 'large))
 (define pen : Pen (desc-stroke #:width 1.5))
-(define tick-pen : Pen (desc-stroke #:width 1.0 #:color 'DimGray))
-(define aux-pen : Pen (desc-stroke #:width 0.5 #:dash 'long-dash #:color 'DimGray))
+(define aux-pen : Pen (desc-stroke #:width 0.5 #:dash 'long-dash #:color 'DimGray #:opacity 0.32))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (define F1 : Complex 160)
-  (define F2 : Complex -220i)
+  (define F1 : Complex 160+32i)
+  (define F2 : Complex -18-220i)
   (define scale-step : Index 50)
 
   (geo-vc-append
@@ -32,7 +31,7 @@
                              #:labels (make-geo-path-label (<span> null "F" (<sub> "2")) 1.0 #:rotate? #false #:distance '(+75 %) #:font font)
                              (list 0 F2) scale-step)
                    (geo-path #:source-tip default-bullet-tip #:target-tip default-arrow-tip #:target-placement 'inside
-                             #:stroke (desc-stroke pen #:color 'Purple)
+                             #:stroke (desc-stroke pen #:color 'Purple #:opacity 0.32)
                              #:labels (list (make-geo-path-label "O" -0.05 #:rotate? #false #:font font #:distance 0.0)
                                             (make-geo-path-label "F" +1.00 #:rotate? #false #:font font))
                              (list 0 (+ F1 F2)) scale-step))))

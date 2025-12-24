@@ -26,15 +26,15 @@
                          matrix))
 
 (define col-header@top
-  ((inst dia-array Byte) #:col-desc #("1" "2" "Three" "4" "5")
+  ((inst dia-array Byte) #:col-desc '("1" "2" "Three" "4")
                          #:col-header-rotate -1.57 #:gap gapsize
-                         #:mask? > #:ncols 4
+                         #:mask? >
                          matrix cellsize))
 
 (define col-header@bottom
-  ((inst dia-array Byte) #:col-desc #("1" "2" "Three" "4" "5") #:col-header-top? #false
+  ((inst dia-array Byte) #:col-desc #("1" "2" "Three" "4") #:col-header-top? #false
                          #:col-header-rotate -1.57 #:gap gapsize
-                         #:mask? < #:ncols 4
+                         #:mask? <
                          matrix cellsize))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
