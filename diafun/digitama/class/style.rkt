@@ -33,6 +33,7 @@
   ([font : Font default-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint default-track-stroke]
+   [opacity : (Option Real) #false]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
@@ -47,7 +48,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -61,7 +62,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -75,7 +76,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip default-composition-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -89,7 +90,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Turquoise]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip default-aggregation-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -103,7 +104,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -117,7 +118,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
@@ -131,7 +132,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -145,7 +146,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Gray]
    [dash : (Option Stroke-Dash+Offset) 'solid]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
@@ -163,7 +164,8 @@
    [font : Font default-table-header-font]
    [font-paint : Fill-Paint 'GhostWhite]
    [stroke-paint : Option-Stroke-Paint #false]
-   [fill-paint : Option-Fill-Paint 'CadetBlue]))
+   [fill-paint : Option-Fill-Paint 'CadetBlue]
+   [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diacls-interface-style : DiaCls-Interface-Style #:as dia-block-style
@@ -176,7 +178,7 @@
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DarkKhaki]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diacls-class-style : DiaCls-Class-Style #:as dia-block-style
   #:format "default-diacls-class-~a"
@@ -188,4 +190,4 @@
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))

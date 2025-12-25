@@ -30,7 +30,7 @@
    [width : (Option Flonum)]
    [color : (U Color Void False)]
    [dash : (Option Stroke-Dash+Offset)]
-   [opacity : (Option Flonum)]
+   [opacity : (Option Real)]
    [source-tip : Maybe-Geo-Tip]
    [target-tip : Maybe-Geo-Tip]
    [label-rotate? : (U Boolean Void)]
@@ -44,6 +44,7 @@
   ([font : Font]
    [font-paint : Fill-Paint]
    [line-paint : Stroke-Paint]
+   [opacity : (Option Real)]
    [source-tip : Option-Geo-Tip]
    [target-tip : Option-Geo-Tip]
    [label-rotate? : Boolean]
@@ -53,18 +54,18 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-track-resolve-line-paint : (-> Dia-Track-Style-Layers Stroke-Paint)
-  (lambda [self]
-    (define style (car self))
-    (define c (dia-track-style-color style))
-    (define d+o (dia-track-style-dash style))
-    (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
-
-    (desc-stroke #:color (and (not (void? c)) c)
-                 #:width (dia-track-style-width style)
-                 #:dash dash #:offset offset
-                 #:opacity (dia-track-style-opacity style)
-                 (stroke-paint->source (dia-track-backstop-style-line-paint (cdr self))))))
+(define dia-track-resolve-line-paint : (-> Dia-Track-Style-Layers Pen)
+  (let ([pens : (Weak-HashTable Any Pen) (make-weak-hash)])
+    (lambda [self]
+      (hash-ref! pens self
+                 (λ [] (let* ([style (car self)]
+                              [c (dia-track-style-color style)]
+                              [d+o (dia-track-style-dash style)])
+                         (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
+                         (desc-stroke #:color (and (not (void? c)) c) #:opacity (dia-track-resolve-opacity self)
+                                      #:width (dia-track-style-width style)
+                                      #:dash dash #:offset offset
+                                      (stroke-paint->source (dia-track-backstop-style-line-paint (cdr self))))))))))
 
 (define dia-track-resolve-source-tip : (-> Dia-Track-Style-Layers Option-Geo-Tip)
   (lambda [self]
@@ -100,6 +101,11 @@
   (lambda [self]
     (define fl : (U Flonum Void) (dia-track-style-label-distance (car self)))
     (if (void? fl) (dia-track-backstop-style-label-distance (cdr self)) fl)))
+
+(define dia-track-resolve-opacity : (-> Dia-Track-Style-Layers (Option Real))
+  (lambda [self]
+    (or (dia-track-style-opacity (car self))
+        (dia-track-backstop-style-opacity (cdr self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-track-id-merge : (-> (Option Dia-Free-Track-Endpoint) (Option Dia-Free-Track-Endpoint) Boolean (Option Symbol))

@@ -40,9 +40,9 @@
     (define loc-stroke : Maybe-Stroke-Paint (dia-block-resolve-stroke-paint style))
     (define loc-fill : Maybe-Fill-Paint (dia-block-resolve-fill-paint style))
     (define igr-color : Option-Fill-Paint
-      (dia-block-resolve-font-paint style ram-block-style-ignored-paint
+      (dia-block-resolve-fill-paint style ram-block-style-ignored-paint
                                     ram-location-backstop-style? ram-block-backstop-style-ignored-paint))
-
+    
     (let gen-row ([idx : Nonnegative-Fixnum start]
                   [swor : (Listof RAM-Variable) null])
       (if (< idx end)
@@ -96,7 +96,7 @@
                         #:lines (if (and rsegment (not (eq? vsegment rsegment))) '(line-through) null)
                         id font)
               (geo-text #:lines '(line-through)
-                        #:color (dia-block-resolve-font-paint style ram-block-style-ignored-paint
+                        #:color (dia-block-resolve-fill-paint style ram-block-style-ignored-paint
                                                               ram-location-backstop-style? ram-block-backstop-style-ignored-paint)
                         (ram-address->string address mask) font)))
     

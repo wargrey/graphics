@@ -61,6 +61,7 @@
    [font-paint : Fill-Paint 'DimGrey]
    [stroke-paint : Option-Stroke-Paint default-black-stroke]
    [fill-paint : Option-Fill-Paint 'GhostWhite]
+   [opacity : (Option Real) #false]
    [ignored-paint : Option-Fill-Paint 'Grey]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,7 +75,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [ignored-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration ram-array-style : RAM-Array-Style #:as ram-block-style
@@ -87,7 +88,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [ignored-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration ram-pointer-style : RAM-Pointer-Style #:as ram-block-style
@@ -100,7 +101,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [ignored-paint : Maybe-Fill-Paint (void)]))
 
 (define-configuration ram-padding-style : RAM-Padding-Style #:as ram-block-style
@@ -113,5 +114,5 @@
    [stroke-color : (U Color Void False) 'DimGrey]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'LightGrey]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [ignored-paint : Maybe-Fill-Paint (void)]))

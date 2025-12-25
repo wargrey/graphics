@@ -23,52 +23,56 @@
                                 #:cap (Option Symbol) #:join (U Symbol Real False)
                                 #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
                            Pen)
-  (lambda [[baseline (default-stroke)] #:color [color #false] #:opacity [opacity #false] #:width [width #false]
+  (lambda [[base (default-stroke)] #:color [color #false] #:opacity [opacity #false] #:width [width #false]
                                        #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
-    (define linewidth : Nonnegative-Flonum
-      (cond [(not width) (pen-width baseline)]
-            [else (let ([flw (real->double-flonum width)])
-                    (cond [(>= flw 0.0) flw]
-                          [else (* (abs flw) (pen-width baseline))]))]))
-    (define-values (linejoin miterlimit)
-      (cond [(stroke-line-join-option? join) (values join (pen-miterlimit baseline))]
-            [(real? join) (values 'miter (real->double-flonum join))]
-            [else (values (pen-linejoin baseline) (pen-miterlimit baseline))]))
-    (define-values (preoffset dasharray)
-      (cond [(symbol? dash) (line-dash->array dash linewidth)]
-            [(vector? dash) (values (pen-offset baseline) (dasharray-normalize dash linewidth))]
-            [else (values (pen-offset baseline) (dasharray-normalize (pen-dash baseline) linewidth (pen-width baseline)))]))
-    (define dashoffset : Flonum (if (not offset) preoffset (real->double-flonum offset)))
-    (pen (if (not color) (pen-color baseline) (rgb* color))
-         linewidth
-         (cond [(stroke-line-cap-option? cap) cap]
-               [(eq? dash 'dot) 'round]
-               [else (pen-linecap baseline)])
-         linejoin miterlimit
-         dasharray dashoffset
-         (if (not opacity) (pen-opacity baseline) (real->alpha opacity)))))
+    (if (or color opacity width cap join dash offset)
+        (let*-values ([(linewidth)
+                       (cond [(not width) (pen-width base)]
+                             [else (let ([flw (real->double-flonum width)])
+                                     (cond [(>= flw 0.0) flw]
+                                           [else (* (abs flw) (pen-width base))]))])]
+                      [(linejoin miterlimit)
+                       (cond [(stroke-line-join-option? join) (values join (pen-miterlimit base))]
+                             [(real? join) (values 'miter (real->double-flonum join))]
+                             [else (values (pen-linejoin base) (pen-miterlimit base))])]
+                      [(preoffset dasharray)
+                       (cond [(symbol? dash) (line-dash->array dash linewidth)]
+                             [(vector? dash) (values (pen-offset base) (dasharray-normalize dash linewidth))]
+                             [else (values (pen-offset base) (dasharray-normalize (pen-dash base) linewidth (pen-width base)))])]
+                      [(dashoffset) (if (not offset) preoffset (real->double-flonum offset))])
+          (pen (if (not color) (pen-color base) (rgb* color))
+               linewidth
+               (cond [(stroke-line-cap-option? cap) cap]
+                     [(eq? dash 'dot) 'round]
+                     [else (pen-linecap base)])
+               linejoin miterlimit
+               dasharray dashoffset
+               (if (not opacity) (pen-opacity base) (real->alpha opacity))))
+        base)))
 
 (define desc-border : (->* () (Pen #:color (Option Color) #:opacity (Option Real) #:width (U Real Symbol False) #:style (Option Symbol)) Pen)
-  (lambda [[baseline (default-border)] #:color [color #false] #:opacity [alpha #false] #:width [width #false] #:style [dash #false]]
-    (define no-border? : Boolean (or (eq? dash 'none) (eq? dash 'hidden)))
-    (define linewidth : Nonnegative-Flonum
-      (cond [(and no-border?) 0.0]
-            [(real? width) (let ([flw (real->double-flonum width)]) (if (>= flw 0.0) flw (* (abs flw) (pen-width baseline))))]
-            [(css-border-thickness-option? width) (border-thickness->integer width)]
-            [else (pen-width baseline)]))
-    (define-values (dashoffset dasharray)
-      (case/eq dash
-        [(none hidden) (values 0.0 solid-dash)]
-        [(dotted) (line-dash->array 'dot linewidth)]
-        [(dashed) (line-dash->array 'long-dash linewidth)]
-        [else (values (pen-offset baseline) (dasharray-normalize (pen-dash baseline) linewidth (pen-width baseline)))]))
-    (pen (if (not color) (pen-color baseline) (rgb* color))
-         linewidth
-         (if (eq? dash 'dotted) 'round (pen-linecap baseline))
-         (pen-linejoin baseline)
-         (pen-miterlimit baseline)
-         dasharray dashoffset
-         (if (not alpha) (pen-opacity baseline) (real->alpha alpha)))))
+  (lambda [[base (default-border)] #:color [color #false] #:opacity [alpha #false] #:width [width #false] #:style [dash #false]]
+    (if (or color alpha width dash)
+        (let*-values ([(no-border?) (or (eq? dash 'none) (eq? dash 'hidden))]
+                      [(linewidth)
+                       (cond [(and no-border?) 0.0]
+                             [(real? width) (let ([flw (real->double-flonum width)]) (if (>= flw 0.0) flw (* (abs flw) (pen-width base))))]
+                             [(css-border-thickness-option? width) (border-thickness->integer width)]
+                             [else (pen-width base)])]
+                      [(dashoffset dasharray)
+                       (case/eq dash
+                         [(none hidden) (values 0.0 solid-dash)]
+                         [(dotted) (line-dash->array 'dot linewidth)]
+                         [(dashed) (line-dash->array 'long-dash linewidth)]
+                         [else (values (pen-offset base) (dasharray-normalize (pen-dash base) linewidth (pen-width base)))])])
+          (pen (if (not color) (pen-color base) (rgb* color))
+               linewidth
+               (if (eq? dash 'dotted) 'round (pen-linecap base))
+               (pen-linejoin base)
+               (pen-miterlimit base)
+               dasharray dashoffset
+               (if (not alpha) (pen-opacity base) (real->alpha alpha))))
+        base)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-maybe-rgba : (-> Any (Option FlRGBA))

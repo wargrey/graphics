@@ -6,6 +6,7 @@
 
 (require geofun/font)
 (require geofun/stroke)
+(require geofun/fill)
 
 (require geofun/digitama/dc/text)
 (require geofun/digitama/unsafe/dc/text-layout)
@@ -34,7 +35,7 @@
    [stroke-color : (U Color Void False)]
    [stroke-dash : (Option Stroke-Dash+Offset)]
    [fill-paint : Maybe-Fill-Paint]
-   [opacity : (Option Flonum)])
+   [opacity : (Option Real)])
   #:type-name Dia-Block-Style
   #:transparent)
 
@@ -45,7 +46,8 @@
    [font : Font]
    [font-paint : Fill-Paint]
    [stroke-paint : Option-Stroke-Paint]
-   [fill-paint : Option-Fill-Paint])
+   [fill-paint : Option-Fill-Paint]
+   [opacity : (Option Real)])
   #:type-name Dia-Block-Backstop-Style
   #:transparent)
 
@@ -106,41 +108,54 @@
           [(< width 0.0) (abs (* (pen-width paint) width))]
           [else (pen-width paint)])))
 
-(define dia-block-resolve-stroke-paint : (-> Dia-Block-Style-Layers Option-Stroke-Paint)
-  (lambda [self]
-    (define c (dia-block-style-stroke-color (car self)))
+(define dia-block-resolve-stroke-paint : (-> Dia-Block-Style-Layers (Option Pen))
+   (let ([pens : (Weak-HashTable Any (Option Pen)) (make-weak-hash)])
+     (lambda [self]
+       (hash-ref! pens self
+                  (λ [] (let ([c (dia-block-style-stroke-color (car self))])
+                          (and c (let*-values ([(d+o) (dia-block-style-stroke-dash (car self))]
+                                               [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
+                                   (desc-stroke #:color (and (not (void? c)) c) #:opacity (dia-block-resolve-opacity self)
+                                                #:width (dia-block-style-stroke-width (car self))
+                                                #:dash dash #:offset offset
+                                                (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self))))))))))))
 
-    (and c
-         (let*-values ([(d+o) (dia-block-style-stroke-dash (car self))]
-                       [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))]
-                       [(alpha) (dia-block-style-opacity (car self))])
-           (desc-stroke #:color (and (not (void? c)) c)
-                        #:width (dia-block-style-stroke-width (car self))
-                        #:dash dash #:offset offset
-                        #:opacity alpha
-                        (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self))))))))
-
-(define dia-block-resolve-fill-paint : (-> Dia-Block-Style-Layers Option-Fill-Paint)
-  (lambda [self]
-    (define paint (dia-block-style-fill-paint (car self)))
-    (cond [(not (void? paint)) paint]
-          [else (dia-block-backstop-style-fill-paint (cdr self))])))
+(define #:forall (S B) dia-block-resolve-fill-paint
+  : (case-> [Dia-Block-Style-Layers -> (Option Brush)]
+            [(Dia-Block-Style-Layers* (∩ S Dia-Block-Style)) (-> S Maybe-Fill-Paint) (-> Any Boolean : B) (-> B Option-Fill-Paint) -> (Option Brush)])
+  (let ([brushs : (Weak-HashTable Any (Option Brush)) (make-weak-hash)])
+   (case-lambda
+     [(self)
+      (hash-ref! brushs self
+                 (λ [] (let ([paint (dia-block-style-fill-paint (car self))])                
+                         (try-desc-brush #:opacity (dia-block-resolve-opacity self)
+                                         (fill-paint->source* (cond [(not (void? paint)) paint]
+                                                                    [else (dia-block-backstop-style-fill-paint (cdr self))]))))))]
+     [(self S->paint style? B->paint)
+      (define master (cdr self))
+      (and (style? master)
+           (hash-ref! brushs (list self S->paint B->paint)
+                      (λ [] (try-desc-brush #:opacity (dia-block-resolve-opacity self)
+                                            (fill-paint->source* (let ([paint (S->paint (car self))])
+                                                                   (cond [(not (void? paint)) paint]
+                                                                         [else (B->paint master)])))))))])))
 
 (define dia-block-resolve-font : (-> Dia-Block-Style-Layers Font)
   (lambda [self]
     (or (dia-block-style-font (car self)) (dia-block-backstop-style-font (cdr self)))))
 
-(define #:forall (S B) dia-block-resolve-font-paint
-  : (case-> [Dia-Block-Style-Layers -> Fill-Paint]
-            [(Dia-Block-Style-Layers* S) (-> S Maybe-Fill-Paint) (-> Any Boolean : B) (-> B Option-Fill-Paint) -> Option-Fill-Paint])
-  (case-lambda
-    [(self) (or (dia-block-style-font-paint (car self)) (dia-block-backstop-style-font-paint (cdr self)))]
-    [(self S->paint style? B->paint)
-     (define paint (S->paint (car self)))
-     (cond [(not (void? paint)) paint]
-           [else (let ([master (cdr self)])
-                   (and (style? master)
-                        (B->paint master)))])]))
+(define dia-block-resolve-font-paint : (-> Dia-Block-Style-Layers Brush)
+  (let ([brushs : (Weak-HashTable Any Brush) (make-weak-hash)])
+    (lambda [self]
+      (hash-ref! brushs self
+                 (λ [] (desc-brush #:opacity (dia-block-resolve-opacity self)
+                                   (fill-paint->source (or (dia-block-style-font-paint (car self))
+                                                           (dia-block-backstop-style-font-paint (cdr self))))))))))
+
+(define dia-block-resolve-opacity : (-> Dia-Block-Style-Layers (Option Real))
+  (lambda [self]
+    (or (dia-block-style-opacity (car self))
+        (dia-block-backstop-style-opacity (cdr self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-block-brief-id : (-> Geo-Anchor-Name Symbol)

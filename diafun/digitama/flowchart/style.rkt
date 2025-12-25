@@ -39,6 +39,7 @@
   ([font : Font default-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint default-track-stroke]
+   [opacity : (Option Real) #false]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
@@ -53,7 +54,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) (void)]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -67,7 +68,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkSlateGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -81,7 +82,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumSeaGreen]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -95,7 +96,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkGoldenrod]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
@@ -109,7 +110,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'SteelBlue]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -123,7 +124,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DodgerBlue]
    [dash : (Option Stroke-Dash+Offset) 'dot]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -137,7 +138,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'dot-dash]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -184,7 +185,8 @@
    [font : Font default-block-brief-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint default-block-stroke]
-   [fill-paint : Option-Fill-Paint 'GhostWhite]))
+   [fill-paint : Option-Fill-Paint 'GhostWhite]
+   [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diaflow-start-style : DiaFlow-Start-Style #:as dia-block-style
@@ -197,7 +199,7 @@
    [stroke-color : (U Color Void False) 'ForestGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-stop-style : DiaFlow-Stop-Style #:as dia-block-style
   #:format "default-diaflow-stop-~a"
@@ -209,7 +211,7 @@
    [stroke-color : (U Color Void False) 'DarkSlateGray]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Gainsboro]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; On-Page-Connector -> Inspection
 (define-configuration diaflow-inspection-style : DiaFlow-Inspection-Style #:as dia-block-style
@@ -222,7 +224,7 @@
    [stroke-color : (U Color Void False) 'DeepSkyBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Off-Page-Connector -> Reference
 (define-configuration diaflow-reference-style : DiaFlow-Reference-Style #:as dia-block-style
@@ -235,7 +237,7 @@
    [stroke-color : (U Color Void False) 'DeepSkyBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-input-style : DiaFlow-Input-Style #:as dia-block-style
   #:format "default-diaflow-input-~a"
@@ -247,7 +249,7 @@
    [stroke-color : (U Color Void False) 'LightSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'MintCream]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-output-style : DiaFlow-Output-Style #:as dia-block-style
   #:format "default-diaflow-output-~a"
@@ -259,7 +261,7 @@
    [stroke-color : (U Color Void False) 'DarkOrchid]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-decision-style : DiaFlow-Decision-Style #:as dia-block-style
   #:format "default-diaflow-decision-~a"
@@ -271,7 +273,7 @@
    [stroke-color : (U Color Void False) 'Crimson]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Predefined-Process -> Subroutine -> Prefab
 (define-configuration diaflow-process-style : DiaFlow-Process-Style #:as dia-block-style
@@ -284,7 +286,7 @@
    [stroke-color : (U Color Void False) 'RoyalBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Manual-Operation -> Operation
 (define-configuration diaflow-operation-style : DiaFlow-Operation-Style #:as dia-block-style
@@ -297,7 +299,7 @@
    [stroke-color : (U Color Void False) 'Teal]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Initialization -> Preparation
 (define-configuration diaflow-preparation-style : DiaFlow-Preparation-Style #:as dia-block-style
@@ -310,7 +312,7 @@
    [stroke-color : (U Color Void False) 'Maroon]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-delay-style : DiaFlow-Delay-Style #:as dia-block-style
   #:format "default-diaflow-delay-~a"
@@ -322,7 +324,7 @@
    [stroke-color : (U Color Void False) 'Peru]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Or -> Selection, when a decision produces exclusive multiple outcomes
 (define-configuration diaflow-selection-style : DiaFlow-Selection-Style #:as dia-block-style
@@ -335,7 +337,7 @@
    [stroke-color : (U Color Void False) 'IndianRed]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'SeaShell]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-junction-style : DiaFlow-Junction-Style #:as dia-block-style
   #:format "default-diaflow-junction-~a"
@@ -347,7 +349,7 @@
    [stroke-color : (U Color Void False) 'Orange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LemonChiffon]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 ; Normal dividing of a flow into multiple parallel ones
 (define-configuration diaflow-extract-style : DiaFlow-Extract-Style #:as dia-block-style
@@ -360,7 +362,7 @@
    [stroke-color : (U Color Void False) 'DarkOrange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'MistyRose]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-merge-style : DiaFlow-Merge-Style #:as dia-block-style
   #:format "default-diaflow-merge-~a"
@@ -372,7 +374,7 @@
    [stroke-color : (U Color Void False) 'Orange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LemonChiffon]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-collation-style : DiaFlow-Collation-Style #:as dia-block-style
   #:format "default-diaflow-collation-~a"
@@ -384,7 +386,7 @@
    [stroke-color : (U Color Void False) 'MediumTurquoise]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-sort-style : DiaFlow-Sort-Style #:as dia-block-style
   #:format "default-diaflow-sort-~a"
@@ -396,7 +398,7 @@
    [stroke-color : (U Color Void False) 'MediumTurquoise]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-storage-style : DiaFlow-Storage-Style #:as dia-block-style
   #:format "default-diaflow-storage-~a"
@@ -408,7 +410,7 @@
    [stroke-color : (U Color Void False) 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diaflow-database-style : DiaFlow-Database-Style #:as dia-block-style
   #:format "default-diaflow-database-~a"
@@ -420,4 +422,4 @@
    [stroke-color : (U Color Void False) 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))

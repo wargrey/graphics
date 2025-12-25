@@ -29,6 +29,7 @@
   ([font : Font default-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint default-track-stroke]
+   [opacity : (Option Real) #false]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #true]
@@ -43,7 +44,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -57,7 +58,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -71,7 +72,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'CornflowerBlue]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -85,7 +86,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -99,7 +100,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'solid]
-   [opacity : (Option Flonum) #false]
+   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -117,7 +118,8 @@
    [font : Font default-block-brief-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint default-block-stroke]
-   [fill-paint : Option-Fill-Paint 'GhostWhite]))
+   [fill-paint : Option-Fill-Paint 'GhostWhite]
+   [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diauc-actor-style : DiaUC-Actor-Style #:as dia-block-style
@@ -130,7 +132,7 @@
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'LawnGreen]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration diauc-ucase-style : DiaUC-UCase-Style #:as dia-block-style
   #:format "default-diauc-ucase-~a"
@@ -142,4 +144,4 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Azure]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))

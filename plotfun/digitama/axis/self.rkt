@@ -12,8 +12,6 @@
           [Float-Complex -> Float-Complex]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; NOTE: the `prop:property` forbids struct from being used in untyped code
-
 (struct plot:line geo:group
   ([origin : Float-Complex]
    [ticks : (Listof Real)]

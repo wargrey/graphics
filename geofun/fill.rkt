@@ -23,22 +23,32 @@
                                  #:opacity (Option Real) #:rule (Option Fill-Rule))
                           Brush)
   (lambda [#:color [color #false] #:pattern [pattern (void)] #:opacity [opacity #false] #:rule [rule #false]
-           [baseline (default-winding-brush)]]
-    (brush (if (not color)
-               (brush-color baseline)
-               (rgb* color))
-           (cond [(void? pattern) (brush-pattern baseline)]
-                 [(visual-object<%>? pattern)
-                  (let ([maybe-surface (vobject-convert pattern 'cairo-surface #false)])
-                    (cond [(cairo-surface? maybe-surface) maybe-surface]
-                          [else #false]))]
-                 [else #false])
-           (if (not opacity)
-               (brush-opacity baseline)
-               (real->alpha opacity))
-           (if (not rule)
-               (brush-rule baseline)
-               rule))))
+           [base (default-winding-brush)]]
+    (if (or color opacity rule (not (void? pattern)))
+        (brush (if (not color)
+                   (brush-color base)
+                   (rgb* color))
+               (cond [(void? pattern) (brush-pattern base)]
+                     [(visual-object<%>? pattern)
+                      (let ([maybe-surface (vobject-convert pattern 'cairo-surface #false)])
+                        (cond [(cairo-surface? maybe-surface) maybe-surface]
+                              [else #false]))]
+                     [else #false])
+               (if (not opacity)
+                   (brush-opacity base)
+                   (real->alpha opacity))
+               (if (not rule)
+                   (brush-rule base)
+                   rule))
+        base)))
+
+(define try-desc-brush : (->* ((Option Brush))
+                              (#:color (Option Color) #:pattern (U Void Visual-Object<%> False)
+                               #:opacity (Option Real) #:rule (Option Fill-Rule))
+                              (Option Brush))
+  (lambda [#:color [color #false] #:pattern [pattern (void)] #:opacity [opacity #false] #:rule [rule #false]
+           base]
+    (and base (desc-brush base #:color color #:pattern pattern #:opacity opacity #:rule rule))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define brush-maybe-rgba : (-> Any (Option FlRGBA))

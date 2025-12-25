@@ -14,8 +14,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define mtx-entry-style : (Mtx-Style-Make Mtx-Entry-Style)
   (lambda [dat indices]
-    (make-mtx-entry-style ;#:font-paint 'transparent
-                          #:fill-paint (if (and (index? dat) (> dat 0)) dat 'WhiteSmoke))))
+    (when (index? dat)
+      (make-mtx-entry-style ;#:font-paint 'transparent
+       #:fill-paint (if (> dat 0) dat 'WhiteSmoke)
+       #:opacity (/ dat #x1618034)))))
 
 (define 2d-array
   (parameterize ([default-mtx-col-header-font-paint 'green]

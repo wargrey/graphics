@@ -28,7 +28,8 @@
    [font : Font default-block-brief-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint default-cell-stroke]
-   [fill-paint : Option-Fill-Paint #false]))
+   [fill-paint : Option-Fill-Paint #false]
+   [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration mtx-row-header-style : Mtx-Row-Header-Style #:as dia-block-style
@@ -41,7 +42,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration mtx-col-header-style : Mtx-Col-Header-Style #:as dia-block-style
   #:format "default-mtx-col-header-~a"
@@ -53,7 +54,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration mtx-corner-style : Mtx-Corner-Style #:as dia-block-style
   #:format "default-mtx-corner-~a"
@@ -65,7 +66,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration mtx-hole-style : Mtx-Hole-Style #:as dia-block-style
   #:format "default-mtx-hole-~a"
@@ -77,7 +78,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'dot]
    [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration mtx-mask-style : Mtx-Mask-Style #:as dia-block-style
   #:format "default-mtx-mask-~a"
@@ -89,7 +90,7 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))
 
 (define-configuration mtx-entry-style : Mtx-Entry-Style #:as dia-block-style
   #:format "default-mtx-entry-~a"
@@ -101,4 +102,4 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Flonum) #false]))
+   [opacity : (Option Real) #false]))

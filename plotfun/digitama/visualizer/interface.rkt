@@ -38,22 +38,22 @@
                              (#:color (Option Color) #:opacity (Option Real) #:width (Option Real) #:dash (Option Stroke-Dash+Offset))
                              Pen)
   (lambda [#:color [color #false] #:opacity [opacity #false] #:width [width #false] #:dash [dash+offset #false]
-           baseline]
+           base]
     (define-values (dash offset)
       (if (pair? dash+offset)
           (values (car dash+offset) (cdr dash+offset))
           (values dash+offset #false)))
     
     (desc-stroke #:color color #:opacity opacity #:width width #:dash dash #:offset offset
-                 baseline)))
+                 base)))
 
 (define plot-desc-brush : (->* (Brush)
                                (#:color (Option Color) #:opacity (Option Real) #:rule (Option Fill-Rule))
                                Brush)
   (lambda [#:color [color #false] #:opacity [opacity #false] #:rule [fill-rule #false]
-           baseline]
+           base]
     (desc-brush #:color color #:opacity opacity #:rule fill-rule
-                baseline)))
+                base)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; For the sake of simplicity
