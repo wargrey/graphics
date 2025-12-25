@@ -77,5 +77,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diacls-block-fallback-construct : Dia-Anchor->Block
   (lambda [id brief style width height direction subtype]
-    (cond [(diacls-interface-style? style) (diacls-block-interface id brief style width height direction subtype)]
-          [(diacls-class-style? style)     (diacls-block-class id brief style width height direction subtype)])))
+    (cond [(diacls-interface-style? (car style)) (diacls-block-interface id brief style width height direction subtype)]
+          [(diacls-class-style? (car style))     (diacls-block-class id brief style width height direction subtype)])))

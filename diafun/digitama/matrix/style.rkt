@@ -21,14 +21,14 @@
 (define default-mtx-col-header-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Col-Header-Style))) (make-parameter #false))
 (define default-mtx-corner-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Corner-Style))) (make-parameter #false))
 
-(define-configuration mtx-fallback-style : Mtx-Style #:as dia-block-base-style
+(define-configuration mtx-backstop-style : Mtx-Backstop-Style #:as dia-block-backstop-style
   #:format "default-mtx-~a"
   ([block-width : Nonnegative-Flonum 32.0]
    [block-height : Nonnegative-Flonum 32.0]
-   [font : (Option Font) default-block-brief-font]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint default-cell-stroke]
-   [fill-paint : Maybe-Fill-Paint #false]))
+   [font : Font default-block-brief-font]
+   [font-paint : Fill-Paint 'Black]
+   [stroke-paint : Option-Stroke-Paint default-cell-stroke]
+   [fill-paint : Option-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration mtx-row-header-style : Mtx-Row-Header-Style #:as dia-block-style
@@ -40,7 +40,8 @@
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint #false]))
+   [fill-paint : Maybe-Fill-Paint #false]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration mtx-col-header-style : Mtx-Col-Header-Style #:as dia-block-style
   #:format "default-mtx-col-header-~a"
@@ -51,7 +52,8 @@
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint #false]))
+   [fill-paint : Maybe-Fill-Paint #false]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration mtx-corner-style : Mtx-Corner-Style #:as dia-block-style
   #:format "default-mtx-corner-~a"
@@ -62,7 +64,8 @@
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint #false]))
+   [fill-paint : Maybe-Fill-Paint #false]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration mtx-hole-style : Mtx-Hole-Style #:as dia-block-style
   #:format "default-mtx-hole-~a"
@@ -73,7 +76,8 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'dot]
-   [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]))
+   [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration mtx-mask-style : Mtx-Mask-Style #:as dia-block-style
   #:format "default-mtx-mask-~a"
@@ -84,7 +88,8 @@
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'GhostWhite]))
+   [fill-paint : Maybe-Fill-Paint 'GhostWhite]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration mtx-entry-style : Mtx-Entry-Style #:as dia-block-style
   #:format "default-mtx-entry-~a"
@@ -95,4 +100,5 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint #false]))
+   [fill-paint : Maybe-Fill-Paint #false]
+   [opacity : (Option Flonum) #false]))

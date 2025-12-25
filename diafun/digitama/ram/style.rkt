@@ -13,14 +13,14 @@
 (require "../shared.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct ram-location-base-style dia-block-base-style
+(struct ram-block-backstop-style dia-block-backstop-style
   ([ignored-paint : Option-Fill-Paint])
-  #:type-name RAM-Location-Base-Style
+  #:type-name RAM-Block-Backstop-Style
   #:transparent)
 
-(struct ram-location-style dia-block-style
-  ([ignored-paint : Option-Fill-Paint])
-  #:type-name RAM-Location-Style
+(struct ram-block-style dia-block-style
+  ([ignored-paint : Maybe-Fill-Paint])
+  #:type-name RAM-Block-Style
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,18 +53,18 @@
 (define default-ram-array-style-make : (Parameterof (Option (RAM-Location-Style-Make RAM-Array-Style))) (make-parameter #false))
 (define default-ram-padding-style-make   : (Parameterof (Option (RAM-Location-Style-Make RAM-Padding-Style)))   (make-parameter #false))
 
-(define-configuration ram-location-fallback-style : RAM-Node-Style #:as ram-location-base-style
+(define-configuration ram-location-backstop-style : RAM-Location-Backstop-Style #:as ram-block-backstop-style
   #:format "default-ram-location~a"
   ([width : Nonnegative-Flonum 80.0]
    [height : Nonnegative-Flonum 36.0]
-   [font : (Option Font) default-number-font]
-   [font-paint : Option-Fill-Paint 'DimGrey]
-   [stroke-paint : Maybe-Stroke-Paint default-black-stroke]
-   [fill-paint : Maybe-Fill-Paint 'GhostWhite]
+   [font : Font default-number-font]
+   [font-paint : Fill-Paint 'DimGrey]
+   [stroke-paint : Option-Stroke-Paint default-black-stroke]
+   [fill-paint : Option-Fill-Paint 'GhostWhite]
    [ignored-paint : Option-Fill-Paint 'Grey]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration ram-variable-style : RAM-Variable-Style #:as ram-location-style
+(define-configuration ram-variable-style : RAM-Variable-Style #:as ram-block-style
   #:format "default-ram-variable-~a"
   ([width : False #false]
    [height : False #false]
@@ -74,9 +74,10 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [ignored-paint : Option-Fill-Paint #false]))
+   [opacity : (Option Flonum) #false]
+   [ignored-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration ram-array-style : RAM-Array-Style #:as ram-location-style
+(define-configuration ram-array-style : RAM-Array-Style #:as ram-block-style
   #:format "default-ram-array-~a"
   ([width : False #false]
    [height : False #false]
@@ -86,9 +87,10 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [ignored-paint : Option-Fill-Paint #false]))
+   [opacity : (Option Flonum) #false]
+   [ignored-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration ram-pointer-style : RAM-Pointer-Style #:as ram-location-style
+(define-configuration ram-pointer-style : RAM-Pointer-Style #:as ram-block-style
   #:format "default-ram-pointer-~a"
   ([width : False #false]
    [height : False #false]
@@ -98,9 +100,10 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [ignored-paint : Option-Fill-Paint #false]))
+   [opacity : (Option Flonum) #false]
+   [ignored-paint : Maybe-Fill-Paint (void)]))
 
-(define-configuration ram-padding-style : RAM-Padding-Style #:as ram-location-style
+(define-configuration ram-padding-style : RAM-Padding-Style #:as ram-block-style
   #:format "default-ram-padding-~a"
   ([width : False #false]
    [height : False #false]
@@ -110,4 +113,5 @@
    [stroke-color : (U Color Void False) 'DimGrey]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'LightGrey]
-   [ignored-paint : Option-Fill-Paint #false]))
+   [opacity : (Option Flonum) #false]
+   [ignored-paint : Maybe-Fill-Paint (void)]))

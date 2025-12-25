@@ -24,17 +24,18 @@
 (define default-diauc-generalization-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaUC-Generalization-Arrow-Style))) (make-parameter #false))
 (define default-diauc-free-track-style-make : (Parameterof (Option (Dia-Free-Track-Style-Make DiaUC-Free-Track-Style))) (make-parameter #false))
 
-(define-configuration diauc-track-fallback-style : DiaUC-Track-Style #:as dia-track-base-style
+(define-configuration diauc-track-backstop-style : DiaUC-Track-Backstop-Style #:as dia-track-backstop-style
   #:format "default-diauc-track-~a"
-  ([font : (Option Font) default-track-label-font]
-   [font-paint : Option-Fill-Paint 'DimGray]
-   [line-paint : Maybe-Stroke-Paint default-track-stroke]
+  ([font : Font default-track-label-font]
+   [font-paint : Fill-Paint 'DimGray]
+   [line-paint : Stroke-Paint default-track-stroke]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diauc-association-arrow-style : DiaUC-Association-Arrow-Style #:as dia-track-style
   #:format "default-diauc-association-arrow-~a"
   ([font : (Option Font) #false]
@@ -42,6 +43,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DarkGray]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -55,6 +57,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
@@ -68,6 +71,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'CornflowerBlue]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -81,6 +85,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -94,6 +99,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'solid]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) #true]
@@ -104,14 +110,14 @@
 (define default-diauc-actor-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaUC-Actor-Style))) (make-parameter #false))
 (define default-diauc-ucase-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaUC-UCase-Style))) (make-parameter #false))
 
-(define-configuration diauc-block-fallback-style : DiaUC-Block-Style #:as dia-block-base-style
+(define-configuration diauc-block-backstop-style : DiaUC-Block-Style #:as dia-block-backstop-style
   #:format "default-diauc-~a"
   ([block-width : Nonnegative-Flonum 160.0]
    [block-height : Nonnegative-Flonum 50.0]
-   [font : (Option Font) default-block-brief-font]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-paint : Maybe-Stroke-Paint default-block-stroke]
-   [fill-paint : Maybe-Fill-Paint 'GhostWhite]))
+   [font : Font default-block-brief-font]
+   [font-paint : Fill-Paint 'Black]
+   [stroke-paint : Option-Stroke-Paint default-block-stroke]
+   [fill-paint : Option-Fill-Paint 'GhostWhite]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diauc-actor-style : DiaUC-Actor-Style #:as dia-block-style
@@ -123,7 +129,8 @@
    [stroke-width : (Option Flonum) 1.0]
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LawnGreen]))
+   [fill-paint : Maybe-Fill-Paint 'LawnGreen]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration diauc-ucase-style : DiaUC-UCase-Style #:as dia-block-style
   #:format "default-diauc-ucase-~a"
@@ -134,4 +141,5 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Azure]))
+   [fill-paint : Maybe-Fill-Paint 'Azure]
+   [opacity : (Option Flonum) #false]))

@@ -41,45 +41,45 @@
            #:raw-data-radix [rd-radix : Positive-Byte (default-ram-raw-data-radix)]
            #:layout [layout : Dia-RAM-Variable-Layout dia-ram-variable-layout]
            [variables : Dia-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : (U Dia:RAM Geo:Blank)
-    (parameterize ([default-dia-block-base-style make-ram-location-fallback-style])
-      (define (realize [self : RAM-Variable]) : (Pairof Geo (Listof Geo))
-        (layout (ram-variable-name self) (ram-variable-address self)
-                (ram-variable-datum self) (ram-variable-shape self)))
-      
-      (let var->cell ([vars : (Listof C-Variable-Datum) variables]
-                      [swor : (Listof (Pairof Geo (Listof Geo))) null])
-        (if (pair? vars)
-            (let*-values ([(self rest) (values (car vars) (cdr vars))]
-                          [(address raw) (values (c-placeholder-addr self) (c-placeholder-raw self))]
-                          [(vname style) (ram-identify self segment)])
-              (cond [(not style) (var->cell rest swor)]
-                    [(or (c-padding? self) ignore-variable?)
-                     (if (or no-padding?)
-                         (var->cell rest swor)
-                         (var->cell rest (append swor (map realize (dia-padding-raw style address addr-mask raw p-radix padding-limit)))))]
-                    [(c-variable? self)
-                     (let ([rows (if (not human-readable?)
-                                     (dia-variable-raw #:segment (c-variable-segment self) #:rendering-segment segment
-                                                       style vname address addr-mask raw rd-radix)
-                                     (dia-variable-datum #:segment (c-variable-segment self) #:rendering-segment segment
-                                                         style vname address addr-mask (unbox (c-variable-datum self)) fx-radix))])
-                       (var->cell rest (append swor (map realize rows))))]
-                    [(c-vector? self)
-                     (let ([rows (if (not human-readable?)
-                                     (dia-vector-raw #:segment (c-vector-segment self) #:rendering-segment segment
-                                                     style vname address (c-vector-type-size self) addr-mask raw rd-radix)
-                                     (dia-variable-data #:segment (c-vector-segment self) #:rendering-segment segment
-                                                        style vname address (c-vector-type-size self) addr-mask
-                                                        (c-vector-data self) fx-radix))])
-                       (var->cell rest (append swor (map realize rows))))]
-                    [else (var->cell rest swor)]))
-            
-            (let ([rows (if reverse? swor (reverse swor))])
-              (cond [(null? rows) (geo-blank)]
-                    [else (let ([addr1 (c-placeholder-addr (car variables))]
-                                [addr2 (c-placeholder-addr (last variables))])
-                            (make-dia:ram rows id '(rc lc) 'cc gapsize segment state
-                                          (if (<= addr1 addr2) (cons addr1 addr2) (cons addr2 addr1))))])))))))
+    (define backstop (make-ram-location-backstop-style))
+    (define (realize [self : RAM-Variable]) : (Pairof Geo (Listof Geo))
+      (layout (ram-variable-name self) (ram-variable-address self)
+              (ram-variable-datum self) (ram-variable-shape self)))
+    
+    (let var->cell ([vars : (Listof C-Variable-Datum) variables]
+                    [swor : (Listof (Pairof Geo (Listof Geo))) null])
+      (if (pair? vars)
+          (let*-values ([(self rest) (values (car vars) (cdr vars))]
+                        [(address raw) (values (c-placeholder-addr self) (c-placeholder-raw self))]
+                        [(vname style) (ram-identify self segment)])
+            (cond [(not style) (var->cell rest swor)]
+                  [(or (c-padding? self) ignore-variable?)
+                   (if (or no-padding?)
+                       (var->cell rest swor)
+                       (var->cell rest (append swor (map realize (dia-padding-raw (cons style backstop) address addr-mask raw p-radix padding-limit)))))]
+                  [(c-variable? self)
+                   (let ([rows (if (not human-readable?)
+                                   (dia-variable-raw #:segment (c-variable-segment self) #:rendering-segment segment
+                                                     (cons style backstop) vname address addr-mask raw rd-radix)
+                                   (dia-variable-datum #:segment (c-variable-segment self) #:rendering-segment segment
+                                                       (cons style backstop) vname address addr-mask (unbox (c-variable-datum self)) fx-radix))])
+                     (var->cell rest (append swor (map realize rows))))]
+                  [(c-vector? self)
+                   (let ([rows (if (not human-readable?)
+                                   (dia-vector-raw #:segment (c-vector-segment self) #:rendering-segment segment
+                                                   (cons style backstop) vname address (c-vector-type-size self) addr-mask raw rd-radix)
+                                   (dia-variable-data #:segment (c-vector-segment self) #:rendering-segment segment
+                                                      (cons style backstop) vname address (c-vector-type-size self) addr-mask
+                                                      (c-vector-data self) fx-radix))])
+                     (var->cell rest (append swor (map realize rows))))]
+                  [else (var->cell rest swor)]))
+          
+          (let ([rows (if reverse? swor (reverse swor))])
+            (cond [(null? rows) (geo-blank)]
+                  [else (let ([addr1 (c-placeholder-addr (car variables))]
+                              [addr2 (c-placeholder-addr (last variables))])
+                          (make-dia:ram rows id '(rc lc) 'cc gapsize segment state
+                                        (if (<= addr1 addr2) (cons addr1 addr2) (cons addr2 addr1))))]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-ram-snapshots

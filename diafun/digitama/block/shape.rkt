@@ -8,10 +8,10 @@
 (require geofun/digitama/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-polygon-shape : (-> (Option Symbol) Dia-Block-Style (Listof Float-Complex) Geo)
+(define dia-polygon-shape : (-> (Option Symbol) Dia-Block-Style-Layers (Listof Float-Complex) Geo)
   (lambda [node-key style vertices]
     (geo-polygon #:id (and node-key (dia-block-shape-id node-key))
-                 #:stroke (dia-block-select-stroke-paint style)
-                 #:fill (dia-block-select-fill-paint style)
+                 #:stroke (dia-block-resolve-stroke-paint style)
+                 #:fill (dia-block-resolve-fill-paint style)
                  #:window +nan.0+nan.0i
                  vertices)))

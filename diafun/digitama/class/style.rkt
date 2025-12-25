@@ -28,17 +28,18 @@
 (define default-diacls-dependency-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Dependency-Arrow-Style))) (make-parameter #false))
 (define default-diacls-free-track-style-make : (Parameterof (Option (Dia-Free-Track-Style-Make DiaCls-Free-Track-Style))) (make-parameter #false))
 
-(define-configuration diacls-track-fallback-style : DiaCls-Track-Style #:as dia-track-base-style
+(define-configuration diacls-track-backstop-style : DiaCls-Track-Backstop-Style #:as dia-track-backstop-style
   #:format "default-diacls-track-~a"
-  ([font : (Option Font) default-track-label-font]
-   [font-paint : Option-Fill-Paint 'DimGray]
-   [line-paint : Maybe-Stroke-Paint default-track-stroke]
+  ([font : Font default-track-label-font]
+   [font-paint : Fill-Paint 'DimGray]
+   [line-paint : Stroke-Paint default-track-stroke]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diacls-generalization-arrow-style : DiaCls-Generalization-Arrow-Style #:as dia-track-style
   #:format "default-diacls-generalization-arrow-~a"
   ([font : (Option Font) #false]
@@ -46,6 +47,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -59,6 +61,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -72,6 +75,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip default-composition-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -85,6 +89,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Turquoise]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip default-aggregation-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -98,6 +103,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
@@ -111,6 +117,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
@@ -124,6 +131,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
@@ -137,6 +145,7 @@
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Gray]
    [dash : (Option Stroke-Dash+Offset) 'solid]
+   [opacity : (Option Flonum) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
@@ -147,14 +156,14 @@
 (define default-diacls-interface-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaCls-Interface-Style))) (make-parameter #false))
 (define default-diacls-class-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaCls-Class-Style))) (make-parameter #false))
 
-(define-configuration diacls-block-fallback-style : DiaCls-Block-Style #:as dia-block-base-style
+(define-configuration diacls-block-backstop-style : DiaCls-Block-Style #:as dia-block-backstop-style
   #:format "default-diacls-~a"
   ([block-width : Nonnegative-Flonum 150.0]
    [block-height : Nonnegative-Flonum 45.0]
-   [font : (Option Font) default-table-header-font]
-   [font-paint : Option-Fill-Paint 'GhostWhite]
-   [stroke-paint : Maybe-Stroke-Paint #false]
-   [fill-paint : Maybe-Fill-Paint 'CadetBlue]))
+   [font : Font default-table-header-font]
+   [font-paint : Fill-Paint 'GhostWhite]
+   [stroke-paint : Option-Stroke-Paint #false]
+   [fill-paint : Option-Fill-Paint 'CadetBlue]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration diacls-interface-style : DiaCls-Interface-Style #:as dia-block-style
@@ -166,7 +175,8 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkKhaki]))
+   [fill-paint : Maybe-Fill-Paint 'DarkKhaki]
+   [opacity : (Option Flonum) #false]))
 
 (define-configuration diacls-class-style : DiaCls-Class-Style #:as dia-block-style
   #:format "default-diacls-class-~a"
@@ -177,4 +187,5 @@
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [opacity : (Option Flonum) #false]))

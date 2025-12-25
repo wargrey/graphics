@@ -21,12 +21,16 @@
 (define-type (Dia-Track-Style-Make S) (Dia-Track-Style-Make* Geo (Option Geo) S))
 (define-type (Dia-Free-Track-Style-Make S) (Dia-Track-Style-Make* Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint S))
 
+(define-type (Dia-Track-Style-Layers* S) (Pairof S Dia-Track-Backstop-Style))
+(define-type Dia-Track-Style-Layers (Dia-Track-Style-Layers* Dia-Track-Style))
+
 (struct dia-track-style
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [width : (Option Flonum)]
    [color : (U Color Void False)]
    [dash : (Option Stroke-Dash+Offset)]
+   [opacity : (Option Flonum)]
    [source-tip : Maybe-Geo-Tip]
    [target-tip : Maybe-Geo-Tip]
    [label-rotate? : (U Boolean Void)]
@@ -36,27 +40,68 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia-track-base-style
-  ([font : (Option Font)]
-   [font-paint : Option-Fill-Paint]
-   [line-paint : Maybe-Stroke-Paint]
+(struct dia-track-backstop-style
+  ([font : Font]
+   [font-paint : Fill-Paint]
+   [line-paint : Stroke-Paint]
    [source-tip : Option-Geo-Tip]
    [target-tip : Option-Geo-Tip]
    [label-rotate? : Boolean]
    [label-inline? : Boolean]
    [label-distance : (Option Flonum)])
-  #:type-name Dia-Track-Base-Style
+  #:type-name Dia-Track-Backstop-Style
   #:transparent)
 
-(define make-null-track-style : (-> Dia-Track-Base-Style)
-  (lambda []
-    (dia-track-base-style #false #false (void)
-                         #false #false #false #false
-                         #false)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-track-resolve-line-paint : (-> Dia-Track-Style-Layers Stroke-Paint)
+  (lambda [self]
+    (define style (car self))
+    (define c (dia-track-style-color style))
+    (define d+o (dia-track-style-dash style))
+    (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
 
-(define default-dia-track-base-style : (Parameterof (-> Dia-Track-Base-Style))
-  (make-parameter make-null-track-style))
+    (desc-stroke #:color (and (not (void? c)) c)
+                 #:width (dia-track-style-width style)
+                 #:dash dash #:offset offset
+                 #:opacity (dia-track-style-opacity style)
+                 (stroke-paint->source (dia-track-backstop-style-line-paint (cdr self))))))
 
+(define dia-track-resolve-source-tip : (-> Dia-Track-Style-Layers Option-Geo-Tip)
+  (lambda [self]
+    (define shape : Maybe-Geo-Tip (dia-track-style-source-tip (car self)))
+    (if (void? shape) (dia-track-backstop-style-source-tip (cdr self)) shape)))
+
+(define dia-track-resolve-target-tip : (-> Dia-Track-Style-Layers Option-Geo-Tip)
+  (lambda [self]
+    (define shape : Maybe-Geo-Tip (dia-track-style-target-tip (car self)))
+    (if (void? shape) (dia-track-backstop-style-target-tip (cdr self)) shape)))
+
+(define dia-track-resolve-font : (-> Dia-Track-Style-Layers (Option Font))
+  (lambda [self]
+    (or (dia-track-style-font (car self))
+        (dia-track-backstop-style-font (cdr self)))))
+
+(define dia-track-resolve-font-paint : (-> Dia-Track-Style-Layers Fill-Paint)
+  (lambda [self]
+    (or (dia-track-style-font-paint (car self))
+        (dia-track-backstop-style-font-paint (cdr self)))))
+
+(define dia-track-resolve-label-rotate? : (-> Dia-Track-Style-Layers Boolean)
+  (lambda [self]
+    (define b : (U Boolean Void) (dia-track-style-label-rotate? (car self)))
+    (if (void? b) (dia-track-backstop-style-label-rotate? (cdr self)) b)))
+
+(define dia-track-resolve-label-inline? : (-> Dia-Track-Style-Layers Boolean)
+  (lambda [self]
+    (define b : (U Boolean Void) (dia-track-style-label-inline? (car self)))
+    (if (void? b) (dia-track-backstop-style-label-inline? (cdr self)) b)))
+
+(define dia-track-resolve-label-distance : (-> Dia-Track-Style-Layers (Option Flonum))
+  (lambda [self]
+    (define fl : (U Flonum Void) (dia-track-style-label-distance (car self)))
+    (if (void? fl) (dia-track-backstop-style-label-distance (cdr self)) fl)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-track-id-merge : (-> (Option Dia-Free-Track-Endpoint) (Option Dia-Free-Track-Endpoint) Boolean (Option Symbol))
   (lambda [source-id target-id directed?]
     (define src-id : (Option String) (and source-id (if (complex? source-id) #false (geo-anchor->string source-id))))
@@ -67,62 +112,6 @@
           (cond [(not tgt-id) (string-append src-id "-.")]
                 [(not directed?) (string-append src-id "->" tgt-id)]
                 [else (string-append src-id "->" tgt-id)])))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-track-select-line-paint : (-> (U Dia-Track-Style Maybe-Stroke-Paint) Option-Stroke-Paint)
-  (lambda [s]
-    (define fallback-paint : (Option Pen) (stroke-paint->source* (dia-track-base-style-line-paint ((default-dia-track-base-style)))))
-    
-    (cond [(void? s) fallback-paint]
-          [(or (not s) (pen? s)) s]
-          [(dia-track-style? s)
-           (let*-values ([(c) (dia-track-style-color s)]
-                         [(d+o) (dia-track-style-dash s)]
-                         [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
-             (desc-stroke #:color (and (not (void? c)) c)
-                          #:width (dia-track-style-width s)
-                          #:dash dash #:offset offset
-                          (if (pen? fallback-paint) fallback-paint (default-stroke))))]
-          [(pen? fallback-paint) (desc-stroke fallback-paint #:color s)]
-          [else s])))
-
-(define dia-track-select-source-tip : (-> Dia-Track-Style Option-Geo-Tip)
-  (lambda [s]
-    (define shape : Maybe-Geo-Tip (dia-track-style-source-tip s))
-    (if (void? shape) (dia-track-base-style-source-tip ((default-dia-track-base-style))) shape)))
-
-(define dia-track-select-target-tip : (-> Dia-Track-Style Option-Geo-Tip)
-  (lambda [s]
-    (define shape : Maybe-Geo-Tip (dia-track-style-target-tip s))
-    (if (void? shape) (dia-track-base-style-target-tip ((default-dia-track-base-style))) shape)))
-
-(define dia-track-select-font : (-> Dia-Track-Style (Option Font))
-  (lambda [s]
-    (or (dia-track-style-font s)
-        (dia-track-base-style-font ((default-dia-track-base-style))))))
-
-(define dia-track-select-font-paint : (-> Dia-Track-Style Option-Fill-Paint)
-  (lambda [s]
-    (or (dia-track-style-font-paint s)
-        (dia-track-base-style-font-paint ((default-dia-track-base-style))))))
-
-(define dia-track-select-label-rotate? : (-> Dia-Track-Style Boolean)
-  (lambda [s]
-    (define b : (U Boolean Void) (dia-track-style-label-rotate? s))
-    
-    (if (void? b) (dia-track-base-style-label-rotate? ((default-dia-track-base-style))) b)))
-
-(define dia-track-select-label-inline? : (-> Dia-Track-Style Boolean)
-  (lambda [s]
-    (define b : (U Boolean Void) (dia-track-style-label-inline? s))
-    
-    (if (void? b) (dia-track-base-style-label-inline? ((default-dia-track-base-style))) b)))
-
-(define dia-track-select-label-distance : (-> Dia-Track-Style (Option Flonum))
-  (lambda [s]
-    (define fl : (U Flonum Void) (dia-track-style-label-distance s))
-    
-    (if (void? fl) (dia-track-base-style-label-distance ((default-dia-track-base-style))) fl)))
 
 (define dia-track-swap-dash-style : (-> Dia-Track-Style Stroke-Dash-Datum Dia-Track-Style)
   (lambda [s dash-datum]

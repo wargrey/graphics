@@ -22,6 +22,9 @@
 (define-type (Dia-Block-Style-Make* T S Urgent) (-> T Urgent (U S False Void)))
 (define-type (Dia-Block-Style-Make S) (Dia-Block-Style-Make* Geo-Anchor-Name S (Option Symbol)))
 
+(define-type (Dia-Block-Style-Layers* S) (Pairof S Dia-Block-Backstop-Style))
+(define-type Dia-Block-Style-Layers (Dia-Block-Style-Layers* Dia-Block-Style))
+
 (struct dia-block-style
   ([width : (Option Flonum)]
    [height : (Option Flonum)]
@@ -30,42 +33,33 @@
    [stroke-width : (Option Flonum)]
    [stroke-color : (U Color Void False)]
    [stroke-dash : (Option Stroke-Dash+Offset)]
-   [fill-paint : Maybe-Fill-Paint])
+   [fill-paint : Maybe-Fill-Paint]
+   [opacity : (Option Flonum)])
   #:type-name Dia-Block-Style
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia-block-base-style
+(struct dia-block-backstop-style
   ([width : Nonnegative-Flonum]
    [height : Nonnegative-Flonum]
-   [font : (Option Font)]
-   [font-paint : Option-Fill-Paint]
-   [stroke-paint : Maybe-Stroke-Paint]
-   [fill-paint : Maybe-Fill-Paint])
-  #:type-name Dia-Block-Base-Style
+   [font : Font]
+   [font-paint : Fill-Paint]
+   [stroke-paint : Option-Stroke-Paint]
+   [fill-paint : Option-Fill-Paint])
+  #:type-name Dia-Block-Backstop-Style
   #:transparent)
-
-(define make-null-block-style : (-> Dia-Block-Base-Style)
-  (lambda []
-    (dia-block-base-style 0.0 0.0 #false #false (void) (void))))
 
 (define default-dia-block-margin : (Parameterof Nonnegative-Flonum) (make-parameter 8.0))
 (define default-dia-block-text-alignment : (Parameterof Geo-Text-Alignment) (make-parameter 'center))
 (define default-dia-block-text-trim? : (Parameterof Boolean) (make-parameter #true))
-(define default-dia-block-base-style : (Parameterof (-> Dia-Block-Base-Style)) (make-parameter make-null-block-style))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-text-brief : (->* (DC-Markup-Text Dia-Block-Style)
+(define dia-block-text-brief : (->* (DC-Markup-Text Dia-Block-Style-Layers)
                                     (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
                                     (Option Geo))
   (lambda [desc style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
-    (define maybe-font : (Option Font) (or alt-font (dia-block-style-font style)))
-    (define maybe-paint : Option-Fill-Paint (or alt-color (dia-block-style-font-paint style)))
-
-    (define fallback-style : Dia-Block-Base-Style
-      (if (and maybe-font maybe-paint)
-          (make-null-block-style) ; useless but a bit more efficient
-          ((default-dia-block-base-style))))
+    (define maybe-font : (Option Font) (or alt-font (dia-block-style-font (car style))))
+    (define maybe-paint : Option-Fill-Paint (or alt-color (dia-block-style-font-paint (car style))))
 
     (define text : DC-Markup-Text
       (cond [(string? desc) (if (default-dia-block-text-trim?) (string-trim desc) desc)]
@@ -76,30 +70,25 @@
                [(bytes? text) (> (bytes-length text) 0)]
                [else #true])
          (geo-markup #:id (dia-block-brief-id (or id (gensym 'dia:block:brief:)))
-                     #:color (or maybe-paint (dia-block-base-style-font-paint fallback-style))
+                     #:color (or maybe-paint (dia-block-backstop-style-font-paint (cdr style)))
                      #:alignment (default-dia-block-text-alignment)
                      #:error-color 'GhostWhite #:error-background 'Firebrick
-                     text (or maybe-font (dia-block-base-style-font fallback-style))))))
+                     text (or maybe-font (dia-block-backstop-style-font (cdr style)))))))
 
-(define dia-block-size : (-> Dia-Block-Style (Values Nonnegative-Flonum Nonnegative-Flonum))
+(define dia-block-size : (-> Dia-Block-Style-Layers (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [style]
     (dia-block-smart-size #false style)))
 
-(define dia-block-smart-size : (->* ((Option Geo) Dia-Block-Style)
+(define dia-block-smart-size : (->* ((Option Geo) Dia-Block-Style-Layers)
                                     (#:width (Option Real) #:height (Option Real))
                                     (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [brief style #:width [alt-width #false] #:height [alt-height #false]]
-    (define maybe-width  (if (not alt-width)  (dia-block-style-width style)  (real->double-flonum alt-width)))
-    (define maybe-height (if (not alt-height) (dia-block-style-height style) (real->double-flonum alt-height)))
+    (define maybe-width  (if (not alt-width)  (dia-block-style-width (car style))  (real->double-flonum alt-width)))
+    (define maybe-height (if (not alt-height) (dia-block-style-height (car style)) (real->double-flonum alt-height)))
+    
+    (define width  (or maybe-width  (dia-block-backstop-style-width  (cdr style))))
+    (define height (or maybe-height (dia-block-backstop-style-height (cdr style))))
 
-    (define fallback-style : Dia-Block-Base-Style
-      (if (and maybe-width maybe-height)
-          (make-null-block-style) ; useless but a bit more efficient
-          ((default-dia-block-base-style))))
-    
-    (define width  (or maybe-width  (dia-block-base-style-width  fallback-style)))
-    (define height (or maybe-height (dia-block-base-style-height fallback-style)))
-    
     (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
           [(not brief) (values 0.0 0.0)]
           [else (let-values ([(w h) (geo-flsize brief)])
@@ -107,69 +96,51 @@
                           (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-select-stroke-width : (-> Dia-Block-Style Nonnegative-Flonum)
+(define dia-block-resolve-stroke-width : (-> Dia-Block-Style-Layers Nonnegative-Flonum)
   (lambda [self]
-    (define paint (stroke-paint->source (dia-block-base-style-stroke-paint ((default-dia-block-base-style)))))
-    (define width (dia-block-style-stroke-width self))
+    (define paint (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self))))
+    (define width (dia-block-style-stroke-width (car self)))
 
     (cond [(not width) (pen-width paint)]
           [(>= width 0.0) width]
           [(< width 0.0) (abs (* (pen-width paint) width))]
           [else (pen-width paint)])))
 
-(define dia-block-select-stroke-paint : (-> Dia-Block-Style Maybe-Stroke-Paint)
+(define dia-block-resolve-stroke-paint : (-> Dia-Block-Style-Layers Option-Stroke-Paint)
   (lambda [self]
-    (define fallback-paint : (Option Pen) (stroke-paint->source* (dia-block-base-style-stroke-paint ((default-dia-block-base-style)))))
-    (define c (dia-block-style-stroke-color self))
+    (define c (dia-block-style-stroke-color (car self)))
 
     (and c
-         (let*-values ([(d+o) (dia-block-style-stroke-dash self)]
-                       [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
+         (let*-values ([(d+o) (dia-block-style-stroke-dash (car self))]
+                       [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))]
+                       [(alpha) (dia-block-style-opacity (car self))])
            (desc-stroke #:color (and (not (void? c)) c)
-                        #:width (dia-block-style-stroke-width self)
+                        #:width (dia-block-style-stroke-width (car self))
                         #:dash dash #:offset offset
-                        (if (pen? fallback-paint) fallback-paint (default-stroke)))))))
+                        #:opacity alpha
+                        (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self))))))))
 
-(define #:forall (T) dia-block-select-fill-paint : (case-> [Dia-Block-Style -> Maybe-Fill-Paint]
-                                                           [Maybe-Fill-Paint (-> Dia-Block-Base-Style Maybe-Fill-Paint) -> Maybe-Fill-Paint]
-                                                           [Maybe-Fill-Paint (-> Any Boolean : T) (-> T Maybe-Fill-Paint) -> Maybe-Fill-Paint])
-  (case-lambda
-    [(self)
-     (let ([paint (dia-block-style-fill-paint self)])
-       (cond [(not (void? paint)) paint]
-             [else (dia-block-base-style-fill-paint ((default-dia-block-base-style)))]))]
-    [(self style-fill-paint)
-     (cond [(not (void? self)) self]
-           [else (style-fill-paint ((default-dia-block-base-style)))])]
-    [(self fallback? fallback-fill-paint)
-     (cond [(not (void? self)) self]
-           [else (let ([base ((default-dia-block-base-style))])
-                   (and (fallback? base)
-                        (fallback-fill-paint base)))])]))
+(define dia-block-resolve-fill-paint : (-> Dia-Block-Style-Layers Option-Fill-Paint)
+  (lambda [self]
+    (define paint (dia-block-style-fill-paint (car self)))
+    (cond [(not (void? paint)) paint]
+          [else (dia-block-backstop-style-fill-paint (cdr self))])))
 
-(define #:forall (T) dia-block-select-font : (case-> [Dia-Block-Style -> (Option Font)]
-                                                     [(Option Font) (-> Dia-Block-Base-Style (Option Font)) -> (Option Font)]
-                                                     [(Option Font) (-> Any Boolean : T) (-> T (Option Font)) -> (Option Font)])
-  (case-lambda
-    [(self) (or (dia-block-style-font self) (dia-block-base-style-font ((default-dia-block-base-style))))]
-    [(self style-font) (or self (style-font ((default-dia-block-base-style))))]
-    [(self fallback? fallback-font)
-     (or self
-         (let ([base ((default-dia-block-base-style))])
-           (and (fallback? base)
-                (fallback-font base))))]))
+(define dia-block-resolve-font : (-> Dia-Block-Style-Layers Font)
+  (lambda [self]
+    (or (dia-block-style-font (car self)) (dia-block-backstop-style-font (cdr self)))))
 
-(define #:forall (T) dia-block-select-font-paint : (case-> [Dia-Block-Style -> Option-Fill-Paint]
-                                                           [Option-Fill-Paint (-> Dia-Block-Base-Style Option-Fill-Paint) -> Option-Fill-Paint]
-                                                           [Option-Fill-Paint (-> Any Boolean : T) (-> T Option-Fill-Paint) -> Option-Fill-Paint])
+(define #:forall (S B) dia-block-resolve-font-paint
+  : (case-> [Dia-Block-Style-Layers -> Fill-Paint]
+            [(Dia-Block-Style-Layers* S) (-> S Maybe-Fill-Paint) (-> Any Boolean : B) (-> B Option-Fill-Paint) -> Option-Fill-Paint])
   (case-lambda
-    [(self) (or (dia-block-style-font-paint self) (dia-block-base-style-font-paint ((default-dia-block-base-style))))]
-    [(self style-font-paint) (or self (style-font-paint ((default-dia-block-base-style))))]
-    [(self fallback? fallback-font-paint)
-     (or self
-         (let ([base ((default-dia-block-base-style))])
-           (and (fallback? base)
-                (fallback-font-paint base))))]))
+    [(self) (or (dia-block-style-font-paint (car self)) (dia-block-backstop-style-font-paint (cdr self)))]
+    [(self S->paint style? B->paint)
+     (define paint (S->paint (car self)))
+     (cond [(not (void? paint)) paint]
+           [else (let ([master (cdr self)])
+                   (and (style? master)
+                        (B->paint master)))])]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-block-brief-id : (-> Geo-Anchor-Name Symbol)

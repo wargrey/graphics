@@ -8,7 +8,7 @@
 (require "variable.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define ram-identify : (-> C-Variable-Datum Symbol (Values Symbol (Option RAM-Location-Style)))
+(define ram-identify : (-> C-Variable-Datum Symbol (Values Symbol (Option RAM-Block-Style)))
   (lambda [self segment]
     (cond [(c-variable? self)
            (if (keyword? (c-variable-name self))
@@ -23,10 +23,10 @@
           [else (ram-style-construct '|| segment (default-ram-padding-style-make) make-ram-padding-style)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) ram-style-construct : (-> Symbol Symbol (Option (RAM-Location-Style-Make (∩ S RAM-Location-Style)))
-                                               (-> (∩ S RAM-Location-Style))
-                                               (Values Symbol (∩ S RAM-Location-Style)))
+(define #:forall (S) ram-style-construct : (-> Symbol Symbol (Option (RAM-Location-Style-Make (∩ S RAM-Block-Style)))
+                                               (-> (∩ S RAM-Block-Style))
+                                               (Values Symbol (∩ S RAM-Block-Style)))
   (lambda [variable segment mk-style mk-fallback-style]
     (values variable
-            ((inst dia-block-style-construct Symbol (∩ S RAM-Location-Style) Symbol)
+            ((inst dia-block-style-construct Symbol (∩ S RAM-Block-Style) Symbol)
              variable mk-style mk-fallback-style segment))))

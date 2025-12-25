@@ -25,7 +25,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Mtx-Option-Desc (U DC-Markup-Text Geo False))
 (define-type Mtx-Maybe-Desc (U Mtx-Option-Desc Void))
-(define-type (Mtx-Entry M) (-> M Dia-Block-Style Mtx-Indices Mtx-Maybe-Desc))
+(define-type (Mtx-Entry M) (-> M Dia-Block-Style-Layers Mtx-Indices Mtx-Maybe-Desc))
 (define-type Mtx-Mask (-> Index Index Boolean))
 
 (define-type Mtx-Static-Headers

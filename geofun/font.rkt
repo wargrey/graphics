@@ -11,6 +11,9 @@
 (require "digitama/unsafe/font.rkt")
 (require "digitama/unsafe/math.rkt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Option-Font (Option Font))
+
 (struct font
   ([face : String]
    [size : Nonnegative-Flonum]

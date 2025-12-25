@@ -24,8 +24,8 @@
           [(eq? subtype 'Alternate)  (diaflow-block-alternate block-key brief style width height direction subtype)]
           [else (create-dia-block #:id block-key #:type 'Process subtype
                                   (geo-rectangle #:id (dia-block-shape-id block-key)
-                                                 #:stroke (dia-block-select-stroke-paint style)
-                                                 #:fill (dia-block-select-fill-paint style)
+                                                 #:stroke (dia-block-resolve-stroke-paint style)
+                                                 #:fill (dia-block-resolve-fill-paint style)
                                                  width height)
                                   brief)])))
 
@@ -37,8 +37,8 @@
     (create-dia-block #:id block-key #:type 'Process subtype
                       #:fit-ratio width-ratio 1.0
                       (geo-rectangle #:id (dia-block-shape-id block-key) #:vlines (list vline (- vline))
-                                     #:stroke (dia-block-select-stroke-paint style)
-                                     #:fill (dia-block-select-fill-paint style)
+                                     #:stroke (dia-block-resolve-stroke-paint style)
+                                     #:fill (dia-block-resolve-fill-paint style)
                                      width height)
                       brief)))
 
@@ -47,8 +47,8 @@
     (create-dia-block #:id block-key #:type 'Alternate subtype
                       #:fit-ratio 0.85 1.0
                       (geo-rectangle #:id (dia-block-shape-id block-key)
-                                     #:stroke (dia-block-select-stroke-paint style)
-                                     #:fill (dia-block-select-fill-paint style)
+                                     #:stroke (dia-block-resolve-stroke-paint style)
+                                     #:fill (dia-block-resolve-fill-paint style)
                                      width height '(25 %))
                       brief)))
 
@@ -79,8 +79,8 @@
     (create-dia-block #:id block-key #:type 'Terminal subtype
                       #:fit-ratio (max (/ (- width r) width) 0.0) 1.00
                       (geo-stadium #:id (dia-block-shape-id block-key)
-                                   #:stroke (dia-block-select-stroke-paint style)
-                                   #:fill (dia-block-select-fill-paint style)
+                                   #:stroke (dia-block-resolve-stroke-paint style)
+                                   #:fill (dia-block-resolve-fill-paint style)
                                    (- width (* r 2.0)) r)
                       brief)))
 
@@ -105,8 +105,8 @@
           (create-dia-block #:id block-key #:type 'Output subtype
                             #:fit-ratio 0.75 1.00
                             (geo-bullet #:id (dia-block-shape-id block-key)
-                                        #:stroke (dia-block-select-stroke-paint style)
-                                        #:fill (dia-block-select-fill-paint style)
+                                        #:stroke (dia-block-resolve-stroke-paint style)
+                                        #:fill (dia-block-resolve-fill-paint style)
                                         ogive r barrel)
                             brief))
         (diaflow-block-dataIO block-key brief style width height 'Output subtype))))
@@ -120,8 +120,8 @@
                       #:intersect dia-circle-intersect
                       #:fit-ratio 0.75 0.75
                       (geo-circle #:id (dia-block-shape-id block-key)
-                                  #:stroke (dia-block-select-stroke-paint style)
-                                  #:fill (dia-block-select-fill-paint style)
+                                  #:stroke (dia-block-resolve-stroke-paint style)
+                                  #:fill (dia-block-resolve-fill-paint style)
                                   r)
                       brief r)))
 
@@ -147,8 +147,8 @@
                       #:intersect dia-circle-intersect
                       #:fit-ratio 0.75 0.75
                       (geo-circle #:id (dia-block-shape-id block-key)
-                                  #:stroke (dia-block-select-stroke-paint style)
-                                  #:fill (dia-block-select-fill-paint style)
+                                  #:stroke (dia-block-resolve-stroke-paint style)
+                                  #:fill (dia-block-resolve-fill-paint style)
                                   #:diameters (list 0.0 pi/2)
                                   r)
                       #false r)))
@@ -161,8 +161,8 @@
                       #:intersect dia-circle-intersect
                       #:fit-ratio 0.75 0.75
                       (geo-circle #:id (dia-block-shape-id block-key)
-                                  #:stroke (dia-block-select-stroke-paint style)
-                                  #:fill (dia-block-select-fill-paint style)
+                                  #:stroke (dia-block-resolve-stroke-paint style)
+                                  #:fill (dia-block-resolve-fill-paint style)
                                   #:diameters (list pi/4 3pi/4)
                                   r)
                       #false r)))
@@ -204,8 +204,8 @@
     (create-dia-block #:id block-key #:type 'Delay subtype
                       #:fit-ratio (max (/ (- width r) width) 0.0) 1.00
                       (geo-rstadium #:id (dia-block-shape-id block-key)
-                                    #:stroke (dia-block-select-stroke-paint style)
-                                    #:fill (dia-block-select-fill-paint style)
+                                    #:stroke (dia-block-resolve-stroke-paint style)
+                                    #:fill (dia-block-resolve-fill-paint style)
                                     (- width r) r)
                       brief)))
 
@@ -242,8 +242,8 @@
                                     #:fit-ratio (abs (- 1.0 (/ (* aradius 2.0) width))) 1.0
                                     #:position (max (- 0.5 (* (/ aradius width) 0.5)) 0.0) 0.5
                                     (geo-storage #:id (dia-block-shape-id block-key)
-                                                 #:stroke (dia-block-select-stroke-paint style)
-                                                 #:fill (dia-block-select-fill-paint style)
+                                                 #:stroke (dia-block-resolve-stroke-paint style)
+                                                 #:fill (dia-block-resolve-fill-paint style)
                                                  width height aradius)
                                     brief))])))
 
@@ -258,8 +258,8 @@
                       #:fit-ratio (max (/ brief-zone-width width) 0.0) (max (/ brief-zone-width height) 0.0)
                       #:position (max (/ (+ brief-pos (* brief-zone-width 0.5)) width) 0.0) (max (/ (+ brief-pos (* brief-zone-height 0.5)) height) 0.0)
                       (geo-rectangle #:id (dia-block-shape-id block-key) #:vlines (list brief-pos) #:hlines (list brief-pos)
-                                     #:stroke (dia-block-select-stroke-paint style)
-                                     #:fill (dia-block-select-fill-paint style)
+                                     #:stroke (dia-block-resolve-stroke-paint style)
+                                     #:fill (dia-block-resolve-fill-paint style)
                                      width height)
                       brief)))
 
@@ -270,8 +270,8 @@
                       #:fit-ratio 1.0 hratio
                       #:position 0.5 (* hratio 0.5)
                       (geo-document #:id (dia-block-shape-id block-key)
-                                    #:stroke (dia-block-select-stroke-paint style)
-                                    #:fill (dia-block-select-fill-paint style)
+                                    #:stroke (dia-block-resolve-stroke-paint style)
+                                    #:fill (dia-block-resolve-fill-paint style)
                                     width height `(,(* (- 1.0 hratio) 0.5) :))
                       brief)))
 
@@ -290,8 +290,8 @@
                       #:fit-ratio wratio hratio
                       #:position (abs (- 0.5 (* wgr 0.5))) (abs (+ hgr (* hratio 0.5)))
                       (geo-document #:id (dia-block-shape-id block-key)
-                                    #:stroke (dia-block-select-stroke-paint style)
-                                    #:fill (dia-block-select-fill-paint style)
+                                    #:stroke (dia-block-resolve-stroke-paint style)
+                                    #:fill (dia-block-resolve-fill-paint style)
                                     #:gapsize gapsize
                                     #:extra-n extra-n
                                     width height `(,(* wave-ratio 0.5) :))
@@ -309,14 +309,14 @@
                       #:fit-ratio 1.0 hratio
                       #:position 0.5 (+ 0.5 (* hratio 0.5))
                       (geo-database #:id (dia-block-shape-id block-key)
-                                    #:stroke (dia-block-select-stroke-paint style)
-                                    #:fill (dia-block-select-fill-paint style)
+                                    #:stroke (dia-block-resolve-stroke-paint style)
+                                    #:fill (dia-block-resolve-fill-paint style)
                                     #:extra-n extra-n #:gapsize gapsize
                                     width height bradius)
                       brief)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-dataIO : (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum Symbol (Option Symbol) Dia:Block)
+(define diaflow-block-dataIO : (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum Symbol (Option Symbol) Dia:Block)
   (lambda [block-key brief style width height type subtype]
     (define rad : Flonum (/ pi 3.0))
     

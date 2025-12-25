@@ -52,11 +52,11 @@
     (cond [(or (not direction) (zero? direction)) brief]
           [else (and brief (geo-rotate brief direction))])))
 
-(define mtx-block-shape : (-> Symbol Symbol (Option Symbol) (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum Dia:Block)
+(define mtx-block-shape : (-> Symbol Symbol (Option Symbol) (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum Dia:Block)
   (lambda [block-key type subtype brief style width height]
     (create-dia-block #:id block-key #:type type subtype
                       (geo-rectangle #:id (dia-block-shape-id block-key)
-                                     #:stroke (dia-block-select-stroke-paint style)
-                                     #:fill (dia-block-select-fill-paint style)
+                                     #:stroke (dia-block-resolve-stroke-paint style)
+                                     #:fill (dia-block-resolve-fill-paint style)
                                      width height)
                       brief)))

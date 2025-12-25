@@ -55,6 +55,8 @@
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier default-diaflow-track-identify]
+           #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diaflow-block-backstop-style)]
+           #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diaflow-track-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
            #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
@@ -64,16 +66,14 @@
            #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
            [self : Geo:Track]] : (U Dia:Flow Geo:Track)
-    (parameterize ([default-dia-block-base-style make-diaflow-block-fallback-style]
-                   [default-dia-track-base-style make-diaflow-track-fallback-style]
-                   [default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
+    (parameterize ([default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-track self])
       (define-values (blocks tracks)
         (dia-track-stick self block-detect make-block make-brief block-desc
                          track-detect make-path make-label
                          make-free-path make-free-label (default-diaflow-free-track-style-make)
                          default-diaflow-block-fallback-construct make-diaflow-free-track-style
-                         (geo:track-foot-infos self) ignore))
+                         block-backstop track-backstop (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append tracks blocks))
 
       (if (pair? stickers)
@@ -92,6 +92,7 @@
 (define dia-flow-block
   (lambda [#:id [id : (Option Symbol) #false] #:scale [scale : Real 0.5]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
+           #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diaflow-block-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
            #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
@@ -100,10 +101,9 @@
     (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
                    [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
                    [default-dia-block-margin (* (default-dia-block-margin) ns)]
-                   [default-dia-block-base-style make-diaflow-block-fallback-style]
                    [current-master-track #false])
       (dia-block-make block-detect make-block make-brief block-desc
-                      default-diaflow-block-fallback-construct
+                      default-diaflow-block-fallback-construct block-backstop
                       (cond [(symbol? caption) caption]
                             [(keyword? caption) caption]
                             [(string? caption) (string->symbol caption)]

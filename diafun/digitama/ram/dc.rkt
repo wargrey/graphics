@@ -31,17 +31,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-variable-raw
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : RAM-Location-Style] [id : Symbol] [ram0-address : Index] [mask : Natural]
+           [style : (Dia-Block-Style-Layers* RAM-Block-Style)] [id : Symbol] [ram0-address : Index] [mask : Natural]
            [ram : Bytes] [base : Positive-Byte]
            [start : Nonnegative-Fixnum 0] [maybe-end : Nonnegative-Fixnum (bytes-length ram)]] : (Listof RAM-Variable)
     (define end : Index (if (<= maybe-end (bytes-length ram)) maybe-end (bytes-length ram)))
-    (define font : (Option Font) (dia-block-select-font style))
-    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
-    (define loc-stroke : Maybe-Stroke-Paint (dia-block-select-stroke-paint style))
-    (define loc-fill : Maybe-Fill-Paint (dia-block-select-fill-paint style))
+    (define font : (Option Font) (dia-block-resolve-font style))
+    (define color : Option-Fill-Paint (dia-block-resolve-font-paint style))
+    (define loc-stroke : Maybe-Stroke-Paint (dia-block-resolve-stroke-paint style))
+    (define loc-fill : Maybe-Fill-Paint (dia-block-resolve-fill-paint style))
     (define igr-color : Option-Fill-Paint
-      (dia-block-select-font-paint (ram-location-style-ignored-paint style)
-                                   ram-location-fallback-style? ram-location-base-style-ignored-paint))
+      (dia-block-resolve-font-paint style ram-block-style-ignored-paint
+                                    ram-location-backstop-style? ram-block-backstop-style-ignored-paint))
 
     (let gen-row ([idx : Nonnegative-Fixnum start]
                   [swor : (Listof RAM-Variable) null])
@@ -77,18 +77,18 @@
 
 (define dia-variable-datum
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : RAM-Location-Style] [id : Symbol] [address : Natural] [mask : Natural]
+           [style : (Dia-Block-Style-Layers* RAM-Block-Style)] [id : Symbol] [address : Natural] [mask : Natural]
            [datum : Any] [base : Positive-Byte]] : (List RAM-Variable)
-    (define datum-desc : String (ram-datum->string style datum base mask))
-    (define font : (Option Font) (dia-block-select-font style))
-    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
+    (define datum-desc : String (ram-datum->string (car style) datum base mask))
+    (define font : (Option Font) (dia-block-resolve-font style))
+    (define color : Option-Fill-Paint (dia-block-resolve-font-paint style))
     (define label : (Option Geo) (dia-block-text-brief datum-desc style #:id id #:color color #:font font))
     (define-values (loc-width loc-height) (dia-block-smart-size label style))
     
     (define loc-box : Geo
       (geo-rectangle #:id (ram-address->id address)
-                     #:stroke (dia-block-select-stroke-paint style)
-                     #:fill (dia-block-select-fill-paint style)
+                     #:stroke (dia-block-resolve-stroke-paint style)
+                     #:fill (dia-block-resolve-fill-paint style)
                      loc-width loc-height))
 
     (define-values (var addr)
@@ -96,22 +96,22 @@
                         #:lines (if (and rsegment (not (eq? vsegment rsegment))) '(line-through) null)
                         id font)
               (geo-text #:lines '(line-through)
-                        #:color (dia-block-select-font-paint (ram-location-style-ignored-paint style)
-                                                             ram-location-fallback-style?
-                                                             ram-location-base-style-ignored-paint)
+                        #:color (dia-block-resolve-font-paint style ram-block-style-ignored-paint
+                                                              ram-location-backstop-style? ram-block-backstop-style-ignored-paint)
                         (ram-address->string address mask) font)))
     
     (list (RAM-Variable var addr label loc-box))))
 
 (define dia-padding-raw
-  (lambda [[style : RAM-Location-Style] [addr0 : Index] [mask : Natural]
-                                        [ram : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof RAM-Variable)
+  (lambda [[style : (Dia-Block-Style-Layers* RAM-Block-Style)]
+           [addr0 : Index] [mask : Natural]
+           [ram : Bytes] [base : Byte] [maybe-limit : (Option Index)]] : (Listof RAM-Variable)
     (define size : Index (bytes-length ram))
     (define limit : Index (min size (or maybe-limit size)))
-    (define font : (Option Font) (dia-block-select-font style))
-    (define color : Option-Fill-Paint (dia-block-select-font-paint style))
-    (define loc-stroke : Maybe-Stroke-Paint (dia-block-select-stroke-paint style))
-    (define loc-fill : Maybe-Fill-Paint (dia-block-select-fill-paint style))
+    (define font : (Option Font) (dia-block-resolve-font style))
+    (define color : Option-Fill-Paint (dia-block-resolve-font-paint style))
+    (define loc-stroke : Maybe-Stroke-Paint (dia-block-resolve-stroke-paint style))
+    (define loc-fill : Maybe-Fill-Paint (dia-block-resolve-fill-paint style))
 
     (let gen-row ([idx : Nonnegative-Fixnum 0]
                   [swor : (Listof RAM-Variable) null])
@@ -142,7 +142,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-variable-data
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : RAM-Location-Style] [id : Symbol] [addr0 : Natural] [type-size : Byte] [mask : Natural]
+           [style : (Dia-Block-Style-Layers* RAM-Block-Style)] [id : Symbol] [addr0 : Natural] [type-size : Byte] [mask : Natural]
            [data : (Vectorof Any)] [base : Positive-Byte]] : (Listof RAM-Variable)
     (define size : Index (vector-length data))
     
@@ -159,7 +159,7 @@
 
 (define dia-vector-raw
   (lambda [#:segment [vsegment : Symbol] #:rendering-segment [rsegment : (Option Symbol)]
-           [style : RAM-Location-Style] [id : Symbol] [addr0 : Index] [type-size : Byte] [mask : Natural]
+           [style : (Dia-Block-Style-Layers* RAM-Block-Style)] [id : Symbol] [addr0 : Index] [type-size : Byte] [mask : Natural]
            [ram : Bytes] [base : Positive-Byte]] : (Listof RAM-Variable)
     (define end : Index (bytes-length ram))
     
@@ -213,7 +213,7 @@
   (lambda [address mask]
     (string-append "0x" (~r (if (> mask 0) (bitwise-and mask address) address) #:base 16))))
 
-(define ram-datum->string : (-> RAM-Location-Style Any Positive-Byte Natural String)
+(define ram-datum->string : (-> RAM-Block-Style Any Positive-Byte Natural String)
   (lambda [style datum base mask]
     (cond [(and (ram-pointer-style? style) (exact-nonnegative-integer? datum))
            (ram-address->string datum mask)]

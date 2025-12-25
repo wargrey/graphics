@@ -12,7 +12,7 @@
                (random #x1000000)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define mtx-entry-style : (-> Any Mtx-Indices Mtx-Entry-Style)
+(define mtx-entry-style : (Mtx-Style-Make Mtx-Entry-Style)
   (lambda [dat indices]
     (make-mtx-entry-style ;#:font-paint 'transparent
                           #:fill-paint (if (and (index? dat) (> dat 0)) dat 'WhiteSmoke))))

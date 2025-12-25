@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/font)
+(require geofun/color)
 (require geofun/stroke)
 (require geofun/digitama/paint/self)
 
@@ -17,4 +18,4 @@
 (define default-block-stroke : Pen (desc-stroke #:width 2.0 #:color 'DarkGrey))
 (define default-cell-stroke : Pen (desc-stroke #:width 1.0 #:color 'Silver))
 
-(define default-black-stroke : Pen (desc-stroke #:width 2.0 #:color 'Black))
+(define default-black-stroke : Pen (desc-stroke #:width 2.0 #:color black))

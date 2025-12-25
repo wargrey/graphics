@@ -15,7 +15,6 @@
 (require geofun/resize)
 
 (require "../flowchart/style.rkt")
-
 (require "../block/dc.rkt")
 (require "../track/style.rkt")
 (require "../interface.rkt")
@@ -115,8 +114,8 @@
 (define diaflowlet-block-process : Dia-Block-Create
   (lambda [id brief style width height direction subtype]
     (define fbox : Geo:Sandglass
-      (geo-sandglass #:fill (dia-block-select-fill-paint style)
-                     #:stroke (dia-block-select-stroke-paint style)
+      (geo-sandglass #:fill (dia-block-resolve-fill-paint style)
+                     #:stroke (dia-block-resolve-stroke-paint style)
                      #:neck-width (* width 0.22) #:neck-height (* width 0.12)
                      (* width 0.25)))
     
@@ -138,7 +137,7 @@
                       #:fit-ratio 1.0 hratio
                       #:position xpos ypos 0.0 0.0
                       (geo-document #:id (dia-block-shape-id block-key)
-                                    #:stroke (dia-block-select-stroke-paint style)
-                                    #:fill (dia-block-select-fill-paint style)
+                                    #:stroke (dia-block-resolve-stroke-paint style)
+                                    #:fill (dia-block-resolve-fill-paint style)
                                     width height `(,(* (- 1.0 hratio) 0.5) :))
                       brief)))

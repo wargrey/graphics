@@ -27,7 +27,7 @@
       [else (dia-block-style-construct self (default-mtx-corner-style-make) make-mtx-corner-style indices)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (T) dia-mtx-block-make : (-> T Dia-Block-Style Mtx-Indices (Option Geo) (Option Flonum)
+(define #:forall (T) dia-mtx-block-make : (-> T Dia-Block-Style-Layers Mtx-Indices (Option Geo) (Option Flonum)
                                               (Option (Dia-Anchor->Block* T Mtx-Indices)) (Dia-Anchor->Block* T Mtx-Indices)
                                               (Option Dia:Block))
   (lambda [self style indices brief direction make-block fallback-block ]

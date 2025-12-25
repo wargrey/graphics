@@ -45,5 +45,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diauc-block-fallback-construct : Dia-Anchor->Block
   (lambda [id brief style width height direction subtype]
-    (cond [(diauc-ucase-style? style) (diauc-block-ucase id brief style width height direction subtype)]
-          [(diauc-actor-style? style) (diauc-block-actor id brief style width height direction subtype)])))
+    (cond [(diauc-ucase-style? (car style)) (diauc-block-ucase id brief style width height direction subtype)]
+          [(diauc-actor-style? (car style)) (diauc-block-actor id brief style width height direction subtype)])))

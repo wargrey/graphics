@@ -60,6 +60,8 @@
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diauc-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier default-diauc-track-identify]
+           #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diauc-block-backstop-style)]
+           #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diauc-track-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
            #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
@@ -69,15 +71,13 @@
            #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
            [self : Geo:Track]] : (U Dia:Use-Case Geo:Track)
-    (parameterize ([default-dia-block-base-style make-diauc-block-fallback-style]
-                   [default-dia-track-base-style make-diauc-track-fallback-style]
-                   [current-master-track self])
+    (parameterize ([current-master-track self])
       (define-values (blocks paths)
         (dia-track-stick self block-detect make-block make-brief block-desc
                          track-detect make-path make-label
                          make-free-track make-free-label (default-diauc-free-track-style-make)
                          default-diauc-block-fallback-construct make-diauc-free-track-style
-                         (geo:track-foot-infos self) ignore))
+                         block-backstop track-backstop (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append paths blocks))
 
       (if (pair? stickers)

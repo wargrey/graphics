@@ -18,12 +18,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type (Dia-Block-Info* Brief Urgent) (List Brief Dia-Block-Style Urgent))
 (define-type (Dia-Block-Identifier* Brief Urgent) (-> Geo-Anchor-Name (Option (Dia-Block-Info* Brief Urgent))))
-(define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
+(define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
 
 ; designed mainly for track based diagrams
-(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name DC-Markup-Text Dia-Block-Style Urgent (Option Geo)))
+(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name DC-Markup-Text Dia-Block-Style-Layers Urgent (Option Geo)))
 (define-type (Dia-Anchor->Block* T Urgent)
-  (-> T (Option Geo) Dia-Block-Style Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
+  (-> T (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
       (U Void  ; user says: use engine's fallback
          False ; user says: it should be invisible
          Dia:Block)))
@@ -39,22 +39,22 @@
 (define-type Dia-Anchor->Block (Dia-Anchor->Block* Symbol (Option Symbol)))
 
 (define-type Dia-Track->Path
-  (-> Dia:Block (Option Dia:Block) Dia-Track-Style
+  (-> Dia:Block (Option Dia:Block) Dia-Track-Style-Layers
       Geo-Path-Clean-Prints* (Listof Geo:Path:Label)
       (U Geo:Path Void False)))
 
 (define-type Dia-Track->Label
-  (-> Dia:Block (Option Dia:Block) Dia-Track-Style
+  (-> Dia:Block (Option Dia:Block) Dia-Track-Style-Layers
       Index Geo-Path-Labels Nonnegative-Flonum
       (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
 
 (define-type Dia-Free-Track->Path
-  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style
+  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style-Layers
       Geo-Path-Clean-Prints* (Listof Geo:Path:Label)
       (U Geo:Path Void False)))
 
 (define-type Dia-Free-Track->Label
-  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style
+  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Dia-Track-Style-Layers
       Index Geo-Path-Labels Nonnegative-Flonum
       (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
 
@@ -67,19 +67,19 @@
   (lambda [source target style tracks labels]
     (geo-path-attach-label
      (geo-path* #:id (dia-track-id-merge (geo-id source) (and target (geo-id target)) #true)
-                #:stroke (dia-track-select-line-paint style)
-                #:source-tip (dia-track-select-source-tip style)
-                #:target-tip (and target (not (dia:block:label? target)) (dia-track-select-target-tip style))
+                #:stroke (dia-track-resolve-line-paint style)
+                #:source-tip (dia-track-resolve-source-tip style)
+                #:target-tip (and target (not (dia:block:label? target)) (dia-track-resolve-target-tip style))
                 #:tip-placement 'inside
                 tracks)
      labels)))
 
 (define default-dia-track->label : Dia-Track->Label
   (lambda [source target style idx label base-position]
-    (make-geo-path-labels #:font (dia-track-select-font style)
-                          #:color (dia-track-select-font-paint style)
-                          #:rotate? (dia-track-select-label-rotate? style)
-                          #:distance (and (dia-track-select-label-inline? style) 0.0)
+    (make-geo-path-labels #:font (dia-track-resolve-font style)
+                          #:color (dia-track-resolve-font-paint style)
+                          #:rotate? (dia-track-resolve-label-rotate? style)
+                          #:distance (and (dia-track-resolve-label-inline? style) 0.0)
                           #:index idx
                           label base-position)))
 
@@ -87,19 +87,20 @@
   (lambda [source target style tracks labels]
     (geo-path-attach-label
      (geo-path* #:id (dia-track-id-merge source target #false)
-                #:stroke (dia-track-select-line-paint style)
-                #:source-tip (dia-track-select-source-tip style)
-                #:target-tip (dia-track-select-target-tip style)
+                #:stroke (dia-track-resolve-line-paint style)
+                #:source-tip (dia-track-resolve-source-tip style)
+                #:target-tip (dia-track-resolve-target-tip style)
                 #:tip-placement 'inside
                 tracks)
      labels)))
 
 (define default-dia-free-track->label : Dia-Free-Track->Label
   (lambda [source target style idx label base-position]
-    (make-geo-path-labels #:font (dia-track-select-font style)
-                          #:color (dia-track-select-font-paint style)
-                          #:rotate? (dia-track-select-label-rotate? style)
-                          #:distance (if (dia-track-select-label-inline? style) 0.0 (dia-track-select-label-distance style))
+    (make-geo-path-labels #:font (dia-track-resolve-font style)
+                          #:color (dia-track-resolve-font-paint style)
+                          #:rotate? (dia-track-resolve-label-rotate? style)
+                          #:distance (cond [(dia-track-resolve-label-inline? style) 0.0]
+                                           [else (dia-track-resolve-label-distance style)])
                           #:index idx
                           label base-position)))
 

@@ -33,6 +33,7 @@
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
            #:desc [entry-desc : (Option (Mtx-Entry M)) #false]
+           #:block-backstop [backstop : Mtx-Backstop-Style (make-mtx-backstop-style)]
            #:corner-desc [corner-desc : Mtx-Maybe-Desc #false]
            #:header-desc [header-desc : (Option Mtx-Headers) #false]
            #:row-desc [rheader-desc : (Option Mtx-Spec-Headers) #false]
@@ -54,8 +55,7 @@
                            (cond [(real? cell-height) (and (> cell-height 0.0) (real->double-flonum cell-height))]
                                  [else (and flcwidth (~length cell-height flcwidth))])))
     
-    (parameterize ([default-dia-block-base-style make-mtx-fallback-style]
-                   [default-mtx-entry-style-make make-entry-style]
+    (parameterize ([default-mtx-entry-style-make make-entry-style]
                    [default-mtx-mask-style-make make-mask-style]
                    [default-mtx-hole-style-make make-hole-style]
                    [default-mtx-entry-block-width flcwidth]
@@ -83,7 +83,7 @@
             [(rhdr)     (values (dia-block-cell-id id type idx   0) (list idx   0 idx))]
             [(chdr)     (values (dia-block-cell-id id type   0 idx) (list 0   idx idx))]
             [else #;cnr (values (dia-block-cell-id id type idx idx) (list idx idx idx))]))
-        (define style (dia-mtx-style-make (void) type indices))
+        (define style (cons (dia-mtx-style-make (void) type indices) backstop))
         
         ((inst dia-mtx-block-make Symbol) self-id style indices
                                           (cond [(or (not desc) (void? desc)) #false]
@@ -96,7 +96,7 @@
 
       (define (mtx-body [raw : M] [type : Mtx-Block-Type] [r : Index] [c : Index] [idx : Index]) : (Option Dia:Block)
         (define-values (self-id indices) (values (dia-block-cell-id id type r c) (list r c idx)))
-        (define style : Dia-Block-Style (dia-mtx-style-make raw type indices))
+        (define style (cons (dia-mtx-style-make raw type indices) backstop))
         (define brief : (Option Geo)
           (and (eq? type 'entry)
                (let datum->geo ([desc : (U Mtx-Maybe-Desc M) (if (and entry-desc) (entry-desc raw style indices) raw)])

@@ -57,7 +57,7 @@
                         [(char-symbolic? ch) 'MintCream]
                         [else 'WhiteSmoke]))))
 
-(define ascii-desc : (-> Byte Dia-Block-Style Mtx-Indices Geo)
+(define ascii-desc : (Mtx-Entry Byte)
   (lambda [code style indices]
     (define ch (integer->char code))
     (define desc : Geo
