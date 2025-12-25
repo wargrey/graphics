@@ -5,7 +5,7 @@
 (require racket/case)
 (require geofun/digitama/self)
 
-(require "self.rkt")
+(require "types.rkt")
 (require "style.rkt")
 
 (require "../block/dc.rkt")

@@ -2,7 +2,6 @@
 
 (provide (all-defined-out))
 
-(require geofun/vector)
 (require diafun/memory)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

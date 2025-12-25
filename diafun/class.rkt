@@ -1,21 +1,19 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "digitama/base.rkt"))
+(provide (all-from-out "digitama/track/base.rkt"))
 (provide (all-from-out "digitama/class/interface.rkt"))
 (provide (all-from-out "digitama/class/self.rkt"))
 (provide (all-from-out "digitama/class/style.rkt"))
 
-(provide default-dia-block-margin create-dia-block)
-
-(require geofun/digitama/self)
-(require geofun/digitama/paint/self)
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/layer/merge)
-(require geofun/digitama/layer/type)
 
-(require "digitama/base.rkt")
+(require geofun/digitama/layer/type)
+(require geofun/digitama/layer/merge)
+(require geofun/digitama/layer/combine)
+
+(require "digitama/track/base.rkt")
 (require "digitama/track/sticker.rkt")
 (require "digitama/track/self.rkt")
 
@@ -67,7 +65,7 @@
            #:λfree-path [make-free-track : Dia-Free-Track->Path default-dia-free-track->path]
            #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
-           [self : Geo:Track]] : (U Dia:Class Geo:Track)
+           [self : Geo:Track]] : Dia:Class
     (parameterize ([default-diacls-relationship-identifier class-type]
                    [current-master-track self])
       (define-values (blocks paths)
@@ -78,14 +76,14 @@
                          block-backstop track-backstop (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append blocks paths))
 
-      (if (pair? stickers)
-          (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
-            (create-geometry-group dia:class id #false #false
-                                   #:border bdr #:background bg
-                                   #:margin margin #:padding padding
+      (create-geometry-group dia:class id #false #false
+                             #:border bdr #:background bg
+                             #:margin margin #:padding padding
+                             (if (pair? stickers)
+                                 (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
                                    (cond [(or maybe-group) maybe-group]
                                          [else #;#:deadcode
                                                (let-values ([(Width Height) (geo-flsize self)])
-                                                 (glayer-group Width Height stickers))])
-                                   self))
-          self))))
+                                                 (glayer-group Width Height stickers))]))
+                                 #;'#:deadcode (geo-own-layers self))
+                             self))))

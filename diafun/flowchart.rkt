@@ -1,19 +1,18 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "digitama/base.rkt"))
+(provide (all-from-out "digitama/track/base.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 
-(require geofun/digitama/self)
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
-(require geofun/digitama/paint/self)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/layer/combine)
 
-(require "digitama/base.rkt")
+(require "digitama/track/base.rkt")
 (require "digitama/track/self.rkt")
 (require "digitama/track/sticker.rkt")
 
@@ -65,7 +64,7 @@
            #:λfree-path [make-free-path : Dia-Free-Track->Path default-dia-free-track->path]
            #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
-           [self : Geo:Track]] : (U Dia:Flow Geo:Track)
+           [self : Geo:Track]] : Dia:Flow
     (parameterize ([default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
                    [current-master-track self])
       (define-values (blocks tracks)
@@ -76,17 +75,17 @@
                          block-backstop track-backstop (geo:track-foot-infos self) ignore))
       (define stickers : (Listof (GLayerof Geo)) (append tracks blocks))
 
-      (if (pair? stickers)
-          (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
-            (create-geometry-group dia:flow id #false #false
-                                   #:border bdr #:background bg
-                                   #:margin margin #:padding padding
+      (create-geometry-group dia:flow id #false #false
+                             #:border bdr #:background bg
+                             #:margin margin #:padding padding
+                             (if (pair? stickers)
+                                 (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
                                    (cond [(or maybe-group) maybe-group]
                                          [else #;#:deadcode
                                                (let-values ([(Width Height) (geo-flsize self)])
-                                                 (glayer-group Width Height stickers))])
-                                   self))
-          self))))
+                                                 (glayer-group Width Height stickers))]))
+                                 #;'#:deadcode (geo-own-layers self))
+                             self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-flow-block

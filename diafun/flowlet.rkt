@@ -9,11 +9,6 @@
 (require digimon/metrics)
 (require digimon/sequence)
 
-(require geofun/font)
-(require geofun/paint)
-(require geofun/digitama/markup)
-(require geofun/digitama/dc/composite)
-
 (require "flowchart.rkt")
 (require "digitama/track/self.rkt")
 (require "digitama/block/style.rkt")

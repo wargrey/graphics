@@ -1,0 +1,26 @@
+#lang typed/racket/base
+
+(provide (all-defined-out))
+(provide (all-from-out diafun/digitama/base))
+(provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out "singleton.rkt"))
+(provide (all-from-out "axis/view.rkt"))
+(provide (all-from-out "axis/style.rkt"))
+(provide (all-from-out "axis/interface.rkt"))
+(provide (all-from-out "marker/self.rkt"))
+(provide (all-from-out "marker/style.rkt"))
+(provide (all-from-out "axis/tick/self.rkt"))
+(provide (all-from-out "axis/tick/engine.rkt"))
+
+(require diafun/digitama/base)
+(require geofun/digitama/path/tips)
+
+(require "singleton.rkt")
+(require "axis/view.rkt")
+(require "axis/sticker.rkt")
+(require "axis/interface.rkt")
+(require "axis/style.rkt")
+(require "axis/tick/self.rkt")
+(require "axis/tick/engine.rkt")
+(require "marker/self.rkt")
+(require "marker/style.rkt")

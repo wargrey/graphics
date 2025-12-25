@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide Geo-Pin-Operator geo-pin-operators)
+(provide Geo-Pin-Operator Geo-Frame-Blank-Datum geo-pin-operators)
 (provide geo-composite geo-pin* geo:group? Geo:Group)
 (provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo:table? Geo:Table)

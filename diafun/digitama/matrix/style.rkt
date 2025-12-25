@@ -9,7 +9,7 @@
 (require geofun/paint)
 (require geofun/digitama/base)
 
-(require "self.rkt")
+(require "types.rkt")
 (require "../block/style.rkt")
 (require "../shared.rkt")
 

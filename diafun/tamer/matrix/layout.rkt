@@ -1,9 +1,6 @@
 #lang typed/racket/base
 
 (require diafun/matrix)
-(require geofun/vector)
-
-(require racket/list)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gapsize : Nonnegative-Flonum 24.0)
@@ -16,8 +13,8 @@
                          null))
 
 (define row-header
-  ((inst dia-array Byte) #:row-desc #("1" "2" "Three")
-                         #:ncols 4 #:gap gapsize
+  ((inst dia-array Byte) #:row-desc #("1" "2" "Three") #:gap gapsize
+                         #:ncols 4
                          matrix))
 
 (define hole-data
@@ -26,14 +23,13 @@
                          matrix))
 
 (define col-header@top
-  ((inst dia-array Byte) #:col-desc '("1" "2" "Three" "4")
-                         #:col-header-rotate -1.57 #:gap gapsize
+  ((inst dia-array Byte) #:col-desc '("1" "2" "Three" "4") #:gap gapsize
                          #:mask? >
                          matrix cellsize))
 
 (define col-header@bottom
-  ((inst dia-array Byte) #:col-desc #("1" "2" "Three" "4") #:col-header-top? #false
-                         #:col-header-rotate -1.57 #:gap gapsize
+  ((inst dia-array Byte) #:col-desc #("1" "2" "Three" "4") #:gap gapsize
+                         #:col-header-top? #false
                          #:mask? <
                          matrix cellsize))
 
