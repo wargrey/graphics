@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
-(require "self.rkt")
 (require "block.rkt")
 (require "style.rkt")
+(require "types.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (M) default-mtx-header-fallback-construct : Mtx-Header->Block

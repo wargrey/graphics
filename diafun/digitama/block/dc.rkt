@@ -9,7 +9,7 @@
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)
-(require geofun/digitama/layer/combine)
+(require geofun/digitama/layer/adapter)
 
 (require geofun/digitama/geometry/computation/line)
 
@@ -28,12 +28,12 @@
               (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-              (~optional (~seq #:position block-wpos block-hpos (~optional (~seq brief-wpos brief-hpos)))
-                         #:defaults ([block-wpos #'0.5] [block-hpos #'0.5] [brief-wpos #'0.5] [brief-hpos #'0.5]))) ...
-        shape brief argl ...)
+              (~optional (~seq #:position block-wpos block-hpos (~optional (~seq label-wpos label-hpos)))
+                         #:defaults ([block-wpos #'0.5] [block-hpos #'0.5] [label-wpos #'0.5] [label-hpos #'0.5]))) ...
+        shape label argl ...)
      (syntax/loc stx
        (create-geometry-group Geo name base-op op #:outline (geo-outline shape)
-                              (dia-block-layers brief shape wratio hratio block-wpos block-hpos brief-wpos brief-hpos)
+                              (geo-fit-layers shape label wratio hratio block-wpos block-hpos label-wpos label-hpos (default-dia-block-margin))
                               intersect type subtype
                               argl ...))]))
 
@@ -125,13 +125,3 @@
 
     (and (dia:block? g)
          ((dia:block-intersect g) A B node-pos nlayer))))
-
-(define dia-block-layers : (-> (Option Geo) Geo Nonnegative-Flonum Nonnegative-Flonum
-                               Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum
-                               (GLayer-Groupof Geo))
-  (lambda [brief shape wratio hratio block-wpos block-hpos brief-wpos brief-hpos]
-    (cond [(not brief) (geo-own-layers shape)]
-          [(or (nan? wratio) (nan? hratio)) (geo-composite-layers shape brief block-wpos block-hpos brief-wpos brief-hpos)]
-          [else (let ([fit-brief (geo-try-fit brief shape wratio hratio (default-dia-block-margin))])
-                  (cond [(not fit-brief) (geo-own-layers shape)]
-                        [else (geo-composite-layers shape fit-brief block-wpos block-hpos brief-wpos brief-hpos)]))])))

@@ -4,55 +4,31 @@
 (provide Plot:Line plot:line?)
 (provide Plot-Mark-Auto-Anchor)
 (provide (rename-out [plot-real-line plot-line]))
-(provide (all-from-out geofun/digitama/path/tips))
-(provide (all-from-out "digitama/singleton.rkt"))
-(provide (all-from-out "digitama/axis/view.rkt"))
-(provide (all-from-out "digitama/axis/style.rkt"))
-(provide (all-from-out "digitama/axis/interface.rkt"))
-(provide (all-from-out "digitama/marker/self.rkt"))
-(provide (all-from-out "digitama/marker/style.rkt"))
-(provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/engine.rkt"))
+(provide (all-from-out "digitama/base.rkt"))
 
 (require racket/case)
-
-(require digimon/flonum)
 (require digimon/metrics)
-(require digimon/constant)
 
-(require geofun/font)
-(require geofun/stroke)
-
-(require geofun/digitama/self)
-(require geofun/digitama/markup)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
-(require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/merge)
-(require geofun/digitama/paint/self)
-(require geofun/digitama/path/tips)
+(require geofun/digitama/layer/combine)
 
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)
 
-(require "digitama/singleton.rkt")
 (require "digitama/axis/self.rkt")
-(require "digitama/axis/view.rkt")
 (require "digitama/axis/real.rkt")
 (require "digitama/axis/sticker.rkt")
-(require "digitama/axis/interface.rkt")
-(require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
 (require "digitama/axis/tick.rkt")
-(require "digitama/axis/tick/self.rkt")
-(require "digitama/axis/tick/engine.rkt")
 
 (require "digitama/marker/dc.rkt")
-(require "digitama/marker/self.rkt")
-(require "digitama/marker/style.rkt")
 (require "digitama/marker/config.rkt")
 (require "digitama/marker/anchor.rkt")
+
+(require "digitama/base.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-real-line
@@ -71,8 +47,8 @@
            #:mark-template [desc-real : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
-           #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false]
+           #:padding [padding : (Option Geo-Spacing) #false]
            #:rotate [rotate : Real 0.0]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
@@ -208,8 +184,8 @@
            #:exclude-zero? [exclude-zero? : Boolean #true]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
-           #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false]
+           #:padding [padding : (Option Geo-Spacing) #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))

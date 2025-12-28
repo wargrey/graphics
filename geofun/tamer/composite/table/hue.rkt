@@ -33,8 +33,6 @@
         (cons 330.0 'Magenta-Reds)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define placeholder : Geo (geo-blank))
-
 (define hue-text% : (-> Real Font Geo:Text)
   (lambda [% font]
     (geo-text (~a (exact-round (* % 100.0)) #\%) font)))
@@ -66,7 +64,7 @@
                 (geo-rectangle cwidth cheight #:stroke flc #:fill flc)))))
 
     (define header : (Listof Geo)
-      (cons (or (unbox &legend) (geo-blank))
+      (cons (or (unbox &legend) the-void-geo)
             (map (λ [[% : Real]] (hue-text% % font)) hs%)))
 
     (geo-vc-append title
@@ -100,12 +98,12 @@
                             (cond [(hsla? flc) (geo-text "L\\S")]
                                   [(hsva? flc) (geo-text "V\\S")]
                                   [(hsia? flc) (geo-text "I\\S")]
-                                  [else (geo-blank)])))
+                                  [else the-void-geo])))
                 
                 (geo-rectangle cwidth cheight #:stroke flc #:fill flc)))))
 
     (define header : (Listof Geo)
-      (cons (or (unbox &legend) (geo-blank))
+      (cons (or (unbox &legend) the-void-geo)
             (map (λ [[% : Real]] (hue-text% % font)) hs%)))
 
     (geo-vc-append title

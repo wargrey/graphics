@@ -2,9 +2,10 @@
 
 (provide (all-defined-out))
 
-(require "../track/dc.rkt")
+(require racket/list)
+
+(require geofun/composite)
+(require geofun/constructor)
+(require geofun/digitama/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct dia:flow dia:track ()
-  #:type-name Dia:Flow
-  #:transparent)

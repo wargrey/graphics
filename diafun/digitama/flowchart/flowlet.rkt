@@ -9,6 +9,7 @@
 (require racket/pretty)
 
 (require geofun/digitama/geometry/anchor)
+(require geofun/digitama/layer/void)
 (require geofun/digitama/dc/more)
 (require geofun/digitama/dc/plain)
 (require geofun/digitama/markup)
@@ -126,7 +127,7 @@
 (define diaflowlet-block-terminal : Dia-Block-Create
   (lambda [id brief style width height direction subtype]
     (create-dia-block #:id id #:type 'Storage #false
-                      (geo-blank) #false)))
+                      the-void-geo #false)))
 
 (define diaflowlet-block-document : Dia-Block-Create
   (lambda [block-key brief style width height direction subtype]

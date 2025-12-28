@@ -16,6 +16,7 @@
 (require geofun/digitama/paint/self)
 
 (require geofun/digitama/layer/type)
+(require geofun/digitama/layer/void)
 (require geofun/digitama/layer/position)
 
 (require geofun/digitama/geometry/computation/line)
@@ -33,9 +34,9 @@
   (lambda [name font color desc desc-font desc-color gapsize]
     (cond [(zero? gapsize) (plot-y-axis-label name font color desc desc-font desc-color)]
           [else (geo-hc-append #:gapsize (- gapsize 1.0)
-                               (geo-blank)
+                               the-void-geo
                                (plot-y-axis-label name font color desc desc-font desc-color)
-                               (geo-blank))])))
+                               the-void-geo)])))
 
 (define plot-y-axis-label : (-> DC-Markup-Text Font Color (Option DC-Markup-Text) (Option Font) (Option Color) Geo)
   (lambda [name font color desc desc-font desc-color]

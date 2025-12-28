@@ -80,11 +80,12 @@
                                 [Geo-Outline-Datum Geo Flonum Flonum -> Geo-Outline-Datum])
   (case-lambda
     [(self sx0 sy0)
-     (let-values ([(sx sy) (values (abs sx0) (abs sy0))])
-       (geo-pad (* (geo-pad-top self)    sy)
-                (* (geo-pad-right self)  sx)
-                (* (geo-pad-bottom self) sy)
-                (* (geo-pad-left self)   sx)))]
+     (cond [(eq? self geo-zero-pads) geo-zero-pads]
+           [else (let-values ([(sx sy) (values (abs sx0) (abs sy0))])
+                   (geo-pad (* (geo-pad-top self)    sy)
+                            (* (geo-pad-right self)  sx)
+                            (* (geo-pad-bottom self) sy)
+                            (* (geo-pad-left self)   sx)))])]
     [(self target sx0 sy0)
      (cond [(geo-pad? self) (geo-pad-scale self sx0 sy0)]
            [else (and self

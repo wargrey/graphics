@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/case)
+
 (require typed/racket/unsafe)
 (unsafe-provide (rename-out [geo-append-layer unsafe-append-layer]
                             [geo-superimpose-layer unsafe-superimpose-layer]
@@ -28,7 +30,7 @@
                        (glayer-width layer) (glayer-height layer))]
     [(alignment width height geo maybe-x maybe-y swidth sheight)
      (define-values (dest-x dest-y)
-       (case alignment
+       (case/eq alignment
          [(vl) (values 0.0                           maybe-y)]
          [(vc) (values (* (- width swidth) 0.5)      maybe-y)]
          [(vr) (values (- width swidth)              maybe-y)]
@@ -58,7 +60,7 @@
     [(anchor Width Height width height)
      (let*-values ([(rx by) (values (- Width width) (- Height height))]
                    [(cx cy) (values (* rx 0.5)  (* by 0.5))])
-       (case anchor
+       (case/eq anchor
          [(lt) (values 0.0 0.0)] [(lc) (values 0.0 cy)] [(lb) (values 0.0 by)] [(l?) (values 0.0 (* (random) by))]
          [(ct) (values  cx 0.0)] [(cc) (values  cx cy)] [(cb) (values  cx by)] [(c?) (values  cx (* (random) by))]
          [(rt) (values  rx 0.0)] [(rc) (values  rx cy)] [(rb) (values  rx by)] [(r?) (values  rx (* (random) by))]

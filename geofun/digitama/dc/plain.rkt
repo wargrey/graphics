@@ -39,7 +39,7 @@
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
     (create-geometry-object geo:blank
-                            #:with [id void geo-ghost-extent geo-zero-pads]
+                            #:with [id void (geo-ghost-extent geo) geo-zero-pads]
                             geo)))
 
 (define geo-solid : (->* () (Color Real #:id (Option Symbol)) Geo:Solid)
@@ -51,16 +51,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; the size of target geometry might be affected by stroke and border
-(define geo-ghost-extent : Geo-Calculate-Extent
-  (lambda [self]
-    (with-asserts ([self geo:blank?])
-      (define-values (w h ?ink) (geo-extent (assert (geo:blank-body self))))
-      (values w h geo-null-ink))))
+(define geo-ghost-extent : (-> Geo Geo-Calculate-Extent)
+  (lambda [body]
+    (define-values (w h ?ink) (geo-extent body))
+    (λ [self]
+      (values w h geo-zero-ink))))
 
 (define geo-blank-extent : (-> Nonnegative-Flonum Nonnegative-Flonum Geo-Calculate-Extent)
   (lambda [flwidth flheight]
     (λ [self]
-      (values flwidth flheight geo-null-ink))))
+      (values flwidth flheight geo-zero-ink))))
 
 (define geo-draw-solid : Geo-Surface-Draw!
   (λ [self cr x0 y0 width height]

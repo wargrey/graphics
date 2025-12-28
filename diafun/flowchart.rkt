@@ -1,20 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "digitama/base.rkt"))
+(provide (all-from-out "digitama/track/base.rkt"))
 (provide (all-from-out "digitama/flowchart/interface.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
 
-(require geofun/digitama/self)
 (require geofun/digitama/dc/track)
-(require geofun/digitama/dc/composite)
-(require geofun/digitama/paint/self)
-(require geofun/digitama/layer/merge)
-(require geofun/digitama/layer/type)
+(require geofun/digitama/geometry/trail)
 
-(require "digitama/base.rkt")
-(require "digitama/track/self.rkt")
+(require "digitama/track/dc.rkt")
+(require "digitama/track/base.rkt")
 (require "digitama/track/sticker.rkt")
 
 (require "digitama/flowchart/self.rkt")
@@ -50,9 +46,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-track-flow
-  (lambda [#:id [id : (Option Symbol) #false] #:start-name [start : (Option String) #false]
+  (lambda [#:id [id : (Option Symbol) #false] #:start-name [home-name : (Option String) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier default-diaflow-track-identify]
            #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diaflow-block-backstop-style)]
@@ -65,28 +61,20 @@
            #:λfree-path [make-free-path : Dia-Free-Track->Path default-dia-free-track->path]
            #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
            #:ignore [ignore : (Listof Symbol) null]
-           [self : Geo:Track]] : (U Dia:Flow Geo:Track)
-    (parameterize ([default-diaflow-canonical-start-name (or start (default-diaflow-canonical-start-name))]
-                   [current-master-track self])
+           [self : Geo:Track]] : Dia:Flow
+    (parameterize ([current-master-track self])
       (define-values (blocks tracks)
-        (dia-track-stick self block-detect make-block make-brief block-desc
+        (dia-track-stick self block-detect make-block make-brief
+                         (dia-register-home-name (geo-trail-home-anchor (geo:track-trail self)) home-name block-desc)
                          track-detect make-path make-label
                          make-free-path make-free-label (default-diaflow-free-track-style-make)
                          default-diaflow-block-fallback-construct make-diaflow-free-track-style
                          block-backstop track-backstop (geo:track-foot-infos self) ignore))
-      (define stickers : (Listof (GLayerof Geo)) (append tracks blocks))
 
-      (if (pair? stickers)
-          (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
-            (create-geometry-group dia:flow id #false #false
-                                   #:border bdr #:background bg
-                                   #:margin margin #:padding padding
-                                   (cond [(or maybe-group) maybe-group]
-                                         [else #;#:deadcode
-                                               (let-values ([(Width Height) (geo-flsize self)])
-                                                 (glayer-group Width Height stickers))])
-                                   self))
-          self))))
+      (create-dia-track dia:flow id
+                        #:border bdr #:background bg
+                        #:margin margin #:padding padding
+                        self tracks blocks))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-flow-block

@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-
 (require "../self.rkt")
 
 (require "../dc/plain.rkt")
@@ -11,6 +9,7 @@
 (require "../dc/composite.rkt")
 
 (require "../layer/type.rkt")
+(require "../layer/void.rkt")
 (require "../layer/merge.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,8 +24,7 @@
   (lambda [#:offset [offset 0.0+0.0i] #:id [name #false] . selves]
     (geo-path-group* selves #:offset offset #:id name)))
 
-(define geo-path-group* : (->* ((Listof Geo)) (#:offset Float-Complex #:id (Option Symbol))
-                               (U Geo:Path:Group Geo:Blank))
+(define geo-path-group* : (->* ((Listof Geo)) (#:offset Float-Complex #:id (Option Symbol)) Geo:Path:Group)
   (lambda [selves #:offset [offset 0.0+0.0i] #:id [name #false]]
     (define layers : (Listof (GLayerof Geo))
       (for/fold ([layers : (Listof (GLayerof Geo)) null]
@@ -47,7 +45,8 @@
                        sreyal)))]
               [else layers])))
     
-    (if (pair? layers)
-        (create-geometry-group geo:path:group name #false #false
-                               (geo-layers-merge layers) offset)
-        (geo-blank))))
+    (create-geometry-group geo:path:group name #false #false
+                           ;;; TODO: if this make sense?
+                           (cond [(pair? layers) (geo-layers-merge layers)]
+                                 [else the-void-layers])
+                           offset)))

@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/case)
+
 (require "type.rkt")
 (require "position.rkt")
 (require "../self.rkt")
@@ -89,7 +91,7 @@
         (cond [(pair? siblings)
                (let*-values ([(sibling rest) (values (car siblings) (cdr siblings))]
                              [(swidth sheight) (geo-flsize sibling)])
-                 (case alignment
+                 (case/eq alignment
                    [(vl vc vr v?)
                     (let ([delta (+ sheight gapsize)])
                       (compose (cons (glayer sibling x y swidth sheight) sreyal)

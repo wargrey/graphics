@@ -20,7 +20,7 @@
 
         (let ([text (geo-anchor->string anchor)])
           (cond [(or (string-ci=? text "home") (string-ci=? text "start") (string-ci=? text "begin"))
-                 (dia-block-info anchor (default-diaflow-canonical-start-name) (default-diaflow-start-style-make) make-diaflow-start-style)]
+                 (dia-block-info anchor text (default-diaflow-start-style-make) make-diaflow-start-style)]
                 [(or (string-ci=? text "end") (string-ci=? text "done") (string-ci=? text "terminate") (string-ci=? text "exit") (string-ci=? text "return"))
                  (dia-block-info anchor text (default-diaflow-stop-style-make) make-diaflow-stop-style)]
                 [else (let ([size (string-length text)])

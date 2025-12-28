@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "../track/self.rkt")
+(require "../track/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia:use-case dia:track ()

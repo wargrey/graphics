@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/list)
+
 (require "anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,19 +19,23 @@
   (lambda [home [anchor '#:home]]
     (if (keyword? anchor)
 
-        (unsafe-geo-trail
-         ((inst make-hasheq Geo-Anchor-Name Float-Complex) (list (cons anchor home)))
-         (list anchor) home)
+        (unsafe-geo-trail (make-hasheq (list (cons anchor home)))
+                          (list anchor)
+                          home)
 
-        (unsafe-geo-trail
-         ((inst make-hasheq Geo-Anchor-Name Float-Complex) (list (cons anchor home)
-                                                                 (cons '#:home home)))
-         (list anchor) home))))
+        (unsafe-geo-trail (make-hasheq (list (cons anchor home)
+                                             (cons '#:home home)))
+                          (list anchor)
+                          home))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-trail-anchors : (-> Geo-Trail (Listof Geo-Anchor-Name))
+(define geo-trail-anchors : (-> Geo-Trail (Pairof Geo-Anchor-Name (Listof Geo-Anchor-Name)))
   (lambda [self]
-    (reverse (geo-trail-ranchors self))))
+    (assert (reverse (geo-trail-ranchors self)) pair?)))
+
+(define geo-trail-home-anchor : (-> Geo-Trail Geo-Anchor-Name)
+  (lambda [self]
+    (last (geo-trail-ranchors self))))
 
 (define #:forall (Alt) geo-trail-ref : (case-> [Geo-Trail Geo-Anchor-Name -> Float-Complex]
                                                [Geo-Trail Geo-Anchor-Name Alt -> (U Alt Float-Complex)])

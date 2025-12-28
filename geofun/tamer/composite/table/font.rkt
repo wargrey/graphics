@@ -16,7 +16,7 @@
      (cons (geo-text (~a property) exfont #:color 'green)
            (apply append
                   (for/list ([exchar (in-list ex-chars)])
-                    (cons (geo-blank)
+                    (cons the-void-geo
                           (for/list ([style (in-list css-font-style-options)])
                             (cond [(eq? property '||) (geo-text (~a style) exfont)]
                                   [else (geo-text (~a " " exchar " ")

@@ -9,7 +9,7 @@
 (require "../block/style.rkt")
 (require "../block/dc.rkt")
 
-(require "self.rkt")
+(require "types.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define mtx-block-row-header : Mtx-Block-Create

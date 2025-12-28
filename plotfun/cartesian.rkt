@@ -3,33 +3,15 @@
 (provide (all-defined-out) Plot-Mark-Auto-Anchor Plot-Cartesian-Layer)
 (provide Plot:Cartesian plot:cartesian?)
 (provide default-plot-cartesian-layer-order)
-(provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out "digitama/base.rkt"))
 (provide (all-from-out "digitama/visualizer.rkt"))
-(provide (all-from-out "digitama/singleton.rkt"))
-(provide (all-from-out "digitama/axis/view.rkt"))
-(provide (all-from-out "digitama/axis/style.rkt"))
-(provide (all-from-out "digitama/axis/interface.rkt"))
-(provide (all-from-out "digitama/marker/self.rkt"))
-(provide (all-from-out "digitama/marker/style.rkt"))
-(provide (all-from-out "digitama/axis/tick/self.rkt"))
-(provide (all-from-out "digitama/axis/tick/engine.rkt"))
 (provide (all-from-out "digitama/visualizer/grid/self.rkt"))
 (provide (all-from-out "digitama/visualizer/vaid/self.rkt"))
 
 (require racket/case)
-
 (require digimon/metrics)
-(require digimon/complex)
-(require digimon/flonum)
 
-(require geofun/font)
-(require geofun/color)
-(require geofun/stroke)
-(require geofun/fill)
-(require geofun/constructor)
-
-(require geofun/digitama/self)
-(require geofun/digitama/markup)
+(require geofun/digitama/dc/grid)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
@@ -37,26 +19,16 @@
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/position)
-(require geofun/digitama/paint/self)
-(require geofun/digitama/path/tips)
 (require geofun/digitama/geometry/footprint)
 
 (require "digitama/visualizer.rkt")
-(require "digitama/singleton.rkt")
 
 (require "digitama/axis/self.rkt")
-(require "digitama/axis/view.rkt")
-(require "digitama/axis/style.rkt")
 (require "digitama/axis/config.rkt")
-(require "digitama/axis/interface.rkt")
 (require "digitama/axis/sticker.rkt")
 (require "digitama/axis/tick.rkt")
-(require "digitama/axis/tick/self.rkt")
-(require "digitama/axis/tick/engine.rkt")
 
 (require "digitama/marker/dc.rkt")
-(require "digitama/marker/self.rkt")
-(require "digitama/marker/style.rkt")
 (require "digitama/marker/config.rkt")
 (require "digitama/marker/anchor.rkt")
 
@@ -64,12 +36,12 @@
 (require "digitama/visualizer/layer.rkt")
 (require "digitama/visualizer/realize.rkt")
 (require "digitama/visualizer/interface.rkt")
-
 (require "digitama/visualizer/grid/self.rkt")
 (require "digitama/visualizer/grid/tick.rkt")
 (require "digitama/visualizer/grid/config.rkt")
-
 (require "digitama/visualizer/vaid/self.rkt")
+
+(require "digitama/base.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
@@ -103,8 +75,8 @@
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false]
-           #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false]
+           #:padding [padding : (Option Geo-Spacing) #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview0 yview0)

@@ -74,7 +74,9 @@
            #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Text
-    (define body (format "~a" text))
+    (define body : String
+      (cond [(string? text) text]
+            [else (format "~a" text)]))
     
     (create-geometry-object geo:text
                             #:with [(or id (string->symbol body))

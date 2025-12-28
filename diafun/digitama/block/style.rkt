@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [dc-markup-text? dia-block-brief-datum?]))
 
 (require racket/string)
 
@@ -25,6 +26,10 @@
 
 (define-type (Dia-Block-Style-Layers* S) (Pairof S Dia-Block-Backstop-Style))
 (define-type Dia-Block-Style-Layers (Dia-Block-Style-Layers* Dia-Block-Style))
+
+(define-type Dia-Block-Brief-Datum DC-Markup-Text)
+(define-type Dia-Block-Option-Brief (Option Dia-Block-Brief-Datum))
+(define-type Dia-Block-Maybe-Brief (U Dia-Block-Option-Brief Void))
 
 (struct dia-block-style
   ([width : (Option Flonum)]
@@ -99,14 +104,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-block-resolve-stroke-width : (-> Dia-Block-Style-Layers Nonnegative-Flonum)
-  (lambda [self]
-    (define paint (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self))))
-    (define width (dia-block-style-stroke-width (car self)))
-
-    (cond [(not width) (pen-width paint)]
-          [(>= width 0.0) width]
-          [(< width 0.0) (abs (* (pen-width paint) width))]
-          [else (pen-width paint)])))
+  (let ([pens : (Weak-HashTable Any Nonnegative-Flonum) (make-weak-hash)])
+   (lambda [self]
+     (hash-ref! pens self
+                (λ [] (let ([paint (stroke-paint->source (dia-block-backstop-style-stroke-paint (cdr self)))]
+                            [width (dia-block-style-stroke-width (car self))])
+                        (cond [(not width) (pen-width paint)]
+                              [(>= width 0.0) width]
+                              [(< width 0.0) (abs (* (pen-width paint) width))]
+                              [else (pen-width paint)])))))))
 
 (define dia-block-resolve-stroke-paint : (-> Dia-Block-Style-Layers (Option Pen))
    (let ([pens : (Weak-HashTable Any (Option Pen)) (make-weak-hash)])
@@ -140,10 +146,6 @@
                                                                    (cond [(not (void? paint)) paint]
                                                                          [else (B->paint master)])))))))])))
 
-(define dia-block-resolve-font : (-> Dia-Block-Style-Layers Font)
-  (lambda [self]
-    (or (dia-block-style-font (car self)) (dia-block-backstop-style-font (cdr self)))))
-
 (define dia-block-resolve-font-paint : (-> Dia-Block-Style-Layers Brush)
   (let ([brushs : (Weak-HashTable Any Brush) (make-weak-hash)])
     (lambda [self]
@@ -151,6 +153,10 @@
                  (λ [] (desc-brush #:opacity (dia-block-resolve-opacity self)
                                    (fill-paint->source (or (dia-block-style-font-paint (car self))
                                                            (dia-block-backstop-style-font-paint (cdr self))))))))))
+
+(define dia-block-resolve-font : (-> Dia-Block-Style-Layers Font)
+  (lambda [self]
+    (or (dia-block-style-font (car self)) (dia-block-backstop-style-font (cdr self)))))
 
 (define dia-block-resolve-opacity : (-> Dia-Block-Style-Layers (Option Real))
   (lambda [self]

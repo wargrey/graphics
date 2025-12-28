@@ -13,6 +13,7 @@
 (require "../composite.rkt")
 
 (require "../geometry/ink.rkt")
+(require "../geometry/spacing.rkt")
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")
@@ -75,8 +76,6 @@
                                   layers size anchors gaps argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Frame-Blank-Datum (U Nonnegative-Real (Listof Nonnegative-Real)))
-
 (struct geo:group geo
   ([base-operator : (Option Symbol)]
    [sibs-operator : (Option Symbol)]
@@ -134,7 +133,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo:group : (case-> [(Option Symbol) (Option Symbol) (Option Symbol) Geo-Layer-Group -> Geo:Group]
                                  [(Option Symbol) (Option Symbol) (Option Symbol) Geo-Layer-Group
-                                                  (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum)
+                                                  (Option Geo-Spacing) (Option Geo-Spacing)
                                                   Maybe-Stroke-Paint Maybe-Fill-Paint
                                                   -> Geo:Group])
   (case-lambda
@@ -218,17 +217,10 @@
     (λ [self]
       (values w h #false))))
 
-(define geo-group-frame-extent : (-> (Option Geo-Frame-Blank-Datum) (Option Geo-Frame-Blank-Datum) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
+(define geo-group-frame-extent : (-> (Option Geo-Spacing) (Option Geo-Spacing) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
   (lambda [margin inset layers maybe-border]
-    (define-values (mtop mright mbottom mleft)
-      (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
-            [(real? margin) (let ([fl (real->double-flonum margin)]) (values fl fl fl fl))]
-            [else (values 0.0 0.0 0.0 0.0)]))
-    
-    (define-values (ptop pright pbottom pleft)
-      (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
-            [(real? inset) (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]
-            [else (values 0.0 0.0 0.0 0.0)]))
+    (define-values (mtop mright mbottom mleft) (geo-spacing-values margin))
+    (define-values (ptop pright pbottom pleft) (geo-spacing-values inset))
 
     (define frame-outline : Geo-Calculate-Outline (geo-group-outline layers))
     (define-values (gwidth gheight) (values (glayer-group-width layers) (glayer-group-height layers)))

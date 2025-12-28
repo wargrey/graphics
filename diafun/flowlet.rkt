@@ -9,13 +9,8 @@
 (require digimon/metrics)
 (require digimon/sequence)
 
-(require geofun/font)
-(require geofun/paint)
-(require geofun/digitama/markup)
-(require geofun/digitama/dc/composite)
-
 (require "flowchart.rkt")
-(require "digitama/track/self.rkt")
+(require "digitama/track/dc.rkt")
 (require "digitama/block/style.rkt")
 (require "digitama/flowchart/flowlet.rkt")
 
@@ -23,7 +18,7 @@
 (define default-diaflowlet-block-width : (Parameterof Nonnegative-Flonum) (make-parameter 150.0))
 (define default-diaflowlet-block-height : (Parameterof Nonnegative-Flonum) (make-parameter (* (default-diaflowlet-block-width) 0.50)))
 
-(define default-diaflowlet-block-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'xx-large)))
+(define default-diaflowlet-block-font : (Parameterof Font) (make-parameter (desc-font #:family 'math     #:size 'xx-large)))
 (define default-diaflowlet-path-font : (Parameterof Font) (make-parameter (desc-font #:family 'math      #:size 'x-large)))
 (define default-diaflowlet-file-font : (Parameterof Font) (make-parameter (desc-font #:family 'monospace #:size 'xx-large)))
 (define default-diaflowlet-stroke-thickness : (Parameterof Nonnegative-Flonum) (make-parameter 1.5))
@@ -41,7 +36,7 @@
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:file-font [file-font : (Option Font) (default-diaflowlet-file-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -118,7 +113,7 @@
            #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -166,7 +161,7 @@
            #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -202,14 +197,11 @@
                        (f v))])
             (gomamon-move-right! self xstep '$ (diaflowlet-output-desc out alt-out))))
             
-      (define flowlet
-        (dia-track-flow self
-                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                        #:block-detect block-detect #:track-detect track-detect
-                        #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
-                        #:λpath make-path #:λlabel make-label))
-      
-      (assert flowlet dia:flow?))))
+      (dia-track-flow self
+                      #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                      #:block-detect block-detect #:track-detect track-detect
+                      #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                      #:λpath make-path #:λlabel make-label))))
 
 (define #:forall (In) dia-flowlet-join
   (lambda [#:id [id : (Option Symbol) #false]
@@ -223,7 +215,7 @@
            #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -274,14 +266,11 @@
                 (move-right xstep (diaflowlet-function->anchor f) (diaflowlet-input-desc in (vector-ref in-descs idx)))
                 (T-step symbol-anchor (diaflowlet-output-desc (vector-ref out-descs idx) f in))))))
           
-      (define flowlet
-        (dia-track-flow self
-                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                        #:block-detect block-detect #:track-detect track-detect
-                        #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
-                        #:λpath make-path #:λlabel make-label))
-      
-      (assert flowlet dia:flow?))))
+      (dia-track-flow self
+                      #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                      #:block-detect block-detect #:track-detect track-detect
+                      #:λblock make-block #:λbrief make-brief #:block-desc diaflowlet-block-describe
+                      #:λpath make-path #:λlabel make-label))))
 
 (define #:forall (In Out) dia-flowlet-fork
   (lambda [#:id [id : (Option Symbol) #false]
@@ -295,7 +284,7 @@
            #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -349,14 +338,11 @@
                 (move-right (* xstep out-ratio) (diaflowlet-terminal->anchor idx)
                             (diaflowlet-output-desc (vector-ref out-descs idx) (inst car Out) out))))))
           
-      (define flowlet
-        (dia-track-flow self
-                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                        #:block-detect block-detect #:track-detect track-detect
-                        #:λblock make-block #:λbrief make-brief
-                        #:λpath make-path #:λlabel make-label))
-      
-      (assert flowlet dia:flow?))))
+      (dia-track-flow self
+                      #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                      #:block-detect block-detect #:track-detect track-detect
+                      #:λblock make-block #:λbrief make-brief
+                      #:λpath make-path #:λlabel make-label))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-flowlet-assignment
@@ -369,7 +355,7 @@
            #:block-font [block-font : (Option Font) (default-diaflowlet-block-font)]
            #:path-font [path-font : (Option Font) (default-diaflowlet-path-font)]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint 'White]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:track-detect [track-detect : Dia-Track-Identifier diaflowlet-arrow-identify]
            #:λblock [make-block : (Option Dia-Anchor->Block) diaflowlet-block-construct]
@@ -397,11 +383,8 @@
         (move-down ystep)
         (T-step v #false write-desc))
       
-      (define flowlet
-        (dia-track-flow self
-                        #:id id #:border bdr #:background bg #:margin margin #:padding padding
-                        #:block-detect block-detect #:track-detect track-detect
-                        #:λblock make-block #:λbrief make-brief
-                        #:λpath make-path #:λlabel make-label))
-      
-      (assert flowlet dia:flow?))))
+      (dia-track-flow self
+                      #:id id #:border bdr #:background bg #:margin margin #:padding padding
+                      #:block-detect block-detect #:track-detect track-detect
+                      #:λblock make-block #:λbrief make-brief
+                      #:λpath make-path #:λlabel make-label))))

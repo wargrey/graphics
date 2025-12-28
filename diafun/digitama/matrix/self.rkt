@@ -3,35 +3,34 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-(require geofun/digitama/markup)
+(require geofun/digitama/paint/self)
+(require geofun/digitama/geometry/spacing)
 
-(require "../block/style.rkt")
-(require "../interface.rkt")
+(require geofun/digitama/dc/plain)
+(require geofun/digitama/dc/composite)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Arrayof M) (U (Listof M) (Vectorof M)))
-
-(define-type (Dia-Matrixof M)
-  (U (Listof (U (Listof M) (Vectorof M)))
-     (Vectorof (Vectorof M))))
+(require geofun/digitama/layer/type)
+(require geofun/digitama/layer/void)
+(require geofun/digitama/layer/combine)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Mtx-Indices (List Index Index Index))
-(define-type Mtx-Block-Create (Dia-Block-Create* Mtx-Indices))
-(define-type Mtx-Header->Block (Dia-Anchor->Block* Symbol Mtx-Indices))
-(define-type (Mtx-Entry->Block M) (Dia-Anchor->Block* (Pairof Symbol M) Mtx-Indices))
-(define-type (Mtx-Style-Make S) (Dia-Block-Style-Make* Any S Mtx-Indices))
+(struct dia:matrix geo:table ()
+  #:type-name Dia:Matrix
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Mtx-Option-Desc (U DC-Markup-Text Geo False))
-(define-type Mtx-Maybe-Desc (U Mtx-Option-Desc Void))
-(define-type (Mtx-Entry M) (-> M Dia-Block-Style-Layers Mtx-Indices Mtx-Maybe-Desc))
-(define-type Mtx-Mask (-> Index Index Boolean))
-
-(define-type Mtx-Static-Headers
-  (U String
-     (Listof Mtx-Maybe-Desc)
-     (Immutable-Vectorof Mtx-Maybe-Desc)))
-
-(define-type Mtx-Headers (U (-> Index Index Mtx-Maybe-Desc) Mtx-Static-Headers))
-(define-type Mtx-Spec-Headers (U (-> Index Mtx-Maybe-Desc) Mtx-Static-Headers))
+(define make-dia:matrix : (-> (Listof (Listof (Option Geo))) (Option Symbol) Index Index
+                              Maybe-Stroke-Paint Maybe-Fill-Paint (Option Geo-Spacing) (Option Geo-Spacing)
+                              (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor)
+                              (Geo-Config-Argof Real) (Geo-Config-Argof Real)
+                              Dia:Matrix)
+  (lambda [siblings id ncols nrows border bgsource margin padding col-anchors row-anchors col-gaps row-gaps]
+    (if (and (> ncols 0) (> nrows 0))
+        (create-geometry-table dia:matrix id #false #false
+                               #:margin margin #:padding padding #:border border #:background bgsource
+                               (geo-siblings*->table siblings ncols the-void-layer)
+                               ncols nrows col-anchors row-anchors col-gaps row-gaps)
+        (make-dia:matrix (list (list #false)) id 1 1
+                          border bgsource margin padding
+                          col-anchors row-anchors col-gaps row-gaps))))
+  

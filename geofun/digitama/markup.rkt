@@ -19,7 +19,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type PExpr-Attribute-Value (U String Symbol (Listof Symbol) Flonum Byte Keyword FlColor))
-(define-type PExpr-Attribute (U (Pairof Symbol PExpr-Attribute-Value) (List Symbol PExpr-Attribute-Value)))
+(define-type PExpr-Attribute (Pairof Symbol PExpr-Attribute-Value))
 (define-type PExpr-AttList (Listof PExpr-Attribute))
 (define-type PExpr-Datum (U String Index Char Symbol))
 (define-type PExpr (U PExpr-Datum PExpr-Element))
@@ -33,7 +33,7 @@
 (define pexpr : (case-> [Symbol -> PExpr-Element]
                         [Symbol (U (Listof PExpr) PExpr-Datum) -> PExpr-Element]
                         [Symbol PExpr-AttList (U (Listof PExpr) PExpr-Datum) -> PExpr-Element])
-  (let ([db : (HashTable Symbol PExpr-Element) (make-hasheq)])
+  (let ([db : (Weak-HashTable Symbol PExpr-Element) (make-weak-hasheq)])
     (case-lambda
       [(name) (hash-ref! db name (λ [] (pexpr-element name null null)))]
       [(name children)
@@ -195,10 +195,7 @@
   (lambda [e]
     (and (pair? e)
          (symbol? (car e))
-         (or (pexpr-attribute-value? (cdr e))
-             (and (pair? (cdr e))
-                  (pexpr-attribute-value? (cadr e))
-                  (null? (cddr e)))))))
+         (pexpr-attribute-value? (cdr e)))))
 
 (define pexpr-attlist? : (-> Any Boolean : PExpr-AttList)
   (lambda [a]

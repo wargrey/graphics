@@ -9,7 +9,7 @@
 (require "digitama/paint/source.rkt")
 (require "digitama/geometry/radius.rkt")
 
-(require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt")
+(require/provide "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt" "adapter.rkt")
 (require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt" "fill.rkt")
 
 (require/provide "digitama/paint/self.rkt")

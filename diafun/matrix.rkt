@@ -1,44 +1,42 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide dia:matrix? Dia:Matrix)
 (provide (all-from-out "digitama/base.rkt"))
-(provide (all-from-out "digitama/matrix/self.rkt"))
+(provide (all-from-out "digitama/matrix/types.rkt"))
 (provide (all-from-out "digitama/matrix/style.rkt"))
 (provide (all-from-out "digitama/matrix/interface.rkt"))
 
 (require digimon/digitama/unsafe/ops)
 (require digimon/metrics)
+(require digimon/constant)
 
 (require racket/case)
 (require racket/list)
 (require racket/vector)
 
-(require geofun/composite)
-(require geofun/digitama/self)
-(require geofun/digitama/markup)
-(require geofun/digitama/paint/self)
-(require geofun/digitama/dc/composite)
-
 (require "digitama/base.rkt")
 (require "digitama/matrix/dc.rkt")
 (require "digitama/matrix/self.rkt")
+(require "digitama/matrix/types.rkt")
 (require "digitama/matrix/style.rkt")
 (require "digitama/matrix/interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (M) dia-matrix
   (lambda [#:id [id0 : (Option Symbol) #false]
-           #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
            #:header-gap [hgap : Complex 0.0] #:gap [egap : Complex 0.0]
-           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:border [bdr : Maybe-Stroke-Paint #false]
+           #:background [bg : Maybe-Fill-Paint #false]
+           #:margin [margin : (Option Geo-Spacing) #false]
+           #:padding [padding : (Option Geo-Spacing) #false]
            #:desc [entry-desc : (Option (Mtx-Entry M)) #false]
            #:block-backstop [backstop : Mtx-Backstop-Style (make-mtx-backstop-style)]
            #:corner-desc [corner-desc : Mtx-Maybe-Desc #false]
            #:header-desc [header-desc : (Option Mtx-Headers) #false]
            #:row-desc [rheader-desc : (Option Mtx-Spec-Headers) #false]
            #:col-desc [cheader-desc : (Option Mtx-Spec-Headers) #false]
-           #:col-header-rotate [col-header-angle : Real 0.0]
+           #:col-header-rotate [col-header-angle : Real -pi/2]
            #:col-header-top? [col-header-top? : Boolean #true]
            #:λblock [make-entry-block : (Option (Mtx-Entry->Block M)) #false]
            #:λheader-block [make-header-block : (Option Mtx-Header->Block) #false]
@@ -49,7 +47,7 @@
            #:hole? [hole? : (Option (-> M Any)) #false]
            [mtx : (Dia-Matrixof M)]
            [cell-width : (Option Real) ((default-mtx-entry-block-width))]
-           [cell-height : (Option Real+%) cell-width]] : Geo:Table
+           [cell-height : (Option Real+%) cell-width]] : Dia:Matrix
     (define flcwidth (and cell-width (> cell-width 0.0) (real->double-flonum cell-width)))
     (define flcheight (and cell-height
                            (cond [(real? cell-height) (and (> cell-height 0.0) (real->double-flonum cell-height))]
@@ -69,7 +67,6 @@
                    [default-mtx-col-header-block-width flcwidth]
                    [default-mtx-col-header-block-height flcheight])
       (define id (or id0 (gensym 'dia:mtx:)))
-      
       (define nrows : Index (if (vector? mtx) (vector-length mtx) (length mtx)))
       (define ncols : Index
         (for/fold ([ncols : Index 0])
@@ -117,7 +114,7 @@
               [(string? row-desc) (build-vector nrows (λ [[idx : Index]] (let ([r (unsafe-idx+ idx 1)]) (mtx-header (format row-desc r) 'rhdr r))))]
               [(and row-desc)
                (for/vector : (Vectorof (Option Dia:Block)) ([bdy (if (list? row-desc) (in-list row-desc) (in-vector row-desc))]
-                                                            [idx (in-range 1 (add1 nrows))] #:when (index? idx))
+                                                                 [idx (in-range 1 (add1 nrows))] #:when (index? idx))
                  (mtx-header bdy 'rhdr idx))]
               [else #()]))
       
@@ -127,7 +124,7 @@
               [(string? col-desc) (build-list ncols (λ [[idx : Index]] (let ([c (unsafe-idx+ idx 1)]) (mtx-header (format col-desc c) 'chdr c))))]
               [(and col-desc)
                (for/list : (Listof (Option Dia:Block)) ([bdy (if (list? col-desc) (in-list col-desc) (in-vector col-desc))]
-                                                             [idx (in-range 1 (add1 ncols))] #:when (index? idx))
+                                                        [idx (in-range 1 (add1 ncols))] #:when (index? idx))
                  (mtx-header bdy 'chdr idx))]
               [else null]))
 
@@ -155,42 +152,39 @@
       (define-values (cegap regap) (if (real? egap) (values egap egap) (values (real-part egap) (imag-part egap))))
 
       (if (and col-header-top?)
-          (geo-table* #:id id #:base-operator base-op #:operator sibs-op
-                      #:border bdr #:background bg #:margin margin #:padding padding
-                      (cond [(and (> nrowhdrs 0) (> ncolhdrs 0))
-                             (let ([corner (mtx-header corner-desc 'cnr 0)])
-                               (cons (cons corner col-headers) entries))]
-                            [(> ncolhdrs 0) (cons col-headers entries)]
-                            [else entries])
-                      '(rc) '(cb)
-                      (if (> nrowhdrs 0) (list chgap cegap) (list cegap))
-                      (if (> ncolhdrs 0) (list rhgap regap) (list regap)))
-          (geo-table* #:id id #:base-operator base-op #:operator sibs-op
-                      #:border bdr #:background bg #:margin margin #:padding padding
-                      (cond [(and (> nrowhdrs 0) (> ncolhdrs 0))
-                             (let ([corner (mtx-header corner-desc 'cnr 0)])
-                               (append entries (list (cons corner col-headers))))]
-                            [(> ncolhdrs 0) (append entries (list col-headers))]
-                            [else entries])
-                      '(rc) '(ct)
-                      (if (> nrowhdrs 0) (list chgap cegap) (list cegap))
-                      (cond [(= nrows 0) null]
-                            [(= ncolhdrs 0) (list regap)]
-                            [else (append (make-list (sub1 nrows) regap)
-                                          (list rhgap))]))))))
+          (make-dia:matrix (cond [(and (> nrowhdrs 0) (> ncolhdrs 0))
+                                  (let ([corner (mtx-header corner-desc 'cnr 0)])
+                                    (cons (cons corner col-headers) entries))]
+                                 [(> ncolhdrs 0) (cons col-headers entries)]
+                                 [else entries])
+                           id ncols nrows bdr bg margin padding
+                           '(rc) '(cb)
+                           (if (> nrowhdrs 0) (list chgap cegap) (list cegap))
+                           (if (> ncolhdrs 0) (list rhgap regap) (list regap)))
+          (make-dia:matrix (cond [(and (> nrowhdrs 0) (> ncolhdrs 0))
+                                  (let ([corner (mtx-header corner-desc 'cnr 0)])
+                                    (append entries (list (cons corner col-headers))))]
+                                 [(> ncolhdrs 0) (append entries (list col-headers))]
+                                 [else entries])
+                           id ncols nrows bdr bg margin padding
+                           '(rc) '(ct)
+                           (if (> nrowhdrs 0) (list chgap cegap) (list cegap))
+                           (cond [(= nrows 0) null]
+                                 [(= ncolhdrs 0) (list regap)]
+                                 [else (append (make-list (sub1 nrows) regap)
+                                               (list rhgap))]))))))
 
 (define #:forall (M) dia-array
   (lambda [#:id [id0 : (Option Symbol) #false]
-           #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Frame-Blank-Datum) #false] #:padding [padding : (Option Geo-Frame-Blank-Datum) #false]
+           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
            #:header-gap [hgap : Complex 0.0] #:gap [egap : Complex 0.0]
            #:desc [desc-value : (Option (Mtx-Entry M)) #false]
            #:corner-desc [corner-desc : (Option Mtx-Maybe-Desc) #false]
            #:header-desc [header-desc : (Option Mtx-Headers) #false]
            #:row-desc [rheader-desc : (Option Mtx-Spec-Headers) #false]
            #:col-desc [cheader-desc : (Option Mtx-Spec-Headers) #false]
-           #:col-header-rotate [col-header-angle : Real 0.0]
+           #:col-header-rotate [col-header-angle : Real -pi/2]
            #:col-header-top? [col-header-top? : Boolean #true]
            #:λblock [make-entry-block : (Option (Mtx-Entry->Block M)) #false]
            #:λheader-block [make-header-block : (Option Mtx-Header->Block) #false]
@@ -226,8 +220,7 @@
                   [else (let-values ([(self rest) (vector-split-at arr ncols)])
                           (make-matrix rest (cons self mtx)))]))))
 
-    ((inst dia-matrix M) #:id id0 #:base-operator base-op #:operator sibs-op
-                         #:border bdr #:background bg #:margin margin #:padding padding
+    ((inst dia-matrix M) #:id id0 #:border bdr #:background bg #:margin margin #:padding padding
                          #:desc desc-value #:corner-desc corner-desc #:header-desc header-desc
                          #:row-desc rheader-desc #:col-desc cheader-desc
                          #:col-header-rotate col-header-angle #:col-header-top? col-header-top?

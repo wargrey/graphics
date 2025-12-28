@@ -11,6 +11,7 @@
 (provide (all-from-out "digitama/path/label.rkt"))
 (provide (all-from-out "digitama/path/tips.rkt"))
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
+(provide (all-from-out "digitama/layer/void.rkt"))
 
 (provide geo-blank geo-ghost geo-solid geo:blank? Geo:Blank Geo:Solid)
 (provide geo-try-repaint geo:adjuster? Geo:Adjuster)
@@ -78,6 +79,7 @@
 (require "digitama/path/label.rkt")
 (require "digitama/path/tips.rkt")
 (require "digitama/path/tick.rkt")
+(require "digitama/layer/void.rkt")
 
 (require "digitama/skeleton/stickman/interface.rkt")
 

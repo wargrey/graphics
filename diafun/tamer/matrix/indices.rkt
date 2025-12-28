@@ -24,7 +24,7 @@
                  [default-mtx-row-header-font-paint 'blue])
     ((inst dia-matrix Nonnegative-Fixnum) #:row-desc (λ [[r : Index]] (format "第 ~a 行\n行索引[~a]" r (sub1 r)))
                                           #:col-desc (λ [[c : Index]] (format "第 ~a 列\n列索引[~a]" c (sub1 c)))
-                                          #:col-header-rotate -1.57 #:gap 8.0 #:hole? zero?
+                                          #:gap 8.0 #:hole? zero?
                                           #:desc (λ [dat style indices] #false) #:λstyle mtx-entry-style
                                           mtx 48 48)))
 

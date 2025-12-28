@@ -12,6 +12,7 @@
 
 (require "digitama/dc/resize.rkt")
 (require "digitama/geometry/ink.rkt")
+(require "digitama/geometry/spacing.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-section : (case-> [Geo Complex Complex -> Geo]
@@ -58,7 +59,6 @@
     
     ;;; All geo vector graphics are accommodated in bounded surfaces,
     ;;; the positions of the bounding boxes are non-negative.
-
     (values (max (real-part pos) 0.0)
             (max (imag-part pos) 0.0)
             width height)))
@@ -96,17 +96,16 @@
 (define geo-try-fit : (case-> [Geo Geo -> (Option Geo)]
                               [Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
                               [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                              [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                              [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> (Option Geo)])
+                              [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> (Option Geo)])
   (case-lambda
-    [(self refer) (geo-fit self refer 1.0 1.0)]
-    [(self refer wratio hratio) (geo-fit self refer wratio hratio 0.0 0.0)]
-    [(self refer wratio hratio pad) (geo-fit self refer wratio hratio pad pad)]
-    [(self refer wratio hratio wpad hpad)
-     (let-values ([(flwidth flheight) (geo-flsize refer)])
+    [(self refer) (geo-fit self refer 1.0 1.0 0.0)]
+    [(self refer wratio hratio) (geo-fit self refer wratio hratio 0.0)]
+    [(self refer wratio hratio margin)
+     (let-values ([(mtop mright mbottom mleft) (geo-spacing-values margin)]
+                  [(flwidth flheight) (geo-flsize refer)])
        (geo-fit self
-                (max (- (* flwidth  (real->double-flonum wratio)) (real->double-flonum wpad)) 0.0)
-                (max (- (* flheight (real->double-flonum hratio)) (real->double-flonum hpad)) 0.0)))]
+                (max (- (* flwidth  (real->double-flonum wratio)) mleft mright) 0.0)
+                (max (- (* flheight (real->double-flonum hratio)) mtop mbottom) 0.0)))]
     [(self width height)
      (let-values ([(flwidth flheight) (geo-flsize self)])
        (cond [(and (positive? width) (positive? height))
@@ -120,11 +119,9 @@
 (define geo-fit : (case-> [Geo Geo -> Geo]
                           [Geo Nonnegative-Real Nonnegative-Real -> Geo]
                           [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real Nonnegative-Real Nonnegative-Real -> Geo])
+                          [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> Geo])
   (case-lambda
     [(self refer) (or (geo-try-fit self refer) self)]
     [(self refer wratio hratio) (or (geo-try-fit self refer wratio hratio) self)]
-    [(self refer wratio hratio pad) (or (geo-try-fit self refer wratio hratio pad) self)]
-    [(self refer wratio hratio wpad hpad) (or (geo-try-fit self refer wratio hratio wpad hpad) self)]
+    [(self refer wratio hratio margin) (or (geo-try-fit self refer wratio hratio margin) self)]
     [(self width height) (or (geo-try-fit self width height) self)]))

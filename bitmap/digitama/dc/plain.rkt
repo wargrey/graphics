@@ -10,6 +10,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/paint/pattern)
+(require geofun/digitama/geometry/spacing)
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 
@@ -43,12 +44,8 @@
            #:background [bg-fill : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [bmp : Bitmap]] : Bitmap
-    (define-values (mtop mright mbottom mleft)
-      (cond [(list? margin) (list->4:values (map real->double-flonum margin) 0.0)]
-            [else (let ([fl (real->double-flonum margin)]) (values fl fl fl fl))]))
-    (define-values (ptop pright pbottom pleft)
-      (cond [(list? inset) (list->4:values (map real->double-flonum inset) 0.0)]
-            [else (let ([fl (real->double-flonum inset)]) (values fl fl fl fl))]))
+    (define-values (mtop mright mbottom mleft) (geo-spacing-values margin))
+    (define-values (ptop pright pbottom pleft) (geo-spacing-values inset))
     (define-values (bmpw bmph) (bitmap-flsize bmp))
     (define-values (sfc density) (values (bitmap-surface bmp) (bitmap-density bmp)))
     (define s : (Option Pen) (border-paint->source* border))

@@ -146,8 +146,6 @@
    [label-distance : (U Void Flonum) (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diaflow-canonical-start-name : (Parameterof String) (make-parameter ""))
-
 (define default-diaflow-start-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaFlow-Start-Style))) (make-parameter #false))
 (define default-diaflow-stop-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaFlow-Stop-Style))) (make-parameter #false))
 (define default-diaflow-decision-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaFlow-Decision-Style))) (make-parameter #false))

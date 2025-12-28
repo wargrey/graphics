@@ -249,13 +249,12 @@
     (and blk-info
          (let-values ([(id) (geo-anchor->symbol anchor)]
                       [(text style datum) (values (car blk-info) (cons (cadr blk-info) backstop) (caddr blk-info))])
-           (define maybe-desc : (U DC-Markup-Text Void False)
-             (and block-desc
-                  (if (hash? block-desc)
-                      (hash-ref block-desc anchor (λ [] #false))
-                      (block-desc anchor text))))
+           (define maybe-brief : Dia-Block-Maybe-Brief
+             (cond [(not block-desc) (void)]
+                   [(hash? block-desc) (hash-ref block-desc anchor void)]
+                   [else (block-desc anchor text)]))
            
-           (define brief : (Option Geo) (make-brief id (if (dc-markup-text? maybe-desc) maybe-desc text) style datum))
+           (define brief : (Option Geo) (and maybe-brief (make-brief id (if (void? maybe-brief) text maybe-brief) style datum)))
            (define-values (width height) (dia-block-smart-size brief style))
            (define block : (U Dia:Block Void False)
              (cond [(memq id ignore) #false]

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 (provide Geo-Pin-Operator geo-pin-operators)
 (provide geo-composite geo-pin* geo:group? Geo:Group)
-(provide geo-blank geo-ghost geo:blank? Geo:Blank)
 (provide geo:table? Geo:Table)
 (provide geo:path:group? Geo:Path:Group)
 (provide geo-path-group geo-path-group*)
@@ -31,11 +30,13 @@
 
 (require "digitama/self.rkt")
 (require "digitama/composite.rkt")
+(require "digitama/geometry/spacing.rkt")
 
 (require "digitama/layer/type.rkt")
+(require "digitama/layer/void.rkt")
+(require "digitama/layer/find.rkt")
 (require "digitama/layer/combine.rkt")
 (require "digitama/layer/pyramid.rkt")
-(require "digitama/layer/find.rkt")
 
 (require "digitama/dc/composite.rkt")
 (require "digitama/dc/plain.rkt")
@@ -50,7 +51,7 @@
 (define-combiner "geo-~a-append*" #:-> Geo
   #:with [geobjs #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                  #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false]]
-  #:empty (geo-blank)
+  #:empty the-void-geo
   #:short-path #:for alignment base sibling #:if (zero? delta)
   ([(vl) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 1.0 0.0 0.0))]
    [(vc) (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 1.0 0.5 0.0))]
@@ -97,17 +98,17 @@
 (define-combiner "geo-~a-superimpose*" #:-> Geo
   #:with [geobjs #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                  #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false]]
-  #:empty (geo-blank)
+  #:empty the-void-geo
   #:short-path #:for anchor base sibling #:if #true
-  ([(lt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.0      0.0   0.0      0.0))]
-   [(lc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.0      0.5   0.0      0.5))]
-   [(lb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.0      1.0   0.0      1.0))]
-   [(ct)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.5      0.0   0.5      0.0))]
-   [(cc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.5      0.5   0.5      0.5))]
-   [(cb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  0.5      1.0   0.5      1.0))]
-   [(rt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  1.0      0.0   1.0      0.0))]
-   [(rc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  1.0      0.5   1.0      0.5))]
-   [(rb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling  1.0      1.0   1.0      1.0))]
+  ([(lt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
+   [(lc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 0.5 0.0 0.5))]
+   [(lb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.0 1.0 0.0 1.0))]
+   [(ct)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.0 0.5 0.0))]
+   [(cc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 0.5 0.5 0.5))]
+   [(cb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 0.5 1.0 0.5 1.0))]
+   [(rt)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.0 1.0 0.0))]
+   [(rc)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 0.5 1.0 0.5))]
+   [(rb)  (make-geo:group id base-op sibs-op (geo-composite-layers base sibling 1.0 1.0 1.0 1.0))]
    [(l?)  (make-geo:group id base-op sibs-op (geo-superimpose-layers 'l? base (cdr geobjs)))]
    [(c?)  (make-geo:group id base-op sibs-op (geo-superimpose-layers 'c? base (cdr geobjs)))]
    [(r?)  (make-geo:group id base-op sibs-op (geo-superimpose-layers 'r? base (cdr geobjs)))]
@@ -195,7 +196,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-frame : (-> Geo
                         [#:id (Option Symbol)] [#:base-operator (Option Geo-Pin-Operator)] [#:operator (Option Geo-Pin-Operator)]
-                        [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint] [#:margin Geo-Frame-Blank-Datum] [#:padding Geo-Frame-Blank-Datum]
+                        [#:border Maybe-Stroke-Paint] [#:background Maybe-Fill-Paint] [#:margin Geo-Spacing] [#:padding Geo-Spacing]
                         Geo:Group)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [operator #false]
            #:margin [margin 0.0] #:padding [inset 0.0] #:border [border (void)] #:background [bg-fill (void)]
@@ -212,14 +213,13 @@
 ; there almost is no way to flexibly create an immutable vector at runtime.
 (define geo-table : (->* (Integer (Listof Geo))
                          (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
-                          #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
+                          #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Spacing) #:padding (Option Geo-Spacing)
                           (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                          Geo:Table)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            ncols siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
     (define size : Index (length siblings))
-    (define placeholder : Geo:Blank (geo-blank))
     
     (or (and (> size 0)
              (> ncols 0) (index? ncols)
@@ -228,33 +228,32 @@
                (and (> nrows 0) (index? nrows)
                     (create-geometry-table geo:table id base-op sibs-op
                                            #:border bdr #:background bg #:margin margin #:padding padding
-                                           (geo-siblings->table siblings (* nrows ncols) (geo-own-layer placeholder))
+                                           (geo-siblings->table siblings (* nrows ncols) the-void-layer)
                                            ncols nrows col-anchors row-anchors col-gaps row-gaps))))
         (create-geometry-table geo:table id base-op sibs-op
                                #:border bdr #:background bg #:margin margin #:padding padding
-                               (geo-siblings->table (list placeholder) 1 (geo-own-layer placeholder))
+                               (geo-siblings->table (list the-void-geo) 1 the-void-layer)
                                1 1 col-anchors row-anchors col-gaps row-gaps))))
 
 (define geo-table* : (->* ((Listof (Listof (Option Geo))))
                           (#:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
-                           #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Frame-Blank-Datum) #:padding (Option Geo-Frame-Blank-Datum)
+                           #:border Maybe-Stroke-Paint #:background Maybe-Fill-Paint #:margin (Option Geo-Spacing) #:padding (Option Geo-Spacing)
                            (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Real) (Geo-Config-Argof Real))
                           Geo:Table)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
            #:border [bdr #false] #:background [bg #false] #:margin [margin #false] #:padding [padding #false]
            siblings [col-anchors null] [row-anchors null] [col-gaps null] [row-gaps null]]
-    (define placeholder : Geo:Blank (geo-blank))
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
     
     (if (and (> ncols 0) (> nrows 0))
         (create-geometry-table geo:table id base-op sibs-op
                                #:border bdr #:background bg #:margin margin #:padding padding
-                               (geo-siblings*->table siblings ncols (geo-own-layer placeholder))
+                               (geo-siblings*->table siblings ncols the-void-layer)
                                ncols nrows col-anchors row-anchors col-gaps row-gaps)
         (create-geometry-table geo:table id base-op sibs-op
                                #:border bdr #:background bg #:margin margin #:padding padding
-                               (geo-siblings*->table (list (list placeholder)) 1 (geo-own-layer placeholder))
+                               (geo-siblings*->table (list (list the-void-geo)) 1 the-void-layer)
                                1 1 col-anchors row-anchors col-gaps row-gaps))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -264,10 +263,10 @@
                            Geo)
   (lambda [#:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false] #:extra [defobjs #false]
            siblings [sub-gaps 0] [sibling-gaps #false] [aligns null]]
-    (cond [(null? siblings) (geo-blank)]
+    (cond [(null? siblings) the-void-geo]
           [(null? (cdr siblings)) (car siblings)]
           [else (let ([n (length siblings)]
-                       [layer-gap (real->double-flonum (or sibling-gaps sub-gaps))])
+                      [layer-gap (real->double-flonum (or sibling-gaps sub-gaps))])
                   (define-values (layers width height extra) (geo-list->pyramid (car siblings) (cdr siblings) defobjs))
                   (define anchors : (Vectorof Geo-Pin-Anchor) (geo-config-expand aligns n 'cc))
                   (define cell : Geo (geo-blank width height))

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-(require geofun/digitama/markup)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/track/self)
@@ -21,11 +20,11 @@
 (define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
 
 ; designed mainly for track based diagrams
-(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name DC-Markup-Text Dia-Block-Style-Layers Urgent (Option Geo)))
+(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name Dia-Block-Brief-Datum Dia-Block-Style-Layers Urgent (Option Geo)))
 (define-type (Dia-Anchor->Block* T Urgent)
   (-> T (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
       (U Void  ; user says: use engine's fallback
-         False ; user says: it should be invisible
+         False ; user says: it should be denied
          Dia:Block)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,7 +32,7 @@
 
 (define-type Dia-Block-Identifier (Dia-Block-Identifier* String (Option Symbol)))
 (define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
-(define-type Dia-Block-Describe (U (HashTable Geo-Anchor-Name DC-Markup-Text) (-> Geo-Anchor-Name String (U DC-Markup-Text Void False))))
+(define-type Dia-Block-Describe (U (Immutable-HashTable Geo-Anchor-Name Dia-Block-Option-Brief) (-> Geo-Anchor-Name String Dia-Block-Maybe-Brief)))
 (define-type Dia-Anchor->Brief (Dia-Anchor->Brief* (Option Symbol)))
 (define-type Dia-Block-Create (Dia-Block-Create* (Option Symbol)))
 (define-type Dia-Anchor->Block (Dia-Anchor->Block* Symbol (Option Symbol)))

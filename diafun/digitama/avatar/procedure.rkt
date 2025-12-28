@@ -8,11 +8,9 @@
 (require racket/keyword)
 
 (require geofun/vector)
-(require geofun/digitama/markup)
-
 (require colorspace/palette)
 
-(require "../block/dc.rkt")
+(require geofun/digitama/markup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Procedure-Label-Datum (U False Void String Symbol PExpr-Element Keyword Geo))
@@ -103,12 +101,12 @@
           
         (define port
           (if (and label)
-              (create-dia-block #:type type #false
-                                #:fit-ratio 0.65 0.85
-                                #:position 0.5 vpos
-                                pipe (cond [(geo? label) label]
-                                           [else (geo-text #:color text-color #:alignment 'center
-                                                           maybe-label label-font)]))
+              (geo-fit-composite #:hfit% 0.65 #:vfit% 0.85
+                                 pipe 0.5 vpos
+                                 (cond [(geo? label) label]
+                                       [else (geo-text #:color text-color #:alignment 'center
+                                                       maybe-label label-font)])
+                                 0.5 0.5)
               pipe))
 
         (if (and datum)
@@ -143,10 +141,10 @@
              [body-height (max min-height (if (not description) (* body-width 0.618) (+ (geo-height description) io:gapsize)))]
              [body (geo-rectangle body-width body-height cr #:fill b:fill #:stroke border)])
         (cond [(not description) body]
-              [else (create-dia-block #:type 'Process #false
-                                      #:fit-ratio 1.00 1.00 #:position body-wratio body-hratio
-                                      body (geo-frame #:base-operator body-op #:border #false #:background #false
-                                                      description))])))
+              [else (geo-fit-composite #:hfit% 1.00 #:vfit% 1.00
+                                      body body-wratio body-hratio
+                                      (geo-frame #:base-operator body-op #:border #false #:background #false
+                                                 description))])))
 
     (define ipo:o : Geo
       (let ([boundary (length results)])
