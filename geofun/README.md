@@ -1,4 +1,4 @@
-# Geofun: Functional Geometry is Fun
+# Geofun: Fun with functional geometrical shapes
 
 wargrey
 

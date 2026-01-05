@@ -2,16 +2,15 @@
 
 (provide (all-defined-out))
 
-(require racket/case)
 (require digimon/metrics)
 
 (require geofun/font)
 (require geofun/color)
 (require geofun/stroke)
 
-(require geofun/digitama/markup)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
+(require geofun/digitama/richtext/self)
 
 (require "style.rkt")
 
@@ -152,14 +151,14 @@
             (if (eq? direction 'x) x y)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-axis-label-settings : (case-> [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
-                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+(define plot-axis-label-settings : (case-> [(U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
+                                            (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             Flonum Flonum Flonum Symbol
-                                            -> (Listof (List (Option DC-Markup-Text) Flonum (Option DC-Markup-Text) Geo-Pin-Anchor))]
-                                           [(U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
-                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text)))
+                                            -> (Listof (List Geo-Option-Rich-Text Flonum Geo-Option-Rich-Text Geo-Pin-Anchor))]
+                                           [(U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
+                                            (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             Float-Complex Float-Complex
-                                            -> (Listof (List (Option DC-Markup-Text) Float-Complex (Option DC-Markup-Text) Boolean))])
+                                            -> (Listof (List Geo-Option-Rich-Text Float-Complex Geo-Option-Rich-Text Boolean))])
   (case-lambda
     [(label desc flmin flmax offset which)
      (let ([descs (if (pair? desc) desc (cons #false desc))])
@@ -174,8 +173,8 @@
                  (list (cdr label) tgt (cdr descs) #true))
            (list (list label tgt (cdr descs) #true))))]))
 
-(define plot-screen-axis-label-adjust : (-> (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))) Boolean
-                                            (U DC-Markup-Text False (Pairof (Option DC-Markup-Text) (Option DC-Markup-Text))))
+(define plot-screen-axis-label-adjust : (-> (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) Boolean
+                                            (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)))
   (lambda [label screen?]
     (cond [(or (not screen?) (not label)) label]
           [(pair? label) (cons (cdr label) (cdr label))]

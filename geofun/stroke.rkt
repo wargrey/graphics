@@ -24,7 +24,7 @@
                                 #:dash (Option Stroke-Dash-Datum) #:offset (Option Real))
                            Pen)
   (lambda [[base (default-stroke)] #:color [color #false] #:opacity [opacity #false] #:width [width #false]
-                                       #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
+                                   #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]]
     (if (or color opacity width cap join dash offset)
         (let*-values ([(linewidth)
                        (cond [(not width) (pen-width base)]

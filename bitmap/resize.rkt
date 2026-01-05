@@ -125,19 +125,19 @@
                    (if (zero? w) 1.0 (/ (real->double-flonum w) (exact->inexact (bitmap-intrinsic-width bmp))))
                    (if (zero? h) 1.0 (/ (real->double-flonum h) (exact->inexact (bitmap-intrinsic-height bmp)))))]))
 
-(define bitmap-try-fit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
-                                 [Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                                 [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                                 [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
+(define bitmap-try-dsfit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
+                                   [Bitmap Real Real -> (Option Bitmap)]
+                                   [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
+                                   [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
   (case-lambda
-    [(self refer) (bitmap-fit self refer 1.0 1.0 0.0)]
-    [(self refer wratio hratio) (bitmap-fit self refer wratio hratio 0.0)]
+    [(self refer) (bitmap-dsfit self refer 1.0 1.0 0.0)]
+    [(self refer wratio hratio) (bitmap-dsfit self refer wratio hratio 0.0)]
     [(self refer wratio hratio margin)
      (let-values ([(mtop mright mbottom mleft) (geo-spacing-values margin)]
                   [(flwidth flheight) (bitmap-flsize refer)])
-       (bitmap-fit self
-                   (max (- (* flwidth  (real->double-flonum wratio)) mright mleft) 0.0)
-                   (max (- (* flheight (real->double-flonum hratio)) mtop mbottom) 0.0)))]
+       (bitmap-dsfit self
+                   (- (* flwidth  (real->double-flonum wratio)) mright mleft)
+                   (- (* flheight (real->double-flonum hratio)) mtop mbottom)))]
     [(self width height)
      (let-values ([(flwidth flheight) (bitmap-flsize self)])
        (cond [(and (positive? width) (positive? height))
@@ -149,12 +149,12 @@
              [else #false]))]))
 
 
-(define bitmap-fit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
-                             [Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                             [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
+(define bitmap-dsfit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
+                               [Bitmap Real Real -> (Option Bitmap)]
+                               [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
+                               [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
   (case-lambda
-    [(self refer) (or (bitmap-try-fit self refer 1.0 1.0 0.0) self)]
-    [(self refer wratio hratio) (or (bitmap-try-fit self refer wratio hratio 0.0) self)]
-    [(self refer wratio hratio margin) (or (bitmap-try-fit self refer wratio hratio margin) self)]
-    [(self width height) (or (bitmap-try-fit self width height) self)]))
+    [(self refer) (or (bitmap-try-dsfit self refer 1.0 1.0 0.0) self)]
+    [(self refer wratio hratio) (or (bitmap-try-dsfit self refer wratio hratio 0.0) self)]
+    [(self refer wratio hratio margin) (or (bitmap-try-dsfit self refer wratio hratio margin) self)]
+    [(self width height) (or (bitmap-try-dsfit self width height) self)]))

@@ -4,8 +4,8 @@
 
 (require "self.rkt")
 
+(require "../richtext/self.rkt")
 (require "../path/label.rkt")
-(require "../markup.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-empty-info : Geo:Track:Info (geo:track:info #false 0.0 #false null))
@@ -30,15 +30,15 @@
 (define geo-track-info : (-> Any Geo:Track:Info)
   (lambda [v]
     (cond [(geo:track:info? v) v]
-          [(dc-markup-text? v) (geo:track:info v (default-geo-track-label-base-position) #false null)]
+          [(geo-rich-text? v) (geo:track:info v (default-geo-track-label-base-position) #false null)]
           [(list? v)
-           (if (andmap dc-markup-maybe-text? v)
+           (if (andmap geo-option-rich-text? v)
                (geo:track:info v (default-geo-track-label-base-position) #false null)
                geo-track-empty-info)]
           [(pair? v)
            (let-values ([(head tail) (values (car v) (cdr v))])
-             (or (and (dc-markup-maybe-text? head)
-                      (dc-markup-maybe-text? tail)
+             (or (and (geo-option-rich-text? head)
+                      (geo-option-rich-text? tail)
                       (geo-track-info/paired-labels (default-geo-track-label-base-position) head tail #false null))
                  geo-track-empty-info))]
           [else geo-track-empty-info])))

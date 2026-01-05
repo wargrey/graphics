@@ -55,7 +55,7 @@
            #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diauc-block-backstop-style)]
            #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diauc-track-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
            #:λpath [make-path : Dia-Track->Path default-dia-track->path]
            #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
@@ -65,7 +65,7 @@
            [self : Geo:Track]] : Dia:Use-Case
     (parameterize ([current-master-track self])
       (define-values (blocks uses)
-        (dia-track-stick self block-detect make-block make-brief block-desc
+        (dia-track-stick self block-detect make-block make-caption block-desc
                          track-detect make-path make-label
                          make-free-track make-free-label (default-diauc-free-track-style-make)
                          default-diauc-block-fallback-construct make-diauc-free-track-style

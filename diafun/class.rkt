@@ -58,7 +58,7 @@
            #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diacls-block-backstop-style)]
            #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diacls-track-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
            #:relationship [class-type : (Option DiaCls-RelationShip-Identifier) (default-diacls-relationship-identifier)]
            #:λpath [make-path : Dia-Track->Path default-dia-track->path]
            #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
@@ -69,7 +69,7 @@
     (parameterize ([default-diacls-relationship-identifier class-type]
                    [current-master-track self])
       (define-values (blocks paths)
-        (dia-track-stick self block-detect make-block make-brief #false
+        (dia-track-stick self block-detect make-block make-caption #false
                          track-detect make-path make-label
                          make-free-track make-free-label (default-diacls-free-track-style-make)
                          default-diacls-block-fallback-construct make-diacls-free-track-style

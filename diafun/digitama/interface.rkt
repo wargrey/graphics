@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
+(require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/track/self)
@@ -15,27 +16,19 @@
 (require "block/dc.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Block-Info* Brief Urgent) (List Brief Dia-Block-Style Urgent))
-(define-type (Dia-Block-Identifier* Brief Urgent) (-> Geo-Anchor-Name (Option (Dia-Block-Info* Brief Urgent))))
-(define-type (Dia-Block-Create* Urgent) (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent Dia:Block))
+(define-type Dia-Block-Info (List String Dia-Block-Style (Option Symbol)))
 
-; designed mainly for track based diagrams
-(define-type (Dia-Anchor->Brief* Urgent) (-> Geo-Anchor-Name Dia-Block-Brief-Datum Dia-Block-Style-Layers Urgent (Option Geo)))
-(define-type (Dia-Anchor->Block* T Urgent)
-  (-> T (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) Urgent
+(define-type Dia-Block-Identifier (-> Geo-Anchor-Name (Option Dia-Block-Info)))
+(define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
+(define-type Dia-Block-Describe (U (Immutable-HashTable Geo-Anchor-Name Geo-Maybe-Rich-Text) (-> Geo-Anchor-Name String Geo-Maybe-Rich-Text)))
+(define-type Dia-Anchor->Caption (-> Geo-Anchor-Name Geo-Rich-Text Dia-Block-Style-Layers (Option Symbol) (Option Geo)))
+(define-type Dia-Block-Create (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol) Dia:Block))
+
+(define-type Dia-Anchor->Block
+  (-> Symbol (Option Geo) Dia-Block-Style-Layers Nonnegative-Flonum Nonnegative-Flonum (Option Flonum) (Option Symbol)
       (U Void  ; user says: use engine's fallback
          False ; user says: it should be denied
          Dia:Block)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Block-Info (Dia-Block-Info* String (Option Symbol)))
-
-(define-type Dia-Block-Identifier (Dia-Block-Identifier* String (Option Symbol)))
-(define-type Dia-Track-Identifier (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Labels) (Listof Geo-Track-Info-Datum) (Option Dia-Track-Style)))
-(define-type Dia-Block-Describe (U (Immutable-HashTable Geo-Anchor-Name Dia-Block-Option-Brief) (-> Geo-Anchor-Name String Dia-Block-Maybe-Brief)))
-(define-type Dia-Anchor->Brief (Dia-Anchor->Brief* (Option Symbol)))
-(define-type Dia-Block-Create (Dia-Block-Create* (Option Symbol)))
-(define-type Dia-Anchor->Block (Dia-Anchor->Block* Symbol (Option Symbol)))
 
 (define-type Dia-Track->Path
   (-> Dia:Block (Option Dia:Block) Dia-Track-Style-Layers
@@ -58,9 +51,9 @@
       (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (D) default-dia-anchor->brief : (Dia-Anchor->Brief* D)
-  (lambda [id desc style datum]
-    (dia-block-text-brief #:id id desc style)))
+(define default-dia-anchor->caption : Dia-Anchor->Caption
+  (lambda [id desc style property]
+    (dia-block-text-caption #:id id desc style)))
 
 (define default-dia-track->path : Dia-Track->Path
   (lambda [source target style tracks labels]
@@ -104,18 +97,10 @@
                           label base-position)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (T S B U) dia-block-info* : (-> T B
-                                                 (Option (Dia-Block-Style-Make* T (∩ S Dia-Block-Style) U))
-                                                 (-> (∩ S Dia-Block-Style))
-                                                 U
-                                                 (Dia-Block-Info* B U))
-  (lambda [anchor text mk-style mk-fallback-style datum]
-    (list text (dia-block-style-construct anchor mk-style mk-fallback-style datum) datum)))
-
 (define #:forall (S) dia-block-info : (->* (Geo-Anchor-Name String
-                                                            (Option (Dia-Block-Style-Make* Geo-Anchor-Name (∩ S Dia-Block-Style) (Option Symbol)))
+                                                            (Option (Dia-Block-Style-Make (∩ S Dia-Block-Style)))
                                                             (-> (∩ S Dia-Block-Style)))
                                            ((Option Symbol))
-                                           Dia-Block-Info)
+                                          Dia-Block-Info)
   (lambda [anchor text mk-style mk-fallback-style [datum #false]]
-    (dia-block-info* anchor text mk-style mk-fallback-style datum)))
+    (list text (dia-block-style-construct anchor mk-style mk-fallback-style datum) datum)))

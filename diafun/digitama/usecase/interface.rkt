@@ -27,15 +27,14 @@
   (lambda [source target labels extra-info]
     (define stype : Symbol (dia:block-type source))
     (define ttype : (Option Symbol) (and target (dia:block-type target)))
-    (define hints : (Listof Bytes) (geo-path-label-flatten labels))
 
     (define track-style : Dia-Track-Style
       (cond [(eq? stype ttype)
              (cond [(eq? stype 'Actor)
                     (dia-track-style-construct source target labels (default-diauc-generalization-arrow-style-make) make-diauc-generalization-arrow-style)]
-                   [(geo-path-label-match? hints #px"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]")
+                   [(geo-path-match-any-label? labels #px"(?i:include)")
                     (dia-track-style-construct source target labels (default-diauc-include-arrow-style-make) make-diauc-include-arrow-style)]
-                   [(geo-path-label-match? hints #px"[Ee][Xx][Tt][Ee][Nn][Dd]")
+                   [(geo-path-match-any-label? labels #px"(?i:extend)")
                     (dia-track-style-construct source target labels (default-diauc-extend-arrow-style-make) make-diauc-extend-arrow-style)]
                    [else (dia-track-style-construct source target labels (default-diauc-generalization-arrow-style-make) make-diauc-generalization-arrow-style)])]
             [else (dia-track-style-construct source target labels (default-diauc-association-arrow-style-make) make-diauc-association-arrow-style)]))
@@ -44,6 +43,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diauc-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id brief style width height direction subtype]
-    (cond [(diauc-ucase-style? (car style)) (diauc-block-ucase id brief style width height direction subtype)]
-          [(diauc-actor-style? (car style)) (diauc-block-actor id brief style width height direction subtype)])))
+  (lambda [id caption style width height direction subtype]
+    (cond [(diauc-ucase-style? (car style)) (diauc-block-ucase id caption style width height direction subtype)]
+          [(diauc-actor-style? (car style)) (diauc-block-actor id caption style width height direction subtype)])))

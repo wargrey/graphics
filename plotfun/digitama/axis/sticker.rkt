@@ -9,7 +9,6 @@
 (require geofun/composite)
 
 (require geofun/digitama/self)
-(require geofun/digitama/markup)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/path)
 (require geofun/digitama/path/tick)
@@ -19,6 +18,8 @@
 (require geofun/digitama/layer/void)
 (require geofun/digitama/layer/position)
 
+(require geofun/digitama/richtext/self)
+(require geofun/digitama/richtext/realize)
 (require geofun/digitama/geometry/computation/line)
 
 (require "interface.rkt")
@@ -27,10 +28,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-tick->sticker : Plot-Axis-Tick->Sticker
   (lambda [id label font color]
-    (geo-text label font #:color color)))
+    (geo-rich-text-realize #:id id label font color)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-x-axis-label : (-> DC-Markup-Text Font Color (Option DC-Markup-Text) (Option Font) (Option Color) Flonum Geo)
+(define plot-x-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text (Option Font) (Option Color) Flonum Geo)
   (lambda [name font color desc desc-font desc-color gapsize]
     (cond [(zero? gapsize) (plot-y-axis-label name font color desc desc-font desc-color)]
           [else (geo-hc-append #:gapsize (- gapsize 1.0)
@@ -38,16 +39,16 @@
                                (plot-y-axis-label name font color desc desc-font desc-color)
                                the-void-geo)])))
 
-(define plot-y-axis-label : (-> DC-Markup-Text Font Color (Option DC-Markup-Text) (Option Font) (Option Color) Geo)
+(define plot-y-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text (Option Font) (Option Color) Geo)
   (lambda [name font color desc desc-font desc-color]
     (if (or desc)
         (let ([dfont (or desc-font font)]
               [dcolor (or desc-color color)])
-          (geo-hc-append (geo-markup name font #:color color #:error-color 'GhostWhite #:error-background 'Firebrick)
+          (geo-hc-append (geo-rich-text-realize name font color)
                          (geo-text " (" dfont #:color dcolor)
-                         (geo-markup desc dfont #:color dcolor #:error-color 'GhostWhite #:error-background 'Firebrick)
+                         (geo-rich-text-realize desc dfont dcolor)
                          (geo-text ")" dfont #:color dcolor)))
-        (geo-markup name font #:color color))))
+        (geo-rich-text-realize name font color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-tick-db : (Weak-HashTable Any Geo:Path:Self) (make-weak-hash))

@@ -2,7 +2,7 @@
 
 (define collection 'use-pkg-name)
 
-(define pkg-desc "Bitmap: Functional Pictures")
+(define pkg-desc "Bitmap: Fun with functional bitmap Pictures")
 (define pkg-authors '(wargrey))
 
 (define version "1.0")

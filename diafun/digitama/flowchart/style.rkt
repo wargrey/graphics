@@ -29,10 +29,9 @@
 (define default-diaflow-storage-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaFlow-Storage-Arrow-Style))) (make-parameter #false))
 (define default-diaflow-free-track-style-make : (Parameterof (Option (Dia-Free-Track-Style-Make DiaFlow-Free-Track-Style))) (make-parameter #false))
 
-(define default-diaflow-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^([Tt]([Rr][Uu][Ee])?|[Yy]([Ee][Ss])?|[Dd][Oo])$"))
-(define default-diaflow-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^([Ff]([Aa][Ll][Ss][Ee])?|[Nn]([Oo])?)$"))
-(define default-diaflow-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp))
-  (make-parameter #px"(^[Ff][Oo][Rr])|(^[Ee][Aa][Cc][Hh])|(^[Ww][Hh][Ii][Ll][Ee])|(^[Nn][Ee][Xx][Tt])|([Ll][Oo][Oo][Pp]$)"))
+(define default-diaflow-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(t(rue)?)|(?i:y(es)?)|(?i:do))$"))
+(define default-diaflow-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(f(alse)?)|(?i:n(o)?))$"))
+(define default-diaflow-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"(^(?i:(for|each|while|next)))|((?i:loop)$)"))
 
 (define-configuration diaflow-track-backstop-style : DiaFlow-Track-Backstop-Style #:as dia-track-backstop-style
   #:format "default-diaflow-track-~a"
@@ -180,7 +179,7 @@
   #:format "default-diaflow-~a"
   ([block-width : Nonnegative-Flonum 200.0]
    [block-height : Nonnegative-Flonum 50.0]
-   [font : Font default-block-brief-font]
+   [font : Font default-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint default-block-stroke]
    [fill-paint : Option-Fill-Paint 'GhostWhite]

@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require geofun/vector)
+(require geofun/markup)
 (require diafun/flowchart)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

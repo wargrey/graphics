@@ -2,17 +2,16 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-
 (require geofun/font)
 (require geofun/stroke)
 
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/color)
-(require geofun/digitama/markup)
-(require geofun/digitama/path/label)
 (require geofun/digitama/paint/self)
+
+(require geofun/digitama/richtext/self)
+(require geofun/digitama/richtext/realize)
 
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
@@ -50,7 +49,7 @@
       (let sticker-filter ([desc (plot:mark-desc self)])
         (cond [(geo? desc) (list desc)]
               [(geo-sticker? desc) (list desc)]
-              [(dc-markup-text? desc) (list (geo-path-label-text desc #false font color))]
+              [(geo-rich-text? desc) (list (geo-rich-text-realize desc font color))]
               [(list? desc) (apply append (map sticker-filter desc))]
               [(not desc) null]
               [else (let ([desc.geo (desc (plot:mark-point self) (plot:mark-datum self)

@@ -28,17 +28,19 @@
 (define-syntax (create-geometry-group stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
-        (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+              (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))) ...
         layers0:expr argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let ([layers layers0])
            (Geo geo-convert geo-draw-group! (geo-group-extent layers)
                 (or outline (geo-group-outline layers))
-                (or name (gensym 'geo-prefix)) base-op sibs-op layers
+                (or name (gensym 'geo-prefix)) base-op sibs-op desc layers
                 argl ...))))]
     [(_ Geo name base-op:expr sibs-op:expr
         (~alt (~optional (~seq #:outline alt-outline) #:defaults ([alt-outline #'#false]))
+              (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border border) #:defaults ([border #'#false]))
@@ -53,15 +55,16 @@
            (if (or margin inset border bgsource)
                (Geo geo-convert
                     (geo-draw-framed-group! border bgsource) (geo-group-frame-extent margin inset layers border) outline
-                    id base-op sibs-op layers argl ...)
+                    id base-op sibs-op desc layers argl ...)
                (Geo geo-convert
                     geo-draw-group! (geo-group-extent layers) outline
-                    id base-op sibs-op layers argl ...)))))]))
+                    id base-op sibs-op desc layers argl ...)))))]))
 
 (define-syntax (create-geometry-table stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
         (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+              (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border border) #:defaults ([border #'#false]))
@@ -72,13 +75,15 @@
        (syntax/loc stx
          (let-values ([(layers size anchors gaps) (geo-table-metrics table ncols nrows col-anchors row-anchors col-gaps row-gaps)])
            (create-geometry-group Geo name base-op sibs-op
-                                  #:outline outline #:margin margin #:padding inset #:border border #:background bgsource
+                                  #:outline outline #:desc desc
+                                  #:margin margin #:padding inset #:border border #:background bgsource
                                   layers size anchors gaps argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:group geo
   ([base-operator : (Option Symbol)]
    [sibs-operator : (Option Symbol)]
+   [desc : (Option String)]
    [selves : Geo-Layer-Group])
   #:type-name Geo:Group
   #:transparent)
@@ -106,50 +111,56 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-composite : (->* (Geo Real Real Geo)
-                             (Real Real #:base-operator (Option Symbol) #:operator (Option Symbol) #:id (Option Symbol))
+                             (#:base-operator (Option Symbol) #:operator (Option Symbol)
+                              #:id (Option Symbol) #:desc (Option String)
+                              Real Real)
                              Geo:Group)
-  (lambda [geo1 x1 y1 geo2 [x2 0.0] [y2 0.0] #:base-operator [base-op #false] #:operator [sibs-op #false] #:id [id #false]]
-    (make-geo:group id base-op sibs-op
+  (lambda [#:base-operator [base-op #false] #:operator [sibs-op #false]
+           #:id [id #false] #:desc [desc #false]
+           geo1 x1 y1 geo2 [x2 0.0] [y2 0.0]]
+    (make-geo:group id base-op sibs-op desc
                     (geo-composite-layers geo1 geo2
                                           (- (real->double-flonum x1) (real->double-flonum x2))
                                           (- (real->double-flonum y1) (real->double-flonum y2))))))
 
 (define geo-pin* : (-> Real Real Real Real Geo
-                       [#:base-operator (Option Symbol)] [#:operator (Option Symbol)] [#:id (Option Symbol)]
+                       [#:id (Option Symbol)] [#:desc (Option String)]
+                       [#:base-operator (Option Symbol)] [#:operator (Option Symbol)]
                        Geo * Geo)
-  (lambda [#:base-operator [base-op #false] #:operator [sibs-op #false] #:id [id #false] x1% y1% x2% y2% base . siblings]
+  (lambda [#:base-operator [base-op #false] #:operator [sibs-op #false] #:id [id #false] #:desc [desc #false]
+           x1% y1% x2% y2% base . siblings]
     (cond [(null? siblings) base]
           [(null? (cdr siblings))
-           (make-geo:group id base-op sibs-op
+           (make-geo:group id base-op sibs-op desc
                            (geo-composite-layers base (car siblings)
                                                  (real->double-flonum x1%) (real->double-flonum y1%)
                                                  (real->double-flonum x2%) (real->double-flonum y2%)))]
           [else
-           (make-geo:group id base-op sibs-op
+           (make-geo:group id base-op sibs-op desc
                            (geo-pin-layers base siblings
                                            (real->double-flonum x1%) (real->double-flonum y1%)
                                            (real->double-flonum x2%) (real->double-flonum y2%)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-geo:group : (case-> [(Option Symbol) (Option Symbol) (Option Symbol) Geo-Layer-Group -> Geo:Group]
-                                 [(Option Symbol) (Option Symbol) (Option Symbol) Geo-Layer-Group
+(define make-geo:group : (case-> [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group -> Geo:Group]
+                                 [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group
                                                   (Option Geo-Spacing) (Option Geo-Spacing)
                                                   Maybe-Stroke-Paint Maybe-Fill-Paint
                                                   -> Geo:Group])
   (case-lambda
-    [(id base-op sibs-op layers)
+    [(id base-op sibs-op desc layers)
      (create-geometry-object geo:group
                              #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)]
-                             base-op sibs-op layers)]
-    [(id base-op sibs-op layers margin inset border background)
+                             base-op sibs-op desc layers)]
+    [(id base-op sibs-op desc layers margin inset border background)
      (if (or margin inset border background)
 
          (let ([geo-frame-extent (geo-group-frame-extent margin inset layers border)])
            (create-geometry-object geo:group
                                    #:with [id (geo-draw-framed-group! border background) geo-frame-extent geo-zero-pads]
-                                   base-op sibs-op layers))
+                                   base-op sibs-op desc layers))
 
-         (make-geo:group id base-op sibs-op layers))]))
+         (make-geo:group id base-op sibs-op desc layers))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-siblings->table : (-> (Listof Geo) Positive-Integer (GLayerof Geo) (Vectorof (GLayerof Geo)))

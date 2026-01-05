@@ -2,7 +2,7 @@
 
 (define collection 'use-pkg-name)
 
-(define pkg-desc "Geofun: Functional Geometry is Fun")
+(define pkg-desc "Geofun: Fun with functional geometrical shapes")
 (define pkg-authors '(wargrey))
 
 (define version "1.0")

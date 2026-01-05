@@ -36,13 +36,12 @@
   (lambda [source target labels extra-info]
     (define stype : Symbol (dia:block-type source))
     (define ttype : (Option Symbol) (and target (dia:block-type target)))
-    (define hints : (Listof Bytes) (geo-path-label-flatten labels))
-
+    
     (define track-style : Dia-Track-Style
       (cond [(eq? stype 'Decision)
-             (cond [(geo-path-label-match? hints (default-diaflow-success-decision-regexp))
+             (cond [(geo-path-match-any-label? labels (default-diaflow-success-decision-regexp))
                     (dia-track-style-construct source target labels (default-diaflow-success-arrow-style-make) make-diaflow-success-arrow-style)]
-                   [(geo-path-label-match? hints (default-diaflow-failure-decision-regexp))
+                   [(geo-path-match-any-label? labels (default-diaflow-failure-decision-regexp))
                     (dia-track-style-construct source target labels (default-diaflow-failure-arrow-style-make) make-diaflow-failure-arrow-style)]
                    [else (dia-track-style-construct source target labels (default-diaflow-decision-arrow-style-make) make-diaflow-decision-arrow-style)])]
             [(eq? stype 'Selection)
@@ -51,7 +50,7 @@
              (if (pair? labels)
                  (dia-track-style-construct source target labels (default-diaflow-storage-arrow-style-make) make-diaflow-storage-arrow-style)
                  (dia-track-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style))]
-            [(geo-path-label-match? hints (default-diaflow-loop-label-regexp))
+            [(geo-path-match-any-label? labels (default-diaflow-loop-label-regexp))
              (dia-track-style-construct source target labels (default-diaflow-loop-arrow-style-make) make-diaflow-loop-arrow-style)]
             [else (dia-track-style-construct source target labels (default-diaflow-arrow-style-make) make-diaflow-arrow-style)]))
 

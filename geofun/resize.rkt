@@ -93,19 +93,19 @@
                   (if (zero? w) 1.0 (/ w flwidth))
                   (if (zero? h) 1.0 (/ h flheight))))]))
 
-(define geo-try-fit : (case-> [Geo Geo -> (Option Geo)]
-                              [Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                              [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                              [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> (Option Geo)])
+(define geo-try-dsfit : (case-> [Geo Geo -> (Option Geo)]
+                                [Geo Real Real -> (Option Geo)]
+                                [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
+                                [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> (Option Geo)])
   (case-lambda
-    [(self refer) (geo-fit self refer 1.0 1.0 0.0)]
-    [(self refer wratio hratio) (geo-fit self refer wratio hratio 0.0)]
+    [(self refer) (geo-dsfit self refer 1.0 1.0 0.0)]
+    [(self refer wratio hratio) (geo-dsfit self refer wratio hratio 0.0)]
     [(self refer wratio hratio margin)
      (let-values ([(mtop mright mbottom mleft) (geo-spacing-values margin)]
                   [(flwidth flheight) (geo-flsize refer)])
-       (geo-fit self
-                (max (- (* flwidth  (real->double-flonum wratio)) mleft mright) 0.0)
-                (max (- (* flheight (real->double-flonum hratio)) mtop mbottom) 0.0)))]
+       (geo-dsfit self
+                  (- (* flwidth  (real->double-flonum wratio)) mleft mright)
+                  (- (* flheight (real->double-flonum hratio)) mtop mbottom)))]
     [(self width height)
      (let-values ([(flwidth flheight) (geo-flsize self)])
        (cond [(and (positive? width) (positive? height))
@@ -116,12 +116,12 @@
              [(positive? height) (geo-scale self (/ (min flheight (real->double-flonum height)) flheight))]
              [else #false]))]))
 
-(define geo-fit : (case-> [Geo Geo -> Geo]
-                          [Geo Nonnegative-Real Nonnegative-Real -> Geo]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
-                          [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> Geo])
+(define geo-dsfit : (case-> [Geo Geo -> Geo]
+                            [Geo Real Real -> Geo]
+                            [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
+                            [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> Geo])
   (case-lambda
-    [(self refer) (or (geo-try-fit self refer) self)]
-    [(self refer wratio hratio) (or (geo-try-fit self refer wratio hratio) self)]
-    [(self refer wratio hratio margin) (or (geo-try-fit self refer wratio hratio margin) self)]
-    [(self width height) (or (geo-try-fit self width height) self)]))
+    [(self refer) (or (geo-try-dsfit self refer) self)]
+    [(self refer wratio hratio) (or (geo-try-dsfit self refer wratio hratio) self)]
+    [(self refer wratio hratio margin) (or (geo-try-dsfit self refer wratio hratio margin) self)]
+    [(self width height) (or (geo-try-dsfit self width height) self)]))

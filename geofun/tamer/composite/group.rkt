@@ -39,6 +39,7 @@
 
 (geo-surface-region rings)
 (geo-cc-superimpose labels rings)
+(geo-rich-text->plain-text labels)
 
 (geo-cc-superimpose*
  (build-list (length ring-colors)

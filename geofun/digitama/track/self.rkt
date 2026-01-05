@@ -5,7 +5,8 @@
 (require "../path/label.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Track-Multiplicity-Datum (U Integer String Symbol Keyword Char False))
+;;; TODO: should it be rich text? or plain text + comment block
+(define-type Geo-Track-Multiplicity-Datum (U Integer Symbol Keyword Char String False))
 (define-type Geo-Track-Multiplicity+Label (U Geo-Track-Multiplicity-Datum (Pairof Geo-Track-Multiplicity-Datum Geo-Path-Label)))
 (define-type Geo-Track-Info-Datum (U Number Symbol Keyword Char Geo:Track:Datum))
 

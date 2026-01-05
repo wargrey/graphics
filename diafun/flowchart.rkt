@@ -8,6 +8,7 @@
 
 (require geofun/digitama/dc/track)
 (require geofun/digitama/geometry/trail)
+(require geofun/digitama/geometry/spacing)
 
 (require "digitama/track/dc.rkt")
 (require "digitama/track/base.rkt")
@@ -54,7 +55,7 @@
            #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diaflow-block-backstop-style)]
            #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diaflow-track-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
            #:λpath [make-path : Dia-Track->Path default-dia-track->path]
            #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
@@ -64,7 +65,7 @@
            [self : Geo:Track]] : Dia:Flow
     (parameterize ([current-master-track self])
       (define-values (blocks tracks)
-        (dia-track-stick self block-detect make-block make-brief
+        (dia-track-stick self block-detect make-block make-caption
                          (dia-register-home-name (geo-trail-home-anchor (geo:track-trail self)) home-name block-desc)
                          track-detect make-path make-label
                          make-free-path make-free-label (default-diaflow-free-track-style-make)
@@ -82,15 +83,15 @@
            #:block-detect [block-detect : Dia-Block-Identifier default-diaflow-block-identify]
            #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diaflow-block-backstop-style)]
            #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λbrief [make-brief : Dia-Anchor->Brief default-dia-anchor->brief]
+           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
            #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
     (parameterize ([default-diaflow-block-width  (* ((default-diaflow-block-width))  ns)]
                    [default-diaflow-block-height (* ((default-diaflow-block-height)) ns)]
-                   [default-dia-block-margin (* (default-dia-block-margin) ns)]
+                   [default-dia-block-margin (geo-spacing-scale (default-dia-block-margin) ns ns)]
                    [current-master-track #false])
-      (dia-block-make block-detect make-block make-brief block-desc
+      (dia-block-make block-detect make-block make-caption block-desc
                       default-diaflow-block-fallback-construct block-backstop
                       (cond [(symbol? caption) caption]
                             [(keyword? caption) caption]

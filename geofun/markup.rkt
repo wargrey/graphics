@@ -3,8 +3,10 @@
 ;;; https://docs.gtk.org/Pango/pango_markup.html
 
 (provide (all-defined-out))
+(provide geo-markup geo:markup? Geo:Markup)
 
-(require "digitama/markup.rkt")
+(require "digitama/dc/markup.rkt")
+(require "digitama/richtext/pexpr.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define <markup> : (-> PExpr * PExpr-Element) (λ children (pexpr 'markup children)))

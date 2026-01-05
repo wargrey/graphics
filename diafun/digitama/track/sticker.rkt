@@ -6,7 +6,7 @@
 (require digimon/digitama/unsafe/ops)
 
 (require geofun/digitama/self)
-(require geofun/digitama/markup)
+(require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/trail)
 (require geofun/digitama/geometry/anchor)
 (require geofun/digitama/geometry/footprint)
@@ -49,7 +49,7 @@
   (lambda [[master : Geo:Track]
            [block-identify : Dia-Block-Identifier]
            [make-block : (Option Dia-Anchor->Block)]
-           [anchor->brief : Dia-Anchor->Brief]
+           [anchor->caption : Dia-Anchor->Caption]
            [block-desc : (Option Dia-Block-Describe)]
            [track-identify : Dia-Track-Identifier]
            [make-track : Dia-Track->Path]
@@ -85,7 +85,7 @@
               (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
                     [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-block (dia-block-layer-make block-identify make-block anchor->brief block-desc
+                                 [new-block (dia-block-layer-make block-identify make-block anchor->caption block-desc
                                                                   fallback-block block-backstop anchor next-pt direction ignore)])
                             (values new-block (hash-set blocks anchor new-block)))]))
             
@@ -197,8 +197,9 @@
                            (values #false slebal)))
 
                      (define mult-info : (Option Dia-Track-Label-Info)
-                       (let ([labels (and maybe-mult (geo-track-multiplicities-map (geo:track:multiplicity-source maybe-mult)
-                                                                                   (geo:track:multiplicity-target maybe-mult)))])
+                       (let ([labels (and maybe-mult
+                                          (geo-track-multiplicities-map (geo:track:multiplicity-source maybe-mult)
+                                                                        (geo:track:multiplicity-target maybe-mult)))])
                          (and labels
                               (list idx labels
                                     (geo:track:multiplicity-base-position maybe-mult)))))
@@ -240,38 +241,38 @@
     (if (geo? track) (cons (geo-path-self-pin-layer track) tracks) tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+(define dia-block-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Caption (Option Dia-Block-Describe)
                              Dia-Anchor->Block Dia-Block-Backstop-Style Geo-Anchor-Name (Option Flonum) (Listof Symbol)
                              (Option Dia:Block))
-  (lambda [block-identify make-block make-brief block-desc fallback-block backstop anchor direction ignore]
+  (lambda [block-identify make-block make-caption block-desc fallback-block backstop anchor direction ignore]
     (define blk-info (block-identify anchor))
 
     (and blk-info
          (let-values ([(id) (geo-anchor->symbol anchor)]
                       [(text style datum) (values (car blk-info) (cons (cadr blk-info) backstop) (caddr blk-info))])
-           (define maybe-brief : Dia-Block-Maybe-Brief
+           (define maybe-caption : Geo-Maybe-Rich-Text
              (cond [(not block-desc) (void)]
                    [(hash? block-desc) (hash-ref block-desc anchor void)]
                    [else (block-desc anchor text)]))
            
-           (define brief : (Option Geo) (and maybe-brief (make-brief id (if (void? maybe-brief) text maybe-brief) style datum)))
-           (define-values (width height) (dia-block-smart-size brief style))
+           (define caption : (Option Geo) (and maybe-caption (make-caption id (if (void? maybe-caption) text maybe-caption) style datum)))
+           (define-values (width height) (dia-block-smart-size caption style))
            (define block : (U Dia:Block Void False)
              (cond [(memq id ignore) #false]
                    [(not make-block) (void)]
-                   [else (make-block id brief style width height direction datum)]))
+                   [else (make-block id caption style width height direction datum)]))
 
            (if (void? block)
-               (let ([fallback-block (fallback-block id brief style width height direction datum)])
+               (let ([fallback-block (fallback-block id caption style width height direction datum)])
                  (and (dia:block? fallback-block)
                       fallback-block))
                block)))))
 
-(define dia-block-layer-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Brief (Option Dia-Block-Describe)
+(define dia-block-layer-make : (-> Dia-Block-Identifier (Option Dia-Anchor->Block) Dia-Anchor->Caption (Option Dia-Block-Describe)
                                    Dia-Anchor->Block Dia-Block-Backstop-Style Geo-Anchor-Name Float-Complex (Option Flonum) (Listof Symbol)
                                    (Option (GLayerof Dia:Block)))
-  (lambda [block-identify make-block make-brief block-desc fallback-block backstop anchor position direction ignore]
-    (define maybe-block (dia-block-make block-identify make-block make-brief block-desc fallback-block backstop anchor direction ignore))
+  (lambda [block-identify make-block make-caption block-desc fallback-block backstop anchor position direction ignore]
+    (define maybe-block (dia-block-make block-identify make-block make-caption block-desc fallback-block backstop anchor direction ignore))
 
     (and maybe-block
          (geo-own-pin-layer 'cc position maybe-block 0.0+0.0i))))

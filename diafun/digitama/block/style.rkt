@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (rename-out [dc-markup-text? dia-block-brief-datum?]))
 
 (require racket/string)
 
@@ -9,27 +8,22 @@
 (require geofun/stroke)
 (require geofun/fill)
 
-(require geofun/digitama/dc/text)
-(require geofun/digitama/unsafe/dc/text-layout)
-
 (require geofun/digitama/base)
 (require geofun/digitama/self)
-(require geofun/digitama/markup)
+(require geofun/digitama/richtext/self)
+(require geofun/digitama/richtext/realize)
 
-(require geofun/digitama/geometry/anchor)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
+(require geofun/digitama/geometry/anchor)
+(require geofun/digitama/geometry/spacing)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Block-Style-Make* T S Urgent) (-> T Urgent (U S False Void)))
+(define-type (Dia-Block-Style-Make* T S Property) (-> T Property (U S False Void)))
 (define-type (Dia-Block-Style-Make S) (Dia-Block-Style-Make* Geo-Anchor-Name S (Option Symbol)))
 
 (define-type (Dia-Block-Style-Layers* S) (Pairof S Dia-Block-Backstop-Style))
 (define-type Dia-Block-Style-Layers (Dia-Block-Style-Layers* Dia-Block-Style))
-
-(define-type Dia-Block-Brief-Datum DC-Markup-Text)
-(define-type Dia-Block-Option-Brief (Option Dia-Block-Brief-Datum))
-(define-type Dia-Block-Maybe-Brief (U Dia-Block-Option-Brief Void))
 
 (struct dia-block-style
   ([width : (Option Flonum)]
@@ -56,19 +50,19 @@
   #:type-name Dia-Block-Backstop-Style
   #:transparent)
 
-(define default-dia-block-margin : (Parameterof Nonnegative-Flonum) (make-parameter 8.0))
+(define default-dia-block-margin : (Parameterof Geo-Spacing) (make-parameter 8.0))
 (define default-dia-block-text-alignment : (Parameterof Geo-Text-Alignment) (make-parameter 'center))
 (define default-dia-block-text-trim? : (Parameterof Boolean) (make-parameter #true))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-text-brief : (->* (DC-Markup-Text Dia-Block-Style-Layers)
-                                    (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
-                                    (Option Geo))
+(define dia-block-text-caption : (->* (Geo-Rich-Text Dia-Block-Style-Layers)
+                                      (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
+                                      (Option Geo))
   (lambda [desc style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
     (define maybe-font : (Option Font) (or alt-font (dia-block-style-font (car style))))
     (define maybe-paint : Option-Fill-Paint (or alt-color (dia-block-style-font-paint (car style))))
 
-    (define text : DC-Markup-Text
+    (define text : Geo-Rich-Text
       (cond [(string? desc) (if (default-dia-block-text-trim?) (string-trim desc) desc)]
             [(bytes? desc) (if (default-dia-block-text-trim?) (regexp-replace* #px"((^\\s*)|(\\s*$))" desc #"") desc)]
             [else desc]))
@@ -76,20 +70,16 @@
     (and (cond [(string? text) (> (string-length text) 0)]
                [(bytes? text) (> (bytes-length text) 0)]
                [else #true])
-         (geo-markup #:id (dia-block-brief-id (or id (gensym 'dia:block:brief:)))
-                     #:color (or maybe-paint (dia-block-backstop-style-font-paint (cdr style)))
-                     #:alignment (default-dia-block-text-alignment)
-                     #:error-color 'GhostWhite #:error-background 'Firebrick
-                     text (or maybe-font (dia-block-backstop-style-font (cdr style)))))))
-
-(define dia-block-size : (-> Dia-Block-Style-Layers (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [style]
-    (dia-block-smart-size #false style)))
+         (geo-rich-text-realize #:id (dia-block-caption-id (or id (gensym 'dia:block:caption:)))
+                                #:alignment (default-dia-block-text-alignment)
+                                text
+                                (or maybe-font (dia-block-backstop-style-font (cdr style)))
+                                (or maybe-paint (dia-block-backstop-style-font-paint (cdr style)))))))
 
 (define dia-block-smart-size : (->* ((Option Geo) Dia-Block-Style-Layers)
                                     (#:width (Option Real) #:height (Option Real))
                                     (Values Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [brief style #:width [alt-width #false] #:height [alt-height #false]]
+  (lambda [caption style #:width [alt-width #false] #:height [alt-height #false]]
     (define maybe-width  (if (not alt-width)  (dia-block-style-width (car style))  (real->double-flonum alt-width)))
     (define maybe-height (if (not alt-height) (dia-block-style-height (car style)) (real->double-flonum alt-height)))
     
@@ -97,8 +87,8 @@
     (define height (or maybe-height (dia-block-backstop-style-height (cdr style))))
 
     (cond [(and (> width 0.0) (> height 0.0)) (values width height)]
-          [(not brief) (values 0.0 0.0)]
-          [else (let-values ([(w h) (geo-flsize brief)])
+          [(not caption) (values 0.0 0.0)]
+          [else (let-values ([(w h) (geo-flsize caption)])
                   (values (cond [(> width 0.0)  width]  [(< width 0.0)  (* w (abs width))]  [else w])
                           (cond [(> height 0.0) height] [(< height 0.0) (* h (abs height))] [else h])))])))
 
@@ -164,7 +154,7 @@
         (dia-block-backstop-style-opacity (cdr self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-brief-id : (-> Geo-Anchor-Name Symbol)
+(define dia-block-caption-id : (-> Geo-Anchor-Name Symbol)
   (lambda [anchor]
     (string->symbol (string-append "~" (geo-anchor->string anchor)))))
 
@@ -172,14 +162,10 @@
   (lambda [anchor]
     (string->symbol (string-append "&" (geo-anchor->string anchor)))))
 
-(define dia-block-cell-id : (-> Symbol Symbol Index Index Symbol)
-  (lambda [id type row col]
-    (string->symbol (format "~a:~a:~a:~a" id type row col))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (T S U) dia-block-style-construct : (-> T (Option (Dia-Block-Style-Make* T S U)) (-> S) U S)
-  (lambda [anchor mk-style mk-fallback-style urgent]
-    (define maybe-style (and mk-style (mk-style anchor urgent)))
+(define #:forall (T S P) dia-block-style-construct : (-> T (Option (Dia-Block-Style-Make* T S P)) (-> S) P S)
+  (lambda [anchor mk-style mk-fallback-style property]
+    (define maybe-style (and mk-style (mk-style anchor property)))
 
     (if (or (not maybe-style) (void? maybe-style))
         (mk-fallback-style)

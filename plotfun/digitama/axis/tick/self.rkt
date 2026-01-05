@@ -4,6 +4,7 @@
 
 (require racket/list)
 (require digimon/flonum)
+(require geofun/digitama/richtext/self)
 
 (require "../../arithmetics.rkt")
 
@@ -16,9 +17,9 @@
        (Values Plot-Ticks (Option Real) Plot-Minor-Tick-Count)))
 
 (define-type Plot-Ticks-Layout (-> Real Real (Values #;#:values (Listof Real) #;#:step (Option Real))))
-(define-type Plot-Tick-Format (-> Real Integer String))
+(define-type Plot-Tick-Format (-> Real Integer Geo-Rich-Text))
 ;(define-type (Plot-Ticks-Layout* Arg) (-> Real Real (Values (Listof Plot-Tick) Arg)))
-;(define-type (Plot-Ticks-Format* Arg) (-> Real Real Plot-Tick Arg String))
+;(define-type (Plot-Ticks-Format* Arg) (-> Real Real Plot-Tick Arg Geo-Rich-Text))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot-tick-engine
@@ -33,7 +34,7 @@
 
 (struct plot-tick
   ([value : Real]
-   [desc : String]
+   [desc : Geo-Rich-Text]
    [major? : Boolean])
   #:type-name Plot-Tick
   #:transparent)
@@ -91,6 +92,5 @@
 
 (define plot-ytick-filter : (-> (-> Flonum Flonum Float-Complex) Nonnegative-Flonum Nonnegative-Flonum (-> Plot-Tick Boolean))
   (lambda [transform flmin flmax]
-    (displayln (list 'y flmin flmax))
     (λ [[t : Plot-Tick]]
       (sfl<= flmin (imag-part (transform 0.0 (real->double-flonum (plot-tick-value t)))) flmax))))

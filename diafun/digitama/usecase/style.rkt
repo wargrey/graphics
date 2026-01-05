@@ -95,7 +95,7 @@
 
 (define-configuration diauc-free-track-style : DiaUC-Free-Track-Style #:as dia-track-style
   #:format "default-diauc-free-track-~a"
-  ([font : (Option Font) default-block-brief-font]
+  ([font : (Option Font) default-block-caption-font]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'DimGray]
@@ -115,7 +115,7 @@
   #:format "default-diauc-~a"
   ([block-width : Nonnegative-Flonum 160.0]
    [block-height : Nonnegative-Flonum 50.0]
-   [font : Font default-block-brief-font]
+   [font : Font default-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint default-block-stroke]
    [fill-paint : Option-Fill-Paint 'GhostWhite]
@@ -126,7 +126,7 @@
   #:format "default-diauc-actor-~a"
   ([block-width : (Option Nonnegative-Flonum) #false]
    [block-height : (Option Nonnegative-Flonum) (* ((default-diauc-block-height)) 2.0)]
-   [font : (Option Font) default-table-header-font]
+   [font : (Option Font) default-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 1.0]
    [stroke-color : (U Color Void False) #false]

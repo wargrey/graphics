@@ -2,7 +2,7 @@
 
 (define collection 'use-pkg-name)
 
-(define pkg-desc "Exprfun: Functional Mathematical Expression and Notation is Fun")
+(define pkg-desc "Exprfun: Fun with functional mathematical expressions")
 (define pkg-authors '(wargrey))
 
 (define version "1.0")

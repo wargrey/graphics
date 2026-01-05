@@ -5,12 +5,13 @@
 (require geofun/vector)
 (require geofun/markup)
 
-(require geofun/digitama/markup)
+(require geofun/digitama/richtext/markup)
+(require geofun/digitama/richtext/pexpr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font (desc-font #:family 'math #:size 'xx-large))
 
-(define pango-markup-xexprs : (Listof PExpr)
+(define pango-markup-xexprs : (Listof PExpr-Element)
   (list (<markup> 'lt "plain" 169 "plteen.fun" 'gt)
         (<span> `([letter_spacing . 1.0])
                 "x"
@@ -39,12 +40,12 @@
                      (string-append "x<sub>n</sub> = x<sub>n<span style=\"normal\">-<span size=\"smaller\">1</span></span></sub><span style=\"normal\"> + 1</span>\n"
                                     "e<sup> i π</sup><span style=\"normal\"> + 1 = 0</span>"))
                     font)
-        (geo-markup "Plain!" font #:lines '(underdouble))
+        (geo-markup #"Plain!" font #:lines '(underdouble))
         (geo-markup (string->bytes/utf-8 "<span>坏掉的标记语言，哈哈！</span><span") #:error-color 'GhostWhite #:error-background 'Crimson)))
 
 (define pexprs : (Listof Geo)
   (for/list : (Listof Geo) ([pexpr (in-list pango-markup-xexprs)])
-    (displayln (dc-markup-datum->text pexpr))
+    (displayln (geo-markup-datum->text pexpr))
     (geo-markup #:background 'Azure
                 pexpr font)))
 

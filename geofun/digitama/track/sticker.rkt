@@ -32,15 +32,15 @@
         (geo-text (geo-anchor->string anchor) #:color 'Gray))))
 
 (define geo:track-stick : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
-                              (Option Symbol) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
+                              (Option Symbol) (Option String) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
                               (U Geo:Group Geo:Track))
-  (lambda [self anchor->sticker trusted-anchors truncate? id base-op sibs-op offset]
+  (lambda [self anchor->sticker trusted-anchors truncate? id desc base-op sibs-op offset]
     (parameterize ([current-master-track self])
       (define layers : (Option (GLayer-Groupof Geo)) (geo-track-stick/list self anchor->sticker trusted-anchors offset truncate?))
       (define gp-id : Symbol (or id (gensym 'geo:track:)))
 
       (cond [(not layers) self]
-            [else (make-geo:group gp-id base-op sibs-op layers)]))))
+            [else (make-geo:group gp-id base-op sibs-op desc layers)]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-stick/list : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Float-Complex Boolean (Option (GLayer-Groupof Geo)))

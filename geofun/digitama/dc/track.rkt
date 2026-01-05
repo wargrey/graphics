@@ -11,11 +11,19 @@
 (require "../geometry/ink.rkt")
 (require "../geometry/bbox.rkt")
 (require "../geometry/trail.rkt")
+(require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Print-Datum Point2D)
 (define-type Geo-Track-Infobase (HashTable (Pairof Float-Complex Float-Complex) Geo:Track:Info))
+
+(struct geo:track:zone
+  ([bbox : Geo-BBox]
+   [name : Geo-Anchor-Name]
+   [type : Symbol])
+  #:type-name Geo:Track:Zone
+  #:transparent)
 
 (struct geo:track geo
   ([trail : Geo-Trail]

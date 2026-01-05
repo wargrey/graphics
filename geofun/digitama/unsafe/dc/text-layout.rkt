@@ -111,6 +111,12 @@
   (define (dc_markup_plain_text raw)
     (define maybe-markup (pango_parse_markup raw))
 
+    (and (pair? maybe-markup)
+         (unsafe-cdr maybe-markup)))
+
+  (define (dc_markup_plain_text* raw)
+    (define maybe-markup (pango_parse_markup raw))
+
     (if (pair? maybe-markup)
         (let* ([iter (pango_attr_list_get_iterator (unsafe-car maybe-markup))]
                [has-attr? (pango_attr_iterator_next iter)])
@@ -210,7 +216,8 @@
                 Any)]
  
  [dc_markup_parse (-> Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment (Values Nonnegative-Flonum Nonnegative-Flonum (U String Bytes)))]
- [dc_markup_plain_text (-> Bytes (Values (U String Bytes) Boolean))])
+ [dc_markup_plain_text (-> Bytes (Option String))]
+ [dc_markup_plain_text* (-> Bytes (Values (U String Bytes) Boolean))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-enumeration geo-text-line : Geo-Text-Line

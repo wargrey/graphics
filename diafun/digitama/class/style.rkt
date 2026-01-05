@@ -141,7 +141,7 @@
 
 (define-configuration diacls-free-track-style : DiaCls-Free-Track-Style #:as dia-track-style
   #:format "default-diacls-free-track-~a"
-  ([font : (Option Font) default-block-brief-font]
+  ([font : (Option Font) default-block-caption-font]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
    [color : (U Color Void False) 'Gray]
@@ -161,7 +161,7 @@
   #:format "default-diacls-~a"
   ([block-width : Nonnegative-Flonum 150.0]
    [block-height : Nonnegative-Flonum 45.0]
-   [font : Font default-table-header-font]
+   [font : Font default-header-font]
    [font-paint : Fill-Paint 'GhostWhite]
    [stroke-paint : Option-Stroke-Paint #false]
    [fill-paint : Option-Fill-Paint 'CadetBlue]

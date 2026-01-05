@@ -2,11 +2,9 @@
 
 (provide (all-defined-out))
 
-(require racket/case)
-(require geofun/digitama/markup)
+(require geofun/digitama/richtext/self)
 
 (require "interface.rkt")
-
 (require "../marker/self.rkt")
 (require "../marker/guard.rkt")
 
@@ -24,13 +22,12 @@
                ; the facility that draws the pin line has no knownledge about the cartesian system,
                ; so that the resulting angle should be symmetrical about the x-axis
                ; if the angle is computed mathematically.
-               (- (case/eq placement
-                           [(auto) (if (>= c 0) (atan -1 +k) (atan +1 -k))]
-                           [(flip) (if (>= c 0) (atan +1 -k) (atan -1 +k))]
-                           [(left) (atan -1 +k)]
-                           [else   (atan +1 -k)]))))))))
+               (- (cond [(eq? placement 'auto) (if (>= c 0) (atan -1 +k) (atan +1 -k))]
+                        [(eq? placement 'flip) (if (>= c 0) (atan +1 -k) (atan -1 +k))]
+                        [(eq? placement 'left) (atan -1 +k)]
+                        [else                  (atan +1 -k)]))))))))
 
-(define plot-function-mark-guard : (-> (-> Real Real) (U False DC-Markup-Text Plot:Mark 'name)
+(define plot-function-mark-guard : (-> (-> Real Real) (U False Geo-Rich-Text Plot:Mark 'name)
                                        Positive-Fixnum Positive-Index Real Real Real Real
                                        Real (Pairof Real Real)
                                        (Option Plot:Mark))

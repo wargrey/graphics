@@ -7,9 +7,10 @@
 (require geofun/font)
 (require geofun/digitama/base)
 (require geofun/digitama/self)
+(require geofun/digitama/richtext/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Axis-Tick->Sticker (-> (Option Symbol) String Font Color (U Geo Void False)))
+(define-type Plot-Axis-Tick->Sticker (-> (Option Symbol) Geo-Rich-Text Font Color (U Geo Void False)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-desired-ticks : (Parameterof Positive-Index) (make-parameter 7))

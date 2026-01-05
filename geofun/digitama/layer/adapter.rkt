@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require racket/math)
-
 (require "type.rkt")
 (require "combine.rkt")
 
@@ -12,12 +10,31 @@
 (require "../../resize.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-fit-layers : (-> Geo (Option Geo) Nonnegative-Flonum Nonnegative-Flonum
-                             Flonum Flonum Flonum Flonum Geo-Spacing
-                             (GLayer-Groupof Geo))
-  (lambda [base maybe-geo hfit% vfit% bx% by% gx% gy% spacing]
-    (cond [(not maybe-geo) (geo-own-layers base)]
-          [(or (nan? hfit%) (nan? vfit%)) (geo-composite-layers base maybe-geo bx% by% gx% gy%)]
-          [else (let ([fit-label (geo-try-fit maybe-geo base hfit% vfit% spacing)])
-                  (cond [(not fit-label) (geo-own-layers base)]
-                        [else (geo-composite-layers base fit-label bx% by% gx% gy%)]))])))
+(define geo-try-dsfit-layers : (-> Geo (Option Geo)
+                                   Flonum Flonum Flonum Flonum
+                                   Flonum Flonum Flonum Flonum Geo-Spacing
+                                   (Option (GLayer-Groupof Geo)))
+  (lambda [base maybe-geo lft% top% hfit% vfit% fx% fy% gx% gy% spacing]
+    (and maybe-geo
+         (>= hfit% 0.0) (<= hfit% 1.0)
+         (>= vfit% 0.0) (<= vfit% 1.0)
+         (let ([fit-label (geo-try-dsfit maybe-geo base hfit% vfit% spacing)])
+           (and fit-label
+                (let*-values ([(mtop mright mbottom mleft) (geo-spacing-values spacing)]
+                              [(bwidth bheight) (geo-flsize base)]
+                              [(ml% mr%) (values (/ mleft bwidth) (/ mright bwidth))]
+                              [(mt% mb%) (values (/ mtop bheight) (/ mbottom bheight))]
+                              [(l0%) (if (rational? lft%) (max (min (- 1.0 hfit%) lft%) 0.0) (* (- 1.0 hfit%) 0.5))]
+                              [(t0%) (if (rational? top%) (max (min (- 1.0 vfit%) top%) 0.0) (* (- 1.0 vfit%) 0.5))])
+                  (geo-composite-layers base fit-label
+                                        (+ l0% ml% (* (- hfit% ml% mr%) fx%))
+                                        (+ t0% mt% (* (- vfit% mt% mb%) fy%))
+                                        gx% gy%)))))))
+
+(define geo-dsfit-layers : (-> Geo (Option Geo)
+                               Flonum Flonum Flonum Flonum
+                               Flonum Flonum Flonum Flonum Geo-Spacing
+                               (GLayer-Groupof Geo))
+  (lambda [base maybe-geo lft% top% hfit% vfit% fx% fy% gx% gy% spacing]
+    (or (geo-try-dsfit-layers base maybe-geo lft% top% hfit% vfit% fx% fy% gx% gy% spacing)
+        (geo-own-layers base))))

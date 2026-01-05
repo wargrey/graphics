@@ -7,7 +7,6 @@
 
 (require "../self.rkt")
 (require "../convert.rkt")
-(require "../markup.rkt")
 
 (require "../paint.rkt")
 (require "../paint/source.rkt")
@@ -24,11 +23,6 @@
    [lines : (Listof Geo-Text-Line)]
    [alignment : Geo-Text-Alignment])
   #:type-name Geo:String
-  #:transparent)
-
-(struct geo:markup geo:string
-  ([raw : Bytes])
-  #:type-name Geo:Markup
   #:transparent)
 
 (struct geo:art-text geo:string ()
@@ -59,13 +53,14 @@
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
-    (define body (format "~a" text))
+    (define body : String
+      (cond [(string? text) text]
+            [else (format "~a" text)]))
     
     (create-geometry-object geo:art-text
-                            #:with [(or id (string->symbol body))
-                                    (geo-draw-art-text font outline fill bgsource)
-                                    (geo-art-text-extent font)
-                                    (geo-shape-outline outline)]
+                            #:with [id (geo-draw-art-text font outline fill bgsource)
+                                       (geo-art-text-extent font)
+                                       (geo-shape-outline outline)]
                             body lines align)))
 
 (define geo-text
@@ -79,10 +74,9 @@
             [else (format "~a" text)]))
     
     (create-geometry-object geo:text
-                            #:with [(or id (string->symbol body))
-                                    (geo-draw-text font fgsource bgsource)
-                                    (geo-text-extent font)
-                                    geo-zero-pads]
+                            #:with [id (geo-draw-text font fgsource bgsource)
+                                       (geo-text-extent font)
+                                       geo-zero-pads]
                             body lines align alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph
@@ -99,42 +93,13 @@
     (define body : String (if (list? texts) (string-join texts "\n") texts))
     
     (create-geometry-object geo:para
-                            #:with [(or id (string->symbol body))
-                                    (geo-draw-paragraph font fgsource bgsource)
-                                    (geo-paragraph-extent font)
-                                    geo-zero-pads]
+                            #:with [id (geo-draw-paragraph font fgsource bgsource)
+                                       (geo-paragraph-extent font)
+                                       geo-zero-pads]
                             body lines align smart-width smart-height
                             (real->double-flonum indent) (real->double-flonum spacing)
                             (paragraph-wrap-mode->integer wrap-mode raise-argument-error)
                             (paragraph-ellipsize-mode->integer smart-emode raise-argument-error))))
-
-;;; https://docs.gtk.org/Pango/pango_markup.html
-(define geo-markup
-  (lambda [#:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
-           #:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
-           #:error-color [errfg : Option-Fill-Paint #false] #:error-background [errbg : Option-Fill-Paint #false]
-           [text : Any] [font : (Option Font) #false]] : (U Geo:Markup Geo:Text)
-    (define markup : Bytes (dc-markup-datum->text text))
-    (define-values (plain has-attrs?) (dc_markup_plain_text markup))
-
-    (cond [(string? plain)
-           (if (not has-attrs?)
-               (create-geometry-object geo:text
-                                       #:with [(or id (string->symbol plain))
-                                               (geo-draw-text font fgsource bgsource)
-                                               (geo-text-extent font)
-                                               geo-zero-pads]
-                                       plain lines align #false #false #false #false #false)
-               (create-geometry-object geo:markup
-                                       #:with [(or id (string->symbol plain))
-                                               (geo-draw-markup font fgsource bgsource)
-                                               (geo-markup-extent font)
-                                               geo-zero-pads]
-                                       plain lines align markup))]
-          [(or errfg errbg)
-           (geo-text (bytes-append plain #"\n" markup) font #:id id #:color errfg #:background errbg #:alignment align)]
-          [(or id) (error 'geo-markup "~a: ~a\n~a" id plain markup)]
-          [else    (error 'geo-markup "~a\n~a" plain markup)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-text-extent : (-> (Option Font) Geo-Calculate-Extent)
@@ -193,25 +158,6 @@
                       (geo:para-mwidth self) (geo:para-mheight self)
                       (geo:para-ident self) (geo:para-space self) (geo:para-wmode self) (geo:para-emode self)
                       (geo-select-font-source alt-fg) (geo-select-background-source alt-bg))))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-markup-extent : (-> (Option Font) Geo-Calculate-Extent)
-  (lambda [alt-font]
-    (λ [self]
-      (with-asserts ([self geo:markup?])
-        (define font-desc (geo-select-font-description alt-font default-font))
-        (define-values (W H _) (dc_markup_parse (geo:markup-raw self) font-desc (geo:string-lines self) (geo:string-alignment self)))
-        (values W H #false)))))
-
-(define geo-draw-markup : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-font alt-fg alt-bg]
-    (λ [self cr x0 y0 flwidth flheight]
-      (when (geo:markup? self)
-        (dc_markup cr x0 y0 flwidth flheight
-                   (geo:markup-raw self) (geo-select-font-description alt-font default-font)
-                   (geo:string-lines self) (geo:string-alignment self)
-                   (geo-select-font-source alt-fg) (geo-select-background-source alt-bg))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-select-font-description : (-> (Option Font) (-> Font) Font-Description)

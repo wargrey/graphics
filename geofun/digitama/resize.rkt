@@ -17,4 +17,4 @@
          (begin (define geo-crop : (-> Args ... Nonnegative-Flonum Nonnegative-Flonum Geo)
                   (lambda λargs λmain ...))
                 (define geo-cropper : (-> Args ... Geo)
-                  (lambda [bmp w h] (geo-crop bmp w h left% top%))) ...)))]))
+                  (lambda [self w h] (geo-crop self w h left% top%))) ...)))]))

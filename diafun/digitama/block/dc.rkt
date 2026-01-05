@@ -2,10 +2,8 @@
 
 (provide (all-defined-out))
 
-(require racket/math)
-(require geofun/resize)
-
 (require geofun/digitama/self)
+(require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)
@@ -21,29 +19,54 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-dia-block stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ (~alt (~optional (~seq #:block Geo) #:defaults ([Geo #'dia:block]))
+    [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
               (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:base-operator base-op) #:defaults ([base-op #'#false]))
-              (~optional (~seq #:operator op) #:defaults ([op #'#false]))
               (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
-              (~optional (~seq #:fit-ratio wratio hratio) #:defaults ([wratio #'1.0] [hratio #'1.0]))
-              (~optional (~seq #:position block-wpos block-hpos (~optional (~seq label-wpos label-hpos)))
-                         #:defaults ([block-wpos #'0.5] [block-hpos #'0.5] [label-wpos #'0.5] [label-hpos #'0.5]))) ...
-        shape label argl ...)
+              (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
+                         #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
+              (~optional (~seq #:alignment sx% sy% (~optional (~seq tx%:expr ty%:expr)))
+                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false])))
+        ...
+        #:create-with style [make-shape shape-argl ...]
+        block-argl ...)
      (syntax/loc stx
-       (create-geometry-group Geo name base-op op #:outline (geo-outline shape)
-                              (geo-fit-layers shape label wratio hratio block-wpos block-hpos label-wpos label-hpos (default-dia-block-margin))
-                              intersect type subtype
-                              argl ...))]))
+       (let ([shape (make-shape #:id (dia-block-shape-id name)
+                                #:stroke (dia-block-resolve-stroke-paint style)
+                                #:fill (dia-block-resolve-fill-paint style)
+                                shape-argl ...)])
+         (create-dia-block #:block make-block #:id name
+                           #:type type subtype #:intersect intersect
+                           #:fit-region hfit% vfit% lft% top%
+                           #:alignment sx% sy% tx% ty%
+                           #:with shape block-argl ...)))]
+    [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
+              (~optional (~seq #:id name) #:defaults ([name #'#false]))
+              (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
+              (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
+              (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
+                         #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
+              (~optional (~seq #:alignment sx% sy% (~optional (~seq tx%:expr ty%:expr)))
+                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false])))
+        ...
+        #:with shape maybe-caption extra-argl ...)
+     (syntax/loc stx
+       (create-geometry-group make-block name #false #false
+                              #:outline (geo-outline shape)
+                              #:desc (dia-block-desc-from-caption maybe-caption)
+                              (geo-dsfit-layers shape maybe-caption
+                                                lft% top% hfit% vfit%
+                                                sx% sy% (or tx% sx%) (or ty% sy%)
+                                                (default-dia-block-margin))
+                              (dia-block-tags type subtype)
+                              intersect extra-argl ...))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Block-Intersect (-> Float-Complex Float-Complex Float-Complex (GLayerof Geo) (Option Float-Complex)))
 
 (struct dia:block geo:group
-  ([intersect : Dia-Block-Intersect]
-   [type : Symbol]
-   [subtype : (Option Symbol)])
+  ([tags : (Pairof Symbol (Listof Symbol))]
+   [intersect : Dia-Block-Intersect])
   #:type-name Dia:Block
   #:transparent)
 
@@ -67,6 +90,11 @@
    [b : Nonnegative-Flonum])
   #:type-name Dia:Block:Ellipse
   #:transparent)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia:block-type : (-> Dia:Block Symbol)
+  (lambda [self]
+    (car (dia:block-tags self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-default-intersect : Dia-Block-Intersect
@@ -125,3 +153,16 @@
 
     (and (dia:block? g)
          ((dia:block-intersect g) A B node-pos nlayer))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-block-tags : (-> Symbol (Option Symbol) (Pairof Symbol (Listof Symbol)))
+  (lambda [type subtype]
+    (cond [(not subtype) (list type)]
+          [else (list type subtype)])))
+
+(define dia-block-desc-from-caption : (-> (Option Geo) (Option String))
+  (lambda [maybe-caption]
+    (and maybe-caption
+         (cond [(geo:string? maybe-caption) (geo:string-body maybe-caption)]
+               [(geo:group? maybe-caption) (geo:group-desc maybe-caption)]
+               [else #false]))))

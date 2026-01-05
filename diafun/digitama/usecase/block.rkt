@@ -15,7 +15,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define diauc-block-actor : Dia-Block-Create
-  (lambda [block-key brief style width height direction subtype]
+  (lambda [block-key caption style width height direction subtype]
     (define head-color (dia-block-resolve-fill-paint style))
     (define body-color (if (color? head-color) (rgb-transform-scale head-color 0.75) head-color))
     
@@ -29,20 +29,22 @@
                     height))
     
     (create-dia-block #:id block-key #:type 'Actor subtype
-                      (if (not brief) stickman (geo-vc-append stickman brief))
+                      #:with (cond [(not caption) stickman]
+                                   [else (geo-vc-append #:desc (dia-block-desc-from-caption caption)
+                                                        stickman caption)])
                       #false)))
 
 (define diauc-block-ucase : Dia-Block-Create
-  (lambda [block-key brief style width height direction subtype]
+  (lambda [block-key caption style width height direction subtype]
     (define pen (dia-block-resolve-stroke-paint style))
     (define thickness (pen-maybe-width pen))
     
     (create-dia-block #:block dia:block:ellipse
                       #:id block-key #:type 'UseCase subtype
                       #:intersect dia-ellipse-intersect
-                      #:fit-ratio 0.81 0.81
-                      (geo-ellipse #:id (dia-block-shape-id block-key)
-                                   #:stroke pen
-                                   #:fill (dia-block-resolve-fill-paint style)
-                                   width height)
-                      brief (+ (* width 0.5) thickness) (+ (* height 0.5) thickness))))
+                      #:fit-region 0.81 0.81
+                      #:with (geo-ellipse #:id (dia-block-shape-id block-key)
+                                          #:stroke pen
+                                          #:fill (dia-block-resolve-fill-paint style)
+                                          width height)
+                      caption (+ (* width 0.5) thickness) (+ (* height 0.5) thickness))))

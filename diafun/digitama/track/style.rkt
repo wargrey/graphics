@@ -58,10 +58,10 @@
   (let ([pens : (Weak-HashTable Any Pen) (make-weak-hash)])
     (lambda [self]
       (hash-ref! pens self
-                 (λ [] (let* ([style (car self)]
-                              [c (dia-track-style-color style)]
-                              [d+o (dia-track-style-dash style)])
-                         (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
+                 (λ [] (let*-values ([(style) (car self)]
+                                     [(c) (dia-track-style-color style)]
+                                     [(d+o) (dia-track-style-dash style)]
+                                     [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
                          (desc-stroke #:color (and (not (void? c)) c) #:opacity (dia-track-resolve-opacity self)
                                       #:width (dia-track-style-width style)
                                       #:dash dash #:offset offset

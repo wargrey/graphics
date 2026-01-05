@@ -5,7 +5,7 @@
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/paint)
-(require geofun/digitama/markup)
+(require geofun/digitama/richtext/self)
 
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/dot)
@@ -27,7 +27,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define lines
   (lambda [#:id [id : (Option Symbol) #false]
-           #:label [label : (U False DC-Markup-Text Plot:Mark) #false]
+           #:label [label : (U False Geo-Rich-Text Plot:Mark) #false]
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]

@@ -206,16 +206,18 @@
     (gomamon-move-right! goma hstep #false info2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-track-stick : (->* (Geo:Track)
-                               (Geo-Track-Anchor->Sticker
-                                #:id (Option Symbol) #:base-operator (Option Geo-Pin-Operator) #:operator (Option Geo-Pin-Operator)
-                                #:trusted-anchors (Option Geo-Trusted-Anchors) #:truncate? Boolean #:offset Float-Complex)
-                               (U Geo:Group Geo:Track))
-  (lambda [#:trusted-anchors [trusted-anchors #false] #:truncate? [truncate? #true] #:offset [offset 0.0+0.0i]
-           #:id [id #false] #:base-operator [base-op #false] #:operator [sibs-op #false]
-           self [anchor->sticker default-track-anchor->sticker]]
+(define geo-track-stick
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:desc [desc : (Option String) #false]
+           #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
+           #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
+           #:trusted-anchors [trusted-anchors : (Option Geo-Trusted-Anchors) #false]
+           #:truncate? [truncate? : Boolean #true]
+           #:offset [offset : Float-Complex 0.0+0.0i]
+           [self : Geo:Track]
+           [anchor->sticker : Geo-Track-Anchor->Sticker default-track-anchor->sticker]] : (U Geo:Group Geo:Track)
     (geo:track-stick self anchor->sticker trusted-anchors truncate?
-                     (or id (gensym 'geo:track:)) base-op sibs-op offset)))
+                     id desc base-op sibs-op offset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gtmult : (->* (Geo-Track-Multiplicity+Label Geo-Track-Multiplicity+Label) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)

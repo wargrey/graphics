@@ -12,7 +12,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-integer-ticks
-  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-text]
            #:desired-ticks [desired-ticks : Positive-Index (default-plot-desired-ticks)]
            #:base [base : Positive-Byte 10]] : Plot-Tick-Engine
     (unsafe-plot-tick-engine
@@ -21,7 +21,7 @@
      format #false 0 1.0)))
 
 (define plot-real-ticks
-  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-text]
            #:desired-ticks [desired-ticks : Positive-Index (default-plot-desired-ticks)]
            #:steps [divisors : (Listof Positive-Index) (default-plot-real-tick-steps)]
            #:minor-count [minor-count : Index 1]
@@ -32,7 +32,7 @@
      format #false minor-count 1.0)))
 
 (define plot-real-ticks*
-  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-string]
+  (lambda [#:format [format : Plot-Tick-Format plot-tick->label-text]
            #:desired-ticks [desired-ticks : Positive-Index (default-plot-desired-ticks)]
            #:steps [divisors : (Listof Positive-Index) (default-plot-real-tick-steps)]
            #:minor-count [minor-count : Index 1]

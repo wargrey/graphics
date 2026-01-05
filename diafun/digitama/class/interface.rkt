@@ -35,12 +35,10 @@
 
 (define default-diacls-track-identify : Dia-Track-Identifier
   (lambda [source target labels extra-info]
-    (define hints : (Listof Bytes) (geo-path-label-flatten labels))
-
     (cond
       [(or (eq? source target) (not target)) ; for self associated classes
        (dia-track-style-construct source target labels (default-diacls-association-arrow-style-make) make-diacls-association-arrow-style)]
-      [(geo-path-double-angle-bracketed-label? hints)
+      [(geo-path-match-any-label? labels #px"^<<\\w+>>$")
        (dia-track-style-construct source target labels (default-diacls-dependency-arrow-style-make)  make-diacls-dependency-arrow-style)]
       [else ; dependency and association
        (case/eq (diacls-association-identify (geo-id source) (geo-id target) (filter symbol? extra-info))
@@ -76,6 +74,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-diacls-block-fallback-construct : Dia-Anchor->Block
-  (lambda [id brief style width height direction subtype]
-    (cond [(diacls-interface-style? (car style)) (diacls-block-interface id brief style width height direction subtype)]
-          [(diacls-class-style? (car style))     (diacls-block-class id brief style width height direction subtype)])))
+  (lambda [id caption style width height direction subtype]
+    (cond [(diacls-interface-style? (car style)) (diacls-block-interface id caption style width height direction subtype)]
+          [(diacls-class-style? (car style))     (diacls-block-class id caption style width height direction subtype)])))
