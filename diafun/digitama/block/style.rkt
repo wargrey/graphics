@@ -62,9 +62,7 @@
    [stroke-width : (Option Length+%)]
    [stroke-color : Maybe-Color]
    [stroke-dash : (Option Stroke-Dash+Offset)]
-   [fill-paint : Maybe-Fill-Paint]
-   [text-alignment : (Option Geo-Text-Alignment)]
-   [text-trim? : (U Void Boolean)])
+   [fill-paint : Maybe-Fill-Paint])
   #:transparent)
 
 (struct dia-block-backstop-style
@@ -74,9 +72,7 @@
    [font : Font]
    [font-paint : Fill-Paint]
    [stroke-paint : Option-Stroke-Paint]
-   [fill-paint : Option-Fill-Paint]
-   [text-alignment : Geo-Text-Alignment]
-   [text-trim? : Boolean])
+   [fill-paint : Option-Fill-Paint])
   #:type-name Dia-Block-Backstop-Style
   #:transparent)
 
@@ -92,11 +88,14 @@
     (dia-block-style-phantom-type (dia-block-style-spec-custom self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-block-text->caption : (->* (Geo-Rich-Text (Dia-Block-Style-Spec S))
-                                                    (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
-                                                    (Option Geo))
-  (lambda [desc style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
-    (define-values (alignment trim?) (dia-block-resolve-text-preference style))
+(define #:forall (S) dia-block-text->caption
+  (lambda [#:id [id : (Option Geo-Anchor-Name) #false]
+           #:color [alt-color : Option-Fill-Paint #false]
+           #:font [alt-font : Option-Font #false]
+           #:alignment [alignment : Geo-Text-Alignment 'center]
+           #:trim? [trim? : Boolean #true]
+           [desc : Geo-Rich-Text]
+           [style : (Dia-Block-Style-Spec S)]] : (Option Geo)
     (define font : Font (or alt-font (dia-block-resolve-font style)))
     (define paint : Option-Fill-Paint (or alt-color (dia-block-resolve-font-paint style)))
     
@@ -123,18 +122,6 @@
     (cond [(font? f) f]
           [(or f) (desc-font* (dia-block-backstop-style-font b) #:tweak f)]
           [else (dia-block-backstop-style-font b)])))
-
-(define #:forall (S) dia-block-resolve-text-preference : (-> (Dia-Block-Style-Spec S) (Values Geo-Text-Alignment Boolean))
-  (lambda [self]
-    (define s (dia-block-style-spec-custom self))
-    (define b (dia-block-style-spec-backstop self))
-    (define maybe-trim? (dia-block-style-text-trim? s))
-
-    (values (or (dia-block-style-text-alignment s)
-                (dia-block-backstop-style-text-alignment b))
-            (if (void? maybe-trim?)
-                (dia-block-backstop-style-text-trim? b)
-                maybe-trim?))))
 
 (define #:forall (S) dia-block-resolve-size : (->* ((Dia-Block-Style-Spec S))
                                                    (#:width Dia-Block-Option-Size #:height Dia-Block-Option-Size)

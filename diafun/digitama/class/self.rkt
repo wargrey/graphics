@@ -29,17 +29,17 @@
      [(cls-enumeration-style?) (cls-block-class id caption style width height direction stereotype)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-struct/parameter #:specialized (Cls-Track-Style) cls-track-factory : Cls-Track-Factory #:as dia-track-factory
-  ([identifier : (Dia-Track-Identifier Cls-Track-Style) default-cls-track-identify]
-   [annotator : (Option (Dia-Track-Annotator Cls-Track-Style)) #false]
-   [builder : (Option (Dia-Track-Builder Cls-Track-Style)) #false]
-   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-cls-track-backstop-style])
-  #:transparent)
-
 (define-struct/parameter #:specialized (Cls-Block-Style Cls-Block-Metadata) cls-block-factory : Cls-Block-Factory #:as dia-block-factory
   ([identifier : (Dia-Block-Identifier Cls-Block-Style Cls-Block-Metadata) default-cls-block-identify]
    [typesetter : (Option (Dia-Block-Typesetter Cls-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder Cls-Block-Style Cls-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder Cls-Block-Style Cls-Block-Metadata) default-cls-block-fallback-build]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-cls-block-backstop-style])
+  #:transparent)
+
+(define-struct/parameter #:specialized (Cls-Track-Style) cls-track-factory : Cls-Track-Factory #:as dia-track-factory
+  ([identifier : (Dia-Track-Identifier Cls-Track-Style) default-cls-track-identify]
+   [annotator : (Option (Dia-Track-Annotator Cls-Track-Style)) #false]
+   [builder : (Option (Dia-Track-Builder Cls-Track-Style)) #false]
+   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-cls-track-backstop-style])
   #:transparent)

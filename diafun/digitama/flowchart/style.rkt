@@ -44,9 +44,7 @@
    [font : Font dia-preset-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint dia-preset-block-stroke]
-   [fill-paint : Option-Fill-Paint 'GhostWhite]
-   [text-alignment : Geo-Text-Alignment 'center]
-   [text-trim? : Boolean #true]))
+   [fill-paint : Option-Fill-Paint 'GhostWhite]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://creately.com/guides/flowchart-symbols/
@@ -59,9 +57,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'ForestGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-phantom-struct flow-stop-style : Flow-Stop-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -72,9 +68,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkSlateGray]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Gainsboro]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
 
 ; On-Page-Connector -> Inspection
 (define-phantom-struct flow-inspection-style : Flow-Inspection-Style #:-> flow-block-style #:for dia-block-style
@@ -86,9 +80,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DeepSkyBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 ; Off-Page-Connector -> Reference
 (define-phantom-struct flow-reference-style : Flow-Reference-Style #:-> flow-block-style #:for dia-block-style
@@ -100,9 +92,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DeepSkyBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
 
 (define-phantom-struct flow-input-style : Flow-Input-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -113,9 +103,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'LightSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MintCream]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'MintCream]))
 
 (define-phantom-struct flow-output-style : Flow-Output-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -126,9 +114,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkOrchid]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-decision-style : Flow-Decision-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (~% 85)]
@@ -139,9 +125,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Crimson]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Predefined-Process -> Subroutine -> Prefab
 (define-phantom-struct flow-process-style : Flow-Process-Style #:-> flow-block-style #:for dia-block-style
@@ -153,9 +137,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'RoyalBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Manual-Operation -> Operation
 (define-phantom-struct flow-operation-style : Flow-Operation-Style #:-> flow-block-style #:for dia-block-style
@@ -167,9 +149,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Teal]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Initialization -> Preparation
 (define-phantom-struct flow-preparation-style : Flow-Preparation-Style #:-> flow-block-style #:for dia-block-style
@@ -181,9 +161,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Maroon]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-delay-style : Flow-Delay-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
@@ -194,9 +172,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Peru]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 ; Or -> Selection, when a decision produces exclusive multiple outcomes
 (define-phantom-struct flow-selection-style : Flow-Selection-Style #:-> flow-block-style #:for dia-block-style
@@ -208,9 +184,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'IndianRed]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'SeaShell]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'SeaShell]))
 
 (define-phantom-struct flow-junction-style : Flow-Junction-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
@@ -221,9 +195,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Orange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
 ; Normal dividing of a flow into multiple parallel ones
 (define-phantom-struct flow-extract-style : Flow-Extract-Style #:-> flow-block-style #:for dia-block-style
@@ -235,9 +207,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkOrange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MistyRose]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'MistyRose]))
 
 (define-phantom-struct flow-merge-style : Flow-Merge-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, since the shape should be an equilateral triangle
@@ -248,9 +218,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Orange]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
 
 (define-phantom-struct flow-collation-style : Flow-Collation-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
@@ -261,9 +229,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumTurquoise]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-sort-style : Flow-Sort-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
@@ -274,9 +240,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumTurquoise]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-storage-style : Flow-Storage-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (~% 61.8)]
@@ -287,9 +251,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Honeydew]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
 (define-phantom-struct flow-file-style : Flow-File-Style #:-> flow-storage-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (~% 61.8)]
@@ -300,9 +262,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Azure]
-   [text-alignment : (Option Geo-Text-Alignment) 'left]
-   [text-trim? : (U Void Boolean) #false]))
+   [fill-paint : Maybe-Fill-Paint 'Azure]))
 
 (define-phantom-struct flow-database-style : Flow-Database-Style #:-> flow-storage-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
@@ -313,9 +273,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'SeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MintCream]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'MintCream]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

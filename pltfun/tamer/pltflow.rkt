@@ -20,7 +20,7 @@
 
 (define hh-mutate.dia
   (plt-flow-assignment #:read-desc "读取" #:write-desc "写入"
-                       'x '|>>+ 1| (<span> null "x + " (<span> '([style . normal]) "1"))))
+                       'x '|+ 1| (<span> null "x + " (<span> '([style . normal]) "1"))))
 
 (define predicate.dia
   (plt-flow-join #:input-desc '("a" "b") #:downward? #false

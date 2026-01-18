@@ -41,9 +41,7 @@
    [font : Font dia-preset-header-font]
    [font-paint : Fill-Paint 'White]
    [stroke-paint : Option-Stroke-Paint #false]
-   [fill-paint : Option-Fill-Paint 'CadetBlue]
-   [text-alignment : Geo-Text-Alignment 'center]
-   [text-trim? : Boolean #false]))
+   [fill-paint : Option-Fill-Paint 'CadetBlue]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; NOTICE
@@ -58,9 +56,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct cls-interface-style : Cls-Interface-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -71,9 +67,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Goldenrod]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Goldenrod]))
 
 (define-phantom-struct cls-abstract-style : Cls-Abstract-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -84,9 +78,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
 (define-phantom-struct cls-enumeration-style : Cls-Enumeration-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -97,9 +89,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkSalmon]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'DarkSalmon]))
 
 (define-phantom-struct cls-type-style : Cls-Type-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -110,9 +100,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DodgerBlue]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'DodgerBlue]))
 
 (define-phantom-struct cls-lambda-style : Cls-Lambda-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -123,9 +111,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'RoyalBlue]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'RoyalBlue]))
 
 (define-phantom-struct cls-datum-style : Cls-Datum-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -136,9 +122,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Aquamarine]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Aquamarine]))
 
 (define-phantom-struct cls-structure-style : Cls-Structure-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -149,9 +133,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
 (define-phantom-struct cls-behavior-style : Cls-Behavior-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -162,9 +144,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
 (define-phantom-struct cls-unrecognized-style : Cls-Unrecognized-Style #:-> cls-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -175,9 +155,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

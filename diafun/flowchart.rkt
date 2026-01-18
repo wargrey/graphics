@@ -57,7 +57,7 @@
            #:track-factory [track-factory : Flow-Track-Factory (default-flow-track-factory)]
            #:block-factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:block-desc [block-desc : (Option Dia-Block-Describer) #false]
+           #:block-desc [block-desc : (Option Flow-Block-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [self : Geo:Track]] : Dia:FlowChart
@@ -74,12 +74,12 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
            #:start-name [home-name : (Option String) #false]
-           #:track-factory [track-factory : (Dia-Track-Factory TS)]
-           #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
-           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:block-desc [block-desc : (Option Dia-Block-Describer) #false]
+           #:block-desc [block-desc : (Option (Dia-Block-Describer BS BM)) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
+           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:track-factory [track-factory : (Dia-Track-Factory TS)]
+           #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            [self : Geo:Track]] : Dia:FlowChart
     (parameterize ([current-master-track self])
       (create-dia-track dia:flowchart id self
@@ -96,7 +96,25 @@
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
-           #:desc [desc : (Option Dia-Block-Describer) #false]
+           #:desc [desc : (Option Flow-Block-Describer) #false]
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
+    (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([current-master-track #false])
+      (dia-block-realize block-factory desc
+                         (cond [(symbol? caption) caption]
+                               [(keyword? caption) caption]
+                               [(string? caption) (string->symbol caption)]
+                               [else (string->symbol (format "~a" caption))])
+                         direction
+                         (real->double-flonum scale)
+                         (and opacity (real->double-flonum opacity))))))
+
+(define #:forall (S M) dia-flow-block*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:scale [scale : Nonnegative-Real 0.5]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           #:desc [desc : (Option (Dia-Block-Describer S M)) #false]
+           #:factory [block-factory : (Dia-Block-Factory S M)]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
     (parameterize ([current-master-track #false])

@@ -11,7 +11,7 @@
 
 (require "types.rkt")
 (require "../slot/style.rkt")
-(require "../shared.rkt")
+(require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-mtx-hole-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Hole-Style))) (make-parameter #false))
@@ -23,16 +23,16 @@
 
 (define-configuration mtx-backstop-style : Mtx-Backstop-Style #:as expr-slot-backstop-style
   #:format "default-mtx-~a"
-  ([font : Font default-expr-font]
+  ([font : Font expr-preset-expr-font]
    [font-paint : Fill-Paint 'Black]
-   [stroke-paint : Option-Stroke-Paint default-slot-stroke]
+   [stroke-paint : Option-Stroke-Paint expr-preset-slot-stroke]
    [fill-paint : Option-Fill-Paint #false]
    [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration mtx-row-header-style : Mtx-Row-Header-Style #:as expr-slot-style
   #:format "default-mtx-row-header-~a"
-  ([font : (Option Font) default-header-font]
+  ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -42,7 +42,7 @@
 
 (define-configuration mtx-col-header-style : Mtx-Col-Header-Style #:as expr-slot-style
   #:format "default-mtx-col-header-~a"
-  ([font : (Option Font) default-header-font]
+  ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -52,7 +52,7 @@
 
 (define-configuration mtx-corner-style : Mtx-Corner-Style #:as expr-slot-style
   #:format "default-mtx-corner-~a"
-  ([font : (Option Font) default-header-font]
+  ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -62,7 +62,7 @@
 
 (define-configuration mtx-hole-style : Mtx-Hole-Style #:as expr-slot-style
   #:format "default-mtx-hole-~a"
-  ([font : (Option Font) default-header-font]
+  ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]

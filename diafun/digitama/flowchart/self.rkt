@@ -45,12 +45,7 @@
      [(flow-sort-style?) (flow-block-sort id caption style width height direction subtype)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-struct/parameter #:specialized (Flow-Track-Style) flow-track-factory : Flow-Track-Factory #:as dia-track-factory
-  ([identifier : (Dia-Track-Identifier Flow-Track-Style) default-flow-track-identify]
-   [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
-   [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
-   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-flow-track-backstop-style])
-  #:transparent)
+(define-type Flow-Block-Describer (Dia-Block-Describer Flow-Block-Style Flow-Block-Metadata))
 
 (define-struct/parameter #:specialized (Flow-Block-Style Flow-Block-Metadata) flow-block-factory : Flow-Block-Factory #:as dia-block-factory
   ([identifier : (Dia-Block-Identifier Flow-Block-Style Flow-Block-Metadata) default-flow-block-identify]
@@ -58,4 +53,11 @@
    [builder : (Option (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata) default-flow-block-fallback-build]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-flow-block-backstop-style])
+  #:transparent)
+
+(define-struct/parameter #:specialized (Flow-Track-Style) flow-track-factory : Flow-Track-Factory #:as dia-track-factory
+  ([identifier : (Dia-Track-Identifier Flow-Track-Style) default-flow-track-identify]
+   [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
+   [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
+   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-flow-track-backstop-style])
   #:transparent)

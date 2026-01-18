@@ -10,7 +10,7 @@
 (require geofun/stroke)
 
 (require exprfun/digitama/slot/style)
-(require exprfun/digitama/shared)
+(require exprfun/digitama/presets)
 
 (require "variable.rkt")
 
@@ -57,7 +57,7 @@
 
 (define-configuration ram-location-backstop-style : RAM-Location-Backstop-Style #:as ram-block-backstop-style
   #:format "default-ram-location~a"
-  ([font : Font default-expr-font]
+  ([font : Font expr-preset-expr-font]
    [font-paint : Fill-Paint 'DimGrey]
    [stroke-paint : Option-Stroke-Paint (default-stroke)]
    [fill-paint : Option-Fill-Paint 'GhostWhite]

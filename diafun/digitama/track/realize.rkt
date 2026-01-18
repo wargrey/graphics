@@ -32,7 +32,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
                                                     (Dia-Track-Factory TS) (Option Dia-Free-Track-Factory)
-                                                    (Dia-Block-Factory BS BM) (Option Dia-Block-Describer)
+                                                    (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
                                                     Geo-Track-Infobase Nonnegative-Flonum (Option Nonnegative-Flonum)
                                                     (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
   (lambda [master track-factory free-factory block-factory block-desc infobase block-scale opacity]

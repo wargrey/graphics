@@ -13,7 +13,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Higher-Level API
-(define-type Dia-Block-Describer (U (Immutable-HashTable Geo-Anchor-Name Geo-Maybe-Rich-Text) (-> Geo-Anchor-Name String Geo-Maybe-Rich-Text)))
+(define-type (Dia-Block-Describer Style Metadata)
+  (U (Immutable-HashTable Geo-Anchor-Name Geo-Maybe-Rich-Text)
+     (-> Geo-Anchor-Name String (Dia-Block-Style-Spec Style) Metadata Geo-Maybe-Rich-Text)))
 
 (define-type (Dia-Block-Identifier Style Metadata) (-> Geo-Anchor-Name (Option (Dia-Block-Info Style Metadata))))
 (define-type (Dia-Block-Typesetter Style) (-> Symbol Geo-Rich-Text (Dia-Block-Style-Spec Style) (Option Geo)))

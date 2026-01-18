@@ -14,7 +14,7 @@
 (require geofun/digitama/dc/text)
 (require geofun/digitama/paint/self)
 
-(require exprfun/digitama/shared)
+(require exprfun/digitama/presets)
 
 (require "style.rkt")
 
@@ -214,7 +214,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plt-ram-table-label : (-> (U String Symbol) Geo:Text)
   (lambda [name]
-    (geo-text name default-header-font)))
+    (geo-text name expr-preset-header-font)))
 
 (define plt-ram-variable-layout : Plt-RAM-Variable-Layout
   (lambda [name addr datum shape]

@@ -29,12 +29,7 @@
      [(uc-actor-style?) (dia-actor-stickman id caption style width height direction 'Actor property)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-struct/parameter #:specialized (UC-Track-Style) uc-track-factory : UC-Track-Factory #:as dia-track-factory
-  ([identifier : (Dia-Track-Identifier UC-Track-Style) default-uc-track-identify]
-   [annotator : (Option (Dia-Track-Annotator UC-Track-Style)) #false]
-   [builder : (Option (Dia-Track-Builder UC-Track-Style)) #false]
-   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-uc-track-backstop-style])
-  #:transparent)
+(define-type UC-Block-Describer (Dia-Block-Describer UC-Block-Style UC-Block-Metadata))
 
 (define-struct/parameter #:specialized (UC-Block-Style UC-Block-Metadata) uc-block-factory : UC-Block-Factory #:as dia-block-factory
   ([identifier : (Dia-Block-Identifier UC-Block-Style UC-Block-Metadata) default-uc-block-identify]
@@ -42,4 +37,11 @@
    [builder : (Option (Dia-Block-Builder UC-Block-Style UC-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder UC-Block-Style UC-Block-Metadata) default-uc-block-fallback-build]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-uc-block-backstop-style])
+  #:transparent)
+
+(define-struct/parameter #:specialized (UC-Track-Style) uc-track-factory : UC-Track-Factory #:as dia-track-factory
+  ([identifier : (Dia-Track-Identifier UC-Track-Style) default-uc-track-identify]
+   [annotator : (Option (Dia-Track-Annotator UC-Track-Style)) #false]
+   [builder : (Option (Dia-Track-Builder UC-Track-Style)) #false]
+   [λbackstop-style : (-> Dia-Track-Backstop-Style) make-uc-track-backstop-style])
   #:transparent)

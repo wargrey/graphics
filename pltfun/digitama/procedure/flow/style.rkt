@@ -9,7 +9,6 @@
 (require geofun/paint)
 (require geofun/stroke)
 
-(require geofun/digitama/richtext/self)
 (require geofun/digitama/path/tip/self)
 (require geofun/digitama/path/tip/arrow)
 
@@ -43,6 +42,4 @@
    [font : Font dia-preset-header-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint plt-flow-preset-block-stroke]
-   [fill-paint : Option-Fill-Paint 'GhostWhite]
-   [text-alignment : Geo-Text-Alignment 'center]
-   [text-trim? : Boolean #true]))
+   [fill-paint : Option-Fill-Paint 'GhostWhite]))

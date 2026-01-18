@@ -54,15 +54,16 @@
      #:T-scale scale #:U-scale scale
      xstep-size ystep-size)))
 
-(define dia-register-home-name : (-> Geo-Anchor-Name (Option String) (Option Dia-Block-Describer) (Option Dia-Block-Describer))
+(define #:forall (S M) dia-register-home-name : (-> Geo-Anchor-Name (Option String) (Option (Dia-Block-Describer S M))
+                                                    (Option (Dia-Block-Describer S M)))
   (lambda [home name block-desc]
     (cond [(not name) block-desc]
           [(not block-desc) (make-immutable-hash (list (cons home name)))]
           [(hash? block-desc)
            (cond [(hash-has-key? block-desc home) block-desc]
                  [else (hash-set block-desc home name)])]
-          [else (λ [[anchor : Geo-Anchor-Name] [text : String]]
-                  (define maybe (block-desc anchor text))
+          [else (λ [[anchor : Geo-Anchor-Name] [text : String] [style : (Dia-Block-Style-Spec S)] [metadata : M]]
+                  (define maybe (block-desc anchor text style metadata))
                   (cond [(not (eq? home anchor)) maybe]
                         [(void? maybe) name]
                         [else maybe]))])))

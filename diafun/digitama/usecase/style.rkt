@@ -40,9 +40,7 @@
    [font : Font dia-preset-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint dia-preset-block-stroke]
-   [fill-paint : Option-Fill-Paint 'GhostWhite]
-   [text-alignment : Geo-Text-Alignment 'center]
-   [text-trim? : Boolean #true]))
+   [fill-paint : Option-Fill-Paint 'GhostWhite]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct uc-actor-style : UC-Actor-Style #:-> uc-block-style #:for dia-block-style
@@ -54,9 +52,7 @@
    [stroke-width : (Option Length+%) 1.0]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LawnGreen]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'LawnGreen]))
 
 (define-phantom-struct uc-case-style : UC-Case-Style #:-> uc-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
@@ -67,9 +63,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Azure]
-   [text-alignment : (Option Geo-Text-Alignment) #false]
-   [text-trim? : (U Void Boolean) (void)]))
+   [fill-paint : Maybe-Fill-Paint 'Azure]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

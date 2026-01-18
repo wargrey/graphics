@@ -97,7 +97,22 @@
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
-    (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([current-master-track #false])
+      (dia-block-realize block-factory #false
+                         (cond [(symbol? caption) caption]
+                               [(keyword? caption) caption]
+                               [(string? caption) (string->symbol caption)]
+                               [else (string->symbol (format "~a" caption))])
+                         direction
+                         (real->double-flonum scale)
+                         (and opacity (real->double-flonum opacity))))))
+
+(define #:forall (S M) dia-class-block*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:scale [scale : Nonnegative-Real 0.5]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           #:factory [block-factory : (Dia-Block-Factory S M)]
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (parameterize ([current-master-track #false])
       (dia-block-realize block-factory #false
                          (cond [(symbol? caption) caption]

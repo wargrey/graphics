@@ -9,6 +9,8 @@
 (require geofun/digitama/track/anchor)
 (require geofun/digitama/richtext/self)
 
+(require diafun/digitama/block/style)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define pltflow-delim : String (string #\rubout))
 (define pltflow-delim-format : String (string-append pltflow-delim "~a" pltflow-delim ":~a"))
@@ -44,7 +46,6 @@
            [else (plt-flow-output-desc (f v))])]
     [(v) #;|Yes, reuse the one for input| (plt-flow-input-desc v)]))
 
-
 (define plt-flow-start->anchor : (-> Any (U Symbol))
   (lambda [postfix]
     (gensym (format ">>~a" postfix))))
@@ -77,10 +78,16 @@
       
       ((inst procedure-rename F) f name))))
 
-(define plt-flow-block-describe : (-> Geo-Anchor-Name String (U String Void False))
-  (lambda [id text]
-    (cond [(zero? (string-length text)) #false]
-          [(eq? (string-ref text 0) (string-ref pltflow-delim 0))
-           (let ([ts (string-split text pltflow-delim)])
-             (when (pair? ts)
-               (car ts)))])))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S M) plt-flow-block-describe : (-> Geo-Anchor-Name String (Dia-Block-Style-Spec S) M Geo-Maybe-Rich-Text)
+  (lambda [id text style metadata]
+    (define caption : (U String False Void)
+      (cond [(zero? (string-length text)) #false]
+            [(eq? (string-ref text 0) (string-ref pltflow-delim 0))
+             (let ([ts (string-split text pltflow-delim)])
+               (when (pair? ts)
+                 (car ts)))]))
+
+    (cond [(not (eq? metadata 'File)) caption]
+          [(string? caption) (dia-block-text->caption caption style #:id id #:alignment 'left #:trim? #false)]
+          [else caption])))
