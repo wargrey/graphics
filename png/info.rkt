@@ -6,7 +6,7 @@
 (define deps '("base" "typed-racket-lib" "typed-racket-more"))
 (define build-deps '("scribble-lib" "racket-doc"))
 
-(define version "1.0")
+(define version "0.0.1")
 (define pkg-authors '(wargrey))
 (define test-omit-paths 'all)
 

@@ -5,5 +5,5 @@
 (define pkg-desc "Plotfun: Fun with functional plots")
 (define pkg-authors '(wargrey))
 
-(define version "1.0")
+(define version "0.5.0")
 (define test-omit-paths 'all)

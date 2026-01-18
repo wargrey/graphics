@@ -5,6 +5,6 @@
 (define pkg-desc "Bitmap: Fun with functional bitmap Pictures")
 (define pkg-authors '(wargrey))
 
-(define version "2.0")
+(define version "1.0.0")
 (define test-omit-paths 'all)
 

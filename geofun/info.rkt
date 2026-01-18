@@ -5,7 +5,7 @@
 (define pkg-desc "Geofun: Fun with functional geometrical shapes")
 (define pkg-authors '(wargrey))
 
-(define version "2.0")
+(define version "1.0.0")
 (define test-omit-paths 'all)
 
 (define wisemon-phony '("village/wisemon/phony"))
