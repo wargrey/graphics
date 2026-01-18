@@ -7,6 +7,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Color (U Symbol Real Keyword FlColor))
+(define-type Option-Color (Option Color))
+(define-type Maybe-Color (U Void Option-Color))
+
 (define-type Stroke-Dash-Datum (U (U 'solid 'dot 'dot-dash 'short-dash 'long-dash) (Vectorof Nonnegative-Flonum)))
 (define-type Stroke-Dash+Offset (U Stroke-Dash-Datum (Pairof Stroke-Dash-Datum (Option Real))))
 

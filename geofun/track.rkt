@@ -2,14 +2,14 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/track/self.rkt"))
-(provide (all-from-out "digitama/geometry/anchor.rkt"))
+(provide (all-from-out "digitama/track/anchor.rkt"))
 
 (provide Geo:Track Gomamon)
 (provide geo:track? gomamon?)
 (provide Geo-Track-Anchor->Sticker)
 (provide Geo-Sticker geo-sticker?)
 (provide make-sticker default-track-anchor->sticker)
-(provide current-master-track geo-track-close)
+(provide current-master-track)
 
 (provide
  (rename-out [gomamon-move-up-right! gomamon-move-right-up!]
@@ -23,10 +23,12 @@
              [gomamon-jump-left-up! gomamon-jump-up-left!])
 
  (rename-out [geo-track-close gomamon-close!]
+             [geo-track-zone gomamon-zone!]
+             [geo-track-lane gomamon-lane!]
              [make-sticker make-geo-sticker]))
 
 (require racket/math)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "digitama/self.rkt")
 (require "digitama/convert.rkt")
@@ -43,11 +45,11 @@
 (require "digitama/track/datum.rkt")
 (require "digitama/track/gomamon.rkt")
 (require "digitama/track/sticker.rkt")
+(require "digitama/track/anchor.rkt")
+(require "digitama/track/trail.rkt")
 
 (require "digitama/geometry/dot.rkt")
 (require "digitama/geometry/bbox.rkt")
-(require "digitama/geometry/trail.rkt")
-(require "digitama/geometry/anchor.rkt")
 (require "digitama/geometry/footprint.rkt")
 
 (require (for-syntax racket/base))
@@ -71,20 +73,21 @@
          self))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-gomamon : (->* (Real)
-                            (Real+% #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
-                                    #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                    #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+(define make-gomamon : (->* (Real-Length)
+                            (Length+% #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
+                                      #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
+                                      #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Gomamon)
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
-           xstepsize [ystepsize '(100.0 %)]]
+           xstepsize0 [ystepsize (~% 100.0)]]
+    (define xstepsize (~dimension xstepsize0))
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]
             [else (max (real->double-flonum xstepsize) 0.0)]))
     
-    (define ystep : Nonnegative-Flonum (~length ystepsize xstep))
+    (define ystep : Nonnegative-Flonum (~dimension ystepsize xstep))
     
     (define loc : Float-Complex (~point2d home))
     (define home-pos : Float-Complex (make-rectangular (* (real-part loc) xstep) (* (imag-part loc) ystep)))
@@ -230,11 +233,11 @@
                                        (geo:track:multiplicity mstart m-end t))
                                   extra)))
 
-(define gtlabel : (->* (Geo-Path-Label Geo-Path-Label) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
+(define gtlabel : (->* (Geo-Path-Label-Text Geo-Path-Label-Text) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
   (lambda [start end #:t [t (default-geo-track-label-base-position)] . extra]
     (geo-track-info/paired-labels t start end #false extra)))
 
-(define gtlabel* : (->* ((Listof Geo-Path-Label)) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
+(define gtlabel* : (->* ((Listof Geo-Path-Label-Text)) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
   (lambda [labels #:t [t (default-geo-track-label-base-position)] . extra]
     (geo-track-info/labels t labels #false extra)))
 

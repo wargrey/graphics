@@ -9,7 +9,7 @@
 
 (define label@digit
   (make-plot-axis-style #:label-placement 'digit
-                        #:tip (make-plot-axis-tip-style #:positive-margin '(8 %) #:negative-margin '(8 %))))
+                        #:tip (make-plot-axis-tip-style #:positive-margin (~% 8) #:negative-margin (~% 8))))
 
 (define label@miror
   (make-plot-axis-style #:label-placement 'mirror #:tick-placement 'negative

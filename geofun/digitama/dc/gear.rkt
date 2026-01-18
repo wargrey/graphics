@@ -2,8 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-(require digimon/constant)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -30,14 +29,15 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:pressure-angle [angle : Real (/ pi 9.0)]
-           #:root-radius [root-radius : Real+% '(81 %)]
-           #:inner-radius [inner-radius : Real+% '(61.8 %)]
+           #:root-radius [root-radius : Length+% (~% 81)]
+           #:inner-radius [inner-radius : Length+% (~% 61.8)]
            #:reference-ratio [ref-ratio : Nonnegative-Real 5/9]
-           [n : Integer] [tip-radius : Real] [rotation : Real 0.0]] : Geo:Gear
-    (define Rt : Nonnegative-Flonum (~length tip-radius))
-    (define Rr : Nonnegative-Flonum (~length root-radius Rt))
-    (define Ri : Nonnegative-Flonum (~length inner-radius Rt))
-    (define α : Flonum (real->double-flonum angle))
+           [n : Integer] [tip-radius : Real-Length]
+           [rotation : Real 0.0] [unit : Angle-Unit 'rad]] : Geo:Gear
+    (define Rt : Nonnegative-Flonum (~dimension tip-radius))
+    (define Rr : Nonnegative-Flonum (~dimension root-radius Rt))
+    (define Ri : Nonnegative-Flonum (~dimension inner-radius Rt))
+    (define α : Flonum (~rad angle unit))
     (define z : Index (if (index? n) n 0))
     (define d : Nonnegative-Flonum (* 2.0 Rt))
     

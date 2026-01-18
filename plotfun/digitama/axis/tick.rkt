@@ -2,15 +2,15 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 (require digimon/flonum)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (R) plot-axis-metrics
   : (case-> [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
-                (Option Real) Nonnegative-Flonum (Option Real+%)
+                (Option Real) Nonnegative-Flonum (Option Length+%)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum)]
-            [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real+%)
+            [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Length+%)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum)])
   (case-lambda
     [(tick-rng real-rng maybe-origin axis-length maybe-unit-length)
@@ -20,7 +20,7 @@
              [else #false]))
 
      (define unit-length : Nonnegative-Flonum
-       (cond [(and maybe-unit-length) (~length maybe-unit-length axis-length)]
+       (cond [(and maybe-unit-length) (~dimension maybe-unit-length axis-length)]
              [(pair? maybe-ticks) (plot-auto-unit-length axis-length maybe-ticks)]
              [else (* axis-length 0.1)]))
 
@@ -34,10 +34,10 @@
      ((inst plot-axis-metrics R) #false real-rng maybe-origin axis-length maybe-unit-length)]))
 
 (define #:forall (R C) plot-axis-metrics*
-  : (case-> [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Real+%) (-> Nonnegative-Flonum C)
+  : (case-> [-> (Option (Pairof (∩ R Real) (∩ R Real))) (Option Real) Nonnegative-Flonum (Option Length+%) (-> Nonnegative-Flonum C)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum C)]
             [-> (U (∩ R Real) (Pairof (∩ R Real) (∩ R Real)) False) (Option (Pairof (∩ R Real) (∩ R Real)))
-                (Option Real) Nonnegative-Flonum (Option Real+%) (-> Nonnegative-Flonum C)
+                (Option Real) Nonnegative-Flonum (Option Length+%) (-> Nonnegative-Flonum C)
                 (Values (Option (Pairof (U R Zero) (U R Zero))) Flonum Nonnegative-Flonum C)])
   (case-lambda
     [(real-rng maybe-origin axis-length maybe-unit-length unit-transform)

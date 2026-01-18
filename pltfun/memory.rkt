@@ -8,7 +8,7 @@
 (provide (all-from-out "digitama/ram/interface.rkt"))
 
 (require digimon/filesystem)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require racket/list)
 (require racket/place)
@@ -25,7 +25,7 @@
 (define-type Plt-Reversed-Variables C-Variables)
 (define-type Plt-RAM-Snapshots (Immutable-HashTable Symbol (Listof Plt:RAM)))
 (define-type Plt-RAM-Snapshot (->* (Plt-Reversed-Variables Symbol String)
-                                   (#:layout Plt-RAM-Variable-Layout #:width Real #:height Real+%)
+                                   (#:layout Plt-RAM-Variable-Layout #:width Real #:height Length+%)
                                    Plt:RAM))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,7 +42,7 @@
            #:raw-data-radix [rd-radix : Positive-Byte (default-ram-raw-data-radix)]
            #:layout [layout : Plt-RAM-Variable-Layout plt-ram-variable-layout]
            #:width [loc-width : Real 80.0]
-           #:height [loc-height : Real+% 36.0]
+           #:height [loc-height : Length+% 36.0]
            [variables : Plt-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : Plt:RAM
     (define-values (cwidth cheight) (~extent loc-width loc-height))
     (define backstop (make-ram-location-backstop-style))
@@ -102,8 +102,8 @@
            #:lookbehind-size [behind : Index (default-ram-lookbehind-size)]
            #:body-limit [limit : Index (default-ram-body-limit)]
            #:layout [layout : Plt-RAM-Variable-Layout plt-ram-variable-layout]
-           #:width [loc-width : Real 80.0]
-           #:height [loc-height : Real+% 36.0]
+           #:width [loc-width : Real-Length 80.0]
+           #:height [loc-height : Length+% 36.0]
            [crkt : Module-Path] [take-snapshot : Plt-RAM-Snapshot plt-ram-snapshot]] : Plt-RAM-Snapshots
     (define-values (cwidth cheight) (~extent loc-width loc-height))
     (define modpath : Module-Path
@@ -139,7 +139,7 @@
 (define plt-ram-snapshots->table
   (lambda [#:id [id : (Option Symbol) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
+           #:margin [margin : (Option Geo-Insets-Datum) #false] #:padding [padding : (Option Geo-Insets-Datum) #false]
            #:segments [specific-segments : (Listof Symbol) null] #:reverse-address? [reverse? : Boolean (default-ram-reverse-address?)]
            #:make-row-label [make-row-label : (-> Symbol Geo) plt-ram-table-label] #:hide-segment-names? [no-col-name? : Boolean #false]
            #:make-column-label [make-col-label : (-> String Geo) plt-ram-table-label] #:hide-states? [no-row-name? : Boolean #false]

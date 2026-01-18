@@ -27,10 +27,11 @@
                      [geo-??-superimpose geo-xx-superimpose] [geo-??-superimpose* geo-xx-superimpose*]))
 
 (require digimon/digitama/unsafe/release/ops)
+(require digimon/measure)
 
 (require "digitama/self.rkt")
 (require "digitama/composite.rkt")
-(require "digitama/geometry/spacing.rkt")
+(require "digitama/geometry/insets.rkt")
 
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/void.rkt")
@@ -50,62 +51,62 @@
 
 (define-combiner "geo-~a-append*" #:-> Geo
   #:with [geobjs #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
-                 #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false]]
+                 #:gapsize [delta : Real-Length 0.0] #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false]]
   #:empty the-void-geo
-  #:short-path #:for alignment base sibling #:if (zero? delta)
+  #:short-path #:for alignment base sibling #:if (~zero? delta)
   ([(vl) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 0.0 1.0 0.0 0.0))]
    [(vc) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 0.5 1.0 0.5 0.0))]
    [(vr) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 1.0 1.0 1.0 0.0))]
-   [(v?) (make-geo:group id base-op sibs-op desc (geo-append-layers 'v? base (cdr geobjs) (real->double-flonum delta)))]
+   [(v?) (make-geo:group id base-op sibs-op desc (geo-append-layers 'v? base (cdr geobjs) (~distance delta)))]
    [(ht) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 1.0 0.0 0.0 0.0))]
    [(hc) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 1.0 0.5 0.0 0.5))]
    [(hb) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 1.0 1.0 0.0 1.0))]
-   [(h?) (make-geo:group id base-op sibs-op desc (geo-append-layers 'h? base (cdr geobjs) (real->double-flonum delta)))])
-  #:do (make-geo:group id base-op sibs-op desc (geo-append-layers alignment base (cdr geobjs) (real->double-flonum delta))))
+   [(h?) (make-geo:group id base-op sibs-op desc (geo-append-layers 'h? base (cdr geobjs) (~distance delta)))])
+  #:do (make-geo:group id base-op sibs-op desc (geo-append-layers alignment base (cdr geobjs) (~distance delta))))
 
-(define (geo-vl-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-vl-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-vl-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-vc-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-vc-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-vc-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-vr-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-vr-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-vr-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-v?-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-v?-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-v?-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-ht-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-ht-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-ht-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-hc-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-hc-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-hc-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-hb-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-hb-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-hb-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
-(define (geo-h?-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real 0.0]
+(define (geo-h?-append #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false] #:gapsize [delta : Real-Length 0.0]
                        #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                        . [siblings : Geo *]) : Geo
   (geo-h?-append* #:id id #:desc desc #:base-operator base-op #:operator sibs-op #:gapsize delta siblings))
 
 (define-combiner "geo-~a-superimpose*" #:-> Geo
   #:with [geobjs #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
-                 #:gapsize [delta : Real 0.0] #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false]]
+                 #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false]]
   #:empty the-void-geo
   #:short-path #:for anchor base sibling #:if #true
   ([(lt)  (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 0.0 0.0 0.0 0.0))]
@@ -223,8 +224,8 @@
            #:desc [desc : (Option String) #false]
            #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
            #:operator [operator : (Option Geo-Pin-Operator) #false]
-           #:margin [margin : Geo-Spacing 0.0]
-           #:padding [inset : Geo-Spacing 0.0]
+           #:margin [margin : Geo-Insets-Datum 0.0]
+           #:padding [inset : Geo-Insets-Datum 0.0]
            #:border [border : Maybe-Stroke-Paint (void)]
            #:background [bg-fill : Maybe-Fill-Paint (void)]
            [geo : Geo]] : Geo:Group
@@ -245,8 +246,8 @@
            #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:margin [margin : (Option Geo-Insets-Datum) #false]
+           #:padding [padding : (Option Geo-Insets-Datum) #false]
            [ncols : Integer]
            [siblings : (Listof Geo)]
            [col-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
@@ -276,13 +277,13 @@
            #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:margin [margin : (Option Geo-Insets-Datum) #false]
+           #:padding [padding : (Option Geo-Insets-Datum) #false]
            [siblings : (Listof (Listof (Option Geo)))]
            [col-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
            [row-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
-           [col-gaps : (Geo-Config-Argof Real) null]
-           [row-gaps : (Geo-Config-Argof Real) null]] : Geo:Table
+           [col-gaps : (Geo-Config-Argof Real-Length) null]
+           [row-gaps : (Geo-Config-Argof Real-Length) null]] : Geo:Table
     (define ncols : Index (apply max 0 ((inst map Index (Listof (Option Geo))) length siblings)))
     (define nrows : Index (length siblings))
     
@@ -304,13 +305,13 @@
            #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
            #:extra [defobjs : (Option Geo) #false]
            [siblings : (Listof Geo)]
-           [sub-gaps : Real 0]
-           [sibling-gaps : (Option Real) #false]
+           [sub-gaps : Real-Length 0]
+           [sibling-gaps : (Option Real-Length) #false]
            [aligns : (Geo-Config-Argof Geo-Pin-Anchor) null]] : Geo
     (cond [(null? siblings) the-void-geo]
           [(null? (cdr siblings)) (car siblings)]
           [else (let ([n (length siblings)]
-                      [layer-gap (real->double-flonum (or sibling-gaps sub-gaps))])
+                      [layer-gap (~distance (or sibling-gaps sub-gaps))])
                   (define-values (layers width height extra) (geo-list->pyramid (car siblings) (cdr siblings) defobjs))
                   (define anchors : (Vectorof Geo-Pin-Anchor) (geo-config-expand aligns n 'cc))
                   (define cell : Geo (geo-blank width height))

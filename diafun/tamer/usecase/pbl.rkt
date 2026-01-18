@@ -9,28 +9,21 @@
 (define ext : String "extend")
 (define title : String "JrPLT and PBL Practice")
 
-(define colorize-actor : (Dia-Block-Style-Make DiaUC-Actor-Style)
-  (lambda [id hint]
+(define pbl-colorize : UC-Block-Theme-Adjuster
+  (lambda [self id hint]
     (case id
-      [(#:Researcher #:Teacher) (make-diauc-actor-style #:fill-paint 'Yellow)]
-      [(#:Engineer) (make-diauc-actor-style #:fill-paint 'DeepSkyBlue)]
-      [else (make-diauc-actor-style)])))
-
-(define colorize-ucase : (Dia-Block-Style-Make DiaUC-UCase-Style)
-  (lambda [id hint]
-    (case id
-      [(arch dev api bdd) (make-diauc-ucase-style #:fill-paint 'DeepSkyBlue #:stroke-color 'transparent)]
-      [(fit dup example slide) (make-diauc-ucase-style #:fill-paint 'LightGreen #:stroke-color 'transparent)]
-      [(ct study trade-off) (make-diauc-ucase-style #:fill-paint 'LemonChiffon #:stroke-color 'transparent)]
-      [else (make-diauc-ucase-style)])))
+      [(#:Researcher #:Teacher) (remake-dia-block-style self #:fill-paint 'Yellow)]
+      [(#:Engineer) (remake-dia-block-style self #:fill-paint 'DeepSkyBlue)]
+      [(arch dev api bdd) (remake-dia-block-style self #:fill-paint 'DeepSkyBlue #:stroke-color 'transparent)]
+      [(fit dup example slide) (remake-dia-block-style self #:fill-paint 'LightGreen #:stroke-color 'transparent)]
+      [(ct study trade-off) (remake-dia-block-style self #:fill-paint 'LemonChiffon #:stroke-color 'transparent)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-use-case! role.dia #:start '#:Engineer
-  #:parameterize ([default-diauc-actor-style-make colorize-actor]
-                  [default-diauc-ucase-style-make colorize-ucase])
-  [#:background 'White
+(define-use-case-diagram! role.dia #:start '#:Engineer
+  #:parameterize ([default-uc-block-theme-adjuster pbl-colorize])
+  [#:frame 'White
    #:block-desc #hasheq((#:Engineer . "Software\nEngineer")
-                        (#:Researcher . "Curriculum\nDesigner")
+                        (#:Researcher . "Curriculum Designer")
                         (#:Teacher . "Instructor")
                         (#:Student . "Student")
                         (arch . "设计教学引擎")
@@ -67,13 +60,13 @@
   (radial-move 2 +15 'example inc)
   (radial-back 2.0 +75 'study ext)
   
-  (jump-to +8i '#:Teacher)
+  (jump-to -0.5+8i '#:Teacher)
   (radial-move 2 -30 'fit)
   (radial-move 3 0 'deploy)
   (move-to 3+9i 'report)
   
-  [#:tree (jump-to +4i '#:Researcher)
-   [=> (radial-move 1.5 25 'slide)
+  [#:tree (jump-to -0.5+4i '#:Researcher)
+   [=> (radial-move 2.0 25 'slide)
        (move-to 'study)
        (move-to 'example #false inc)]
    [=> (move-to '#:Teacher)]]

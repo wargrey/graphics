@@ -6,10 +6,10 @@
 (require "digitama/unsafe/adjust.rkt")
 
 (require geofun/digitama/resize)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/geometry/insets)
 (require geofun/digitama/unsafe/typed/c)
 
-(require digimon/metrics)
+(require digimon/measure)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bitmap-section : (case-> [Bitmap Complex Complex -> Bitmap]
@@ -52,10 +52,12 @@
 (define bitmap-inset : (case-> [Bitmap -> Bitmap]
                                [Bitmap Real -> Bitmap]
                                [Bitmap Real Real -> Bitmap]
+                               [Bitmap Real Real Real -> Bitmap]
                                [Bitmap Real Real Real Real -> Bitmap])
   (case-lambda
     [(bmp inset) (bitmap-inset bmp inset inset inset inset)]
     [(bmp vertical horizontal) (bitmap-inset bmp vertical horizontal vertical horizontal)]
+    [(self top horizontal bottom) (bitmap-inset self top horizontal bottom horizontal)]
     [(bmp top right bottom left)
      (let*-values ([(flwidth flheight density) (bitmap-intrinsic-flsize+density bmp)]
                    [(flleft flright) (values (* (real->double-flonum left) density) (* (real->double-flonum right) density))]
@@ -79,26 +81,27 @@
                            [ct 0.5 0.0] [cc 0.5 0.5] [cb 0.5 1.0]
                            [rt 1.0 0.0] [rc 1.0 0.5] [rb 1.0 1.0]))
 
-(define bitmap-rotate : (->* (Bitmap Real) (Boolean) Bitmap)
-  (lambda [bmp theta [radian? #true]]
-    (define rad (~radian theta radian?))
-    
-    (cond [(= rad 0.0) bmp]
-          [else (bitmap_rotate (bitmap-surface bmp) rad (bitmap-density bmp))])))
+(define bitmap-rotate : (case-> [Bitmap Real -> Bitmap]
+                                [Bitmap Real Angle-Unit -> Bitmap])
+  (case-lambda
+    [(bmp theta)
+     (cond [(= theta 0.0) bmp]
+           [else (bitmap_rotate (bitmap-surface bmp) (real->double-flonum theta) (bitmap-density bmp))])]
+    [(bmp theta unit) (bitmap-rotate bmp (~rad theta unit))]))
+
+(define bitmap-skew : (case-> [Bitmap Real Real -> Bitmap]
+                              [Bitmap Real Real Angle-Unit -> Bitmap])
+  (case-lambda
+    [(bmp skx sky) (bitmap-shear bmp (tan skx) (tan sky))]
+    [(bmp skx sky unit) (bitmap-shear bmp (~rad skx unit) (~rad sky unit))]))
 
 (define bitmap-shear : (-> Bitmap Real Real Bitmap)
-  (lambda [bmp shx shy [radian? #true]]
+  (lambda [bmp shx shy]
     (cond [(and (zero? shx) (zero? shy)) bmp]
           [else (bitmap_shear (bitmap-surface bmp)
                               (real->double-flonum shx)
                               (real->double-flonum shy)
                               (bitmap-density bmp))])))
-
-(define bitmap-skew : (->* (Bitmap Real Real) (Boolean) Bitmap)
-  (lambda [bmp skx sky [radian? #true]]
-    (bitmap-shear bmp
-                  (tan (~radian skx radian?))
-                  (tan (~radian sky radian?)))))
 
 (define bitmap-scale : (->* (Bitmap Real) (Real) Bitmap)
   (case-lambda
@@ -128,12 +131,12 @@
 (define bitmap-try-dsfit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
                                    [Bitmap Real Real -> (Option Bitmap)]
                                    [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                                   [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
+                                   [Bitmap Bitmap Nonnegative-Real Nonnegative-Real Geo-Insets-Datum -> (Option Bitmap)])
   (case-lambda
     [(self refer) (bitmap-dsfit self refer 1.0 1.0 0.0)]
     [(self refer wratio hratio) (bitmap-dsfit self refer wratio hratio 0.0)]
     [(self refer wratio hratio margin)
-     (let-values ([(mtop mright mbottom mleft) (geo-spacing-values margin)]
+     (let-values ([(mtop mright mbottom mleft) (geo-inset-values margin)]
                   [(flwidth flheight) (bitmap-flsize refer)])
        (bitmap-dsfit self
                    (- (* flwidth  (real->double-flonum wratio)) mright mleft)
@@ -152,7 +155,7 @@
 (define bitmap-dsfit : (case-> [Bitmap Bitmap -> (Option Bitmap)]
                                [Bitmap Real Real -> (Option Bitmap)]
                                [Bitmap Bitmap Nonnegative-Real Nonnegative-Real -> (Option Bitmap)]
-                               [Bitmap Bitmap Nonnegative-Real Nonnegative-Real (U Nonnegative-Real (Listof Nonnegative-Real)) -> (Option Bitmap)])
+                               [Bitmap Bitmap Nonnegative-Real Nonnegative-Real Geo-Insets-Datum -> (Option Bitmap)])
   (case-lambda
     [(self refer) (or (bitmap-try-dsfit self refer 1.0 1.0 0.0) self)]
     [(self refer wratio hratio) (or (bitmap-try-dsfit self refer wratio hratio 0.0) self)]

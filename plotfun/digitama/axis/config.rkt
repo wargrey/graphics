@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/font)
 (require geofun/color)
@@ -11,6 +11,7 @@
 (require geofun/digitama/layer/type)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/richtext/self)
+(require geofun/digitama/nice/pairable)
 
 (require "style.rkt")
 
@@ -77,12 +78,12 @@
 (define plot-axis-length-values : (case-> [Plot-Axis-Style Plot-Axis-Tip-Style Real
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)]
-                                          [Plot-Axis-Style Plot-Axis-Tip-Style Real+% Nonnegative-Flonum
+                                          [Plot-Axis-Style Plot-Axis-Tip-Style Length+% Nonnegative-Flonum
                                                            -> (Values Nonnegative-Flonum Nonnegative-Flonum
                                                                       Nonnegative-Flonum Nonnegative-Flonum)])
   (case-lambda
-    [(self tip length 100%) (plot-axis-length-values* self tip (~length length 100%))]
-    [(self tip length) (plot-axis-length-values* self tip (~length length))]))
+    [(self tip length 100%) (plot-axis-length-values* self tip (~dimension length 100%))]
+    [(self tip length) (plot-axis-length-values* self tip (~dimension length))]))
 
 (define plot-axis-height-values : (-> Plot-Axis-Style Plot-Axis-Tip-Style Nonnegative-Flonum Real
                                       (Values Nonnegative-Flonum Nonnegative-Flonum
@@ -99,8 +100,8 @@
     (define n-margin (plot-axis-tip-style-negative-margin self))
     (define p-margin (plot-axis-tip-style-positive-margin self))
     
-    (values (~length n-margin fllength)
-            (~length p-margin fllength))))
+    (values (~dimension n-margin fllength)
+            (~dimension p-margin fllength))))
 
 (define plot-axis-length-values* : (-> Plot-Axis-Style Plot-Axis-Tip-Style Nonnegative-Flonum
                                        (Values Nonnegative-Flonum Nonnegative-Flonum
@@ -110,8 +111,8 @@
 
     (values fllength
             (max (- fllength neg-margin pos-margin
-                    (~length (plot-axis-style-tick-thickness self)
-                             (pen-width (plot-axis-style-pen self)))) 0.0)
+                    (~dimension (plot-axis-style-tick-thickness self)
+                                (pen-width (plot-axis-style-pen self)))) 0.0)
             neg-margin pos-margin)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -126,17 +127,14 @@
      (values x y)]))
 
 (define plot-cartesian-maybe-settings : (case-> [Complex -> (Values Real Real)]
-                                                [Complex+% -> (Values Real+% Real+%)]
+                                                [(Pairable Length+%) -> (Values Length+% Length+%)]
                                                 [(Option Complex) -> (Values (Option Real) (Option Real))]
-                                                [(Option Complex+%) -> (Values (Option Real+%) (Option Real+%))])
+                                                [(Option (Pairable Length+%)) -> (Values (Option Length+%) (Option Length+%))])
   (case-lambda
     [(config)
      (cond [(not config) (values #false #false)]
-           [(real? config) (values config config)]
            [(complex? config) (plot-cartesian-settings config)]
-           [else (let-values ([(x y) (plot-cartesian-settings (car config))]
-                              [(rto) (cadr config)])
-                   (values (list x rto) (list y rto)))])]))
+           [else (pairable-values config)])]))
 
 (define #:forall (T) plot-cartesian-value : (case-> [Complex Symbol -> Flonum]
                                                     [Complex Symbol (-> Real T) -> T]

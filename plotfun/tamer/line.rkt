@@ -46,14 +46,14 @@
 (define real-line
   (plot-real-line #:style (make-plot-axis-style #:label-placement 'axis)
                   #:range (cons 0 6)
-                  #:unit-length '(24 %)
+                  #:unit-length (~% 24)
                   #:label "R"
                   '(0 55/89 89/55 19/7 22/7 5)))
 
 (define seq-line
   (plot-integer-line #:mark-template succ-desc
                      #:mark-style (make-plot-mark-style #:pin-length 0.0)
-                     #:unit-length '(10 %)
+                     #:unit-length (~% 10)
                      #:exclude-zero? #false
                      #:label "n"
                      (list 0 1 2 3 4 5 6
@@ -61,8 +61,8 @@
 
 (define time-line
   (plot-integer-line #:range (cons 0 9)
-                     #:mark-template (plot-template '(220 %) pi/2 #:desc fib-desc #:pin? #false)
-                     #:unit-length '(10 %)
+                     #:mark-template (plot-template (~% 220) pi/2 #:desc fib-desc #:pin? #false)
+                     #:unit-length (~% 10)
                      #:label "n"
                      fib))
 

@@ -4,7 +4,7 @@
 
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/geometry/insets)
 
 (require geofun/digitama/dc/composite)
 
@@ -20,7 +20,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-expr:matrix : (-> (Listof (Listof (Option Geo))) (Option Symbol)
-                               Maybe-Stroke-Paint Maybe-Fill-Paint (Option Geo-Spacing) (Option Geo-Spacing)
+                               Maybe-Stroke-Paint Maybe-Fill-Paint (Option Geo-Insets-Datum) (Option Geo-Insets-Datum)
                                (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor)
                                (Geo-Config-Argof Real) (Geo-Config-Argof Real)
                                Expr:Matrix)

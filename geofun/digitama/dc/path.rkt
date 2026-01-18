@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/math)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../base.rkt")
 (require "../paint.rkt")
@@ -21,7 +21,9 @@
 (require "../layer/merge.rkt")
 (require "../geometry/dot.rkt")
 (require "../geometry/footprint.rkt")
+
 (require "../dc/composite.rkt")
+(require "../nice/pairable.rkt")
 (require "../unsafe/dc/edge.rkt")
 
 (require "../../color.rkt")
@@ -30,6 +32,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Path (U Geo:Path:Self Geo:Path))
+(define-type Geo-Option-Path (Option Geo-Path))
+(define-type Geo-Maybe-Path (U Void Geo-Option-Path))
 
 (struct geo:path:self geo
   ([footprints : Geo-Path-Clean-Prints+]
@@ -105,15 +109,16 @@
            #:tick-index [tick-idx : (Option Integer) #false]
            #:skip-tick0? [skip-tick0? : Boolean #true]
            #:bezier-samples [samples : Index (default-bezier-samples)]
-           #:scale [scale : Point2D 1.0]
+           #:scale [scale : Pairable-Real 1.0]
            #:offset [offset : Float-Complex 0.0+0.0i]
            #:labels [labels : (U Geo:Path:Label (Listof Geo:Path:Label) False) #false]
            [segments : (Listof PolyCurve2D)] [tick-step : Real 0] [tick-rng : (U Real (Pairof Real Real)) 0]] : (U Geo:Path:Self Geo:Path)
+    (define-values (sx sy) (2d-scale-values scale))
     (define me : Geo:Path:Self
       (geo-path* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
                  #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
                  #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
-                 (let-values ([(curves lx ty rx by) (~polycurves segments offset scale)])
+                 (let-values ([(curves lx ty rx by) (~polycurves segments offset sx sy)])
                    (gpp-cleanse curves #:bezier-samples samples))))
 
     (define labelled-me : Geo-Path
@@ -143,7 +148,7 @@
                           [op : (Option Symbol) 'source])
                (if (pair? labels)
                    (let* ([label (car labels)]
-                          [V (gpp-directional-vector footprints (geo:path:label-idx label) (geo:path:label-time label))])
+                          [V (gpp-directional-vector footprints (geo:path:label-idx label) (geo:path:label-position label))])
                      (if (and V)
                          (let-values ([(layer distance) (geo-path-label-layer+distance label (- (car V) O) (cdr V))])
                            (attach (cdr labels) (cons layer layers) (if (zero? distance) op #false)))
@@ -168,7 +173,7 @@
           [(and (positive? step) (positive? length))
            (let*-values ([(self) (geo-path-ungroup master)]
                          [(footprints) (geo:path:self-footprints self)]
-                         [(fltick-length) (~length length)]
+                         [(fltick-length) (~dimension length)]
                          [(O) (geo-path-self-pin-position master)]
                          [(tmin0 tmax0) (if (pair? rng) (values (car rng) (cdr rng)) (values rng (- 1 rng)))]
                          [(tmin tmax) (values (max tmin0 0) (min tmax0 1))]

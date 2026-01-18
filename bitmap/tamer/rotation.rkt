@@ -10,6 +10,6 @@
 
 (for/list : (Listof Bitmap) ([deg (in-range 0 360 15)])
   (bitmap-frame (bitmap-cc-superimpose
-                 (bitmap-rt-superimpose (bitmap-rotate plane deg #false)
+                 (bitmap-rt-superimpose (bitmap-rotate plane deg 'deg)
                                         (geo-freeze (geo-text deg)))
                  dot)))

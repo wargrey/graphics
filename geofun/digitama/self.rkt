@@ -66,7 +66,8 @@
       [(self ratio) (let ([% (real->double-flonum ratio)]) (flsize self % %))]
       [(self) (geo-intrinsic-size self)])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; used in kernel only
 (struct geo-pad
   ([top : Nonnegative-Flonum]
    [right : Nonnegative-Flonum]

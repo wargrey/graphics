@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -46,8 +46,8 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:diameters [diameters : (Listof Real) null]
-           [radius : Real]] : Geo:Circle
-    (define r : Nonnegative-Flonum (~length radius))
+           [radius : Real-Length]] : Geo:Circle
+    (define r : Nonnegative-Flonum (~dimension radius))
     
     (create-geometry-object geo:circle
                             #:with [id (geo-draw-ellipse stroke pattern)
@@ -61,7 +61,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:diameters [diameters : (Listof Real) null]
-           [width : Real] [height : Real+% '(61.8 %)]] : (U Geo:Circle Geo:Ellipse)
+           [width : Real-Length] [height : Length+% (~% 61.8)]] : (U Geo:Circle Geo:Ellipse)
     (define-values (w h) (~extent width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-extent w h 0.0 0.0))
     (define rads : (Listof Flonum)
@@ -81,29 +81,29 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:ratio [ratio : Real 1.0]
-           [radius : Real] [start : Real] [end : Real]] : Geo:Sector
-    (define ar : Nonnegative-Flonum (~length radius))
+           [radius : Real-Length] [start : Real] [end : Real] [unit : Angle-Unit 'rad]] : Geo:Sector
+    (define ar : Nonnegative-Flonum (~dimension radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
     
     (create-geometry-object geo:sector
                             #:with [id (geo-draw-sector stroke pattern)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
                                        (geo-shape-outline stroke)]
-                            ar br (real->double-flonum start) (real->double-flonum end))))
+                            ar br (~rad start unit) (~rad end unit))))
 
 (define geo-arc
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:ratio [ratio : Real 1.0]
-           [radius : Real] [start : Real] [end : Real]] : Geo:Arc
-    (define ar : Nonnegative-Flonum (~length radius))
+           [radius : Real-Length] [start : Real] [end : Real] [unit : Angle-Unit 'rad]] : Geo:Arc
+    (define ar : Nonnegative-Flonum (~dimension radius))
     (define br : Nonnegative-Flonum (if (> ratio 0.0) (abs (/ ar (real->double-flonum ratio))) ar))
     
     (create-geometry-object geo:arc
                             #:with [id (geo-draw-arc stroke)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
                                        (geo-shape-outline stroke)]
-                            ar br (real->double-flonum start) (real->double-flonum end))))
+                            ar br (~rad start unit) (~rad end unit))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-ellipse : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

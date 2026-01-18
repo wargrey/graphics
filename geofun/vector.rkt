@@ -3,18 +3,18 @@
 (provide (all-defined-out))
 (provide 2D-Radius-Type 3D-Radius-Type)
 
-(require "digitama/base.rkt")
 (require "digitama/misc.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/paint/source.rkt")
 (require "digitama/geometry/radius.rkt")
 
-(require/provide "richtext.rkt" "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt" "adapter.rkt")
-(require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt" "fill.rkt")
+(require/provide digimon/measure)
 
-(require/provide "digitama/paint/self.rkt")
-(require/provide "digitama/self.rkt" "digitama/convert.rkt" "digitama/freeze.rkt")
-(require/provide "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
+(require/provide "color.rkt" "font.rkt" "paint.rkt" "stroke.rkt" "fill.rkt")
+(require/provide "richtext.rkt" "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt" "adapter.rkt")
+
+(require/provide "digitama/base.rkt" "digitama/self.rkt" "digitama/convert.rkt" "digitama/freeze.rkt")
+(require/provide "digitama/paint/self.rkt" "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save

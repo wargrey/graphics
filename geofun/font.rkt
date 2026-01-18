@@ -4,8 +4,10 @@
 (provide Font-Weight Font-Style Font-Stretch Font-Variant Font-Unit)
 (provide list-font-families list-font-faces)
 (provide list-monospace-font-families list-monospace-font-faces)
+(provide (rename-out [Font-Style Font-Style-Datum]))
 
-(require racket/math)
+(require digimon/struct)
+(require digimon/measure)
 
 (require "digitama/font.rkt")
 (require "digitama/unsafe/font.rkt")
@@ -13,6 +15,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Option-Font (Option Font))
+(define-type Font-Family-Datum (U String Symbol (Listof (U String Symbol))))
+(define-type Font-Size-Datum (U Symbol Length+%))
+(define-type Font-Weight-Datum (U Font-Weight Integer))
 
 (struct font
   ([face : String]
@@ -24,23 +29,23 @@
   #:transparent
   #:type-name Font)
 
-(struct font-feature
-  ([face : String]
-   [size : Nonnegative-Flonum]
-   [weight : Font-Weight]
-   [style : Font-Style]
-   [stretch : Font-Stretch]
-   [variant : Font-Variant])
-  #:transparent
-  #:type-name Font-Feature)
+(define-struct font:tweak : Font:Tweak
+  ([family : (U Font-Family-Datum False) #false]
+   [size : (U Font-Size-Datum False) #false]
+   [weight : (Option Font-Weight-Datum) #false]
+   [style : (Option Font-Style) #false])
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-font : (Parameterof Font) (make-parameter (font (font-family->face 'sans-serif) 12.0 'normal 'normal 'normal 'normal)))
 (define default-art-font : (Parameterof Font) (make-parameter (font (font-family->face 'fantasy) 24.0 'normal 'normal 'normal 'normal)))
 
+(default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (default-font) unit)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define desc-font
-  (lambda [#:family [face : (U String Symbol (Listof (U String Symbol)) False) null]
-           #:size [size : (U Symbol Real False) +nan.0]
+  (lambda [#:family [face : (U Font-Family-Datum False) #false]
+           #:size [size : (U Font-Size-Datum False) #false]
            #:weight [weight : (U Symbol Integer False) #false]
            #:style [style : (Option Symbol) #false]
            #:stretch [stretch : (Option Symbol) #false]
@@ -50,19 +55,46 @@
                 [(symbol? face) (or (font-family->face face) (font-face basefont))]
                 [(pair? face) (or (select-font-face face) (font-face basefont))]
                 [else (font-face basefont)])
-          (cond [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
-                [(or (not size) (nan? size)) (font-size basefont)]
-                [(negative? size) (* (- (real->double-flonum size)) (font-size basefont))]
-                [else (real->double-flonum size)])
-          (cond [(css-font-weight-option? weight) weight]
+          (cond [(not size) (font-size basefont)]
+                [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
+                [(not (~L? size)) (~dimension size (font-size basefont))]
+                [else (parameterize ([default-font-metrics (font-metrics basefont)])
+                        (~dimension size (font-size basefont)))])
+          (cond [(not weight) (font-weight basefont)]
+                [(css-font-weight-option? weight) weight]
                 [(eq? weight 'bolder) (memcadr css-font-weight-options (font-weight basefont))]
                 [(eq? weight 'lighter) (memcadr (reverse css-font-weight-options) (font-weight basefont))]
                 [(integer? weight) (integer->font-weight weight)]
                 [else (font-weight basefont)])
-          (if (css-font-style-option? style) style (font-style basefont))
-          (if (css-font-stretch-option? stretch) stretch (font-stretch basefont))
-          (if (css-font-variant-option? variant) variant (font-variant basefont)))))
+          (if (and style (css-font-style-option? style)) style (font-style basefont))
+          (if (and stretch (css-font-stretch-option? stretch)) stretch (font-stretch basefont))
+          (if (and variant (css-font-variant-option? variant)) variant (font-variant basefont)))))
 
+(define desc-font*
+  (lambda [#:tweak [tweak : (Option Font:Tweak) #false]
+           #:family [fc : (U Font-Family-Datum False) #false]
+           #:size [sz : (U Font-Size-Datum False) #false]
+           #:weight [wght : (U Symbol Integer False) #false]
+           #:style [styl : (Option Symbol) #false]
+           #:stretch [stretch : (Option Symbol) #false]
+           #:variant [variant : (Option Symbol) #false]
+           [basefont : Font (default-font)]] : Font
+    (define-values (face size weight style)
+      (if (or tweak)
+          (values (or fc (font:tweak-family tweak))
+                  (or sz (font:tweak-size tweak))
+                  (or wght (font:tweak-weight tweak))
+                  (or styl (font:tweak-style tweak)))
+          (values fc sz wght styl)))
+    
+    (if (or face size weight style stretch variant)
+        (desc-font #:family face #:size size
+                   #:weight weight #:style style
+                   #:stretch stretch #:variant variant
+                   basefont)
+        basefont)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define font-face->family : (-> String (Option Font-Family))
   (lambda [face]
     (let try-next ([families : (Listof Font-Family) css-font-generic-families])

@@ -12,7 +12,7 @@
          (cond [(string? mult) mult]
                [else (format "~a" mult)]))))
 
-(define geo-track-multiplicities-map : (-> Geo-Track-Multiplicity-Datum Geo-Track-Multiplicity-Datum (Option Geo-Path-Labels))
+(define geo-track-multiplicities-map : (-> Geo-Track-Multiplicity-Datum Geo-Track-Multiplicity-Datum (Option Geo-Path-Label-Datum))
   (lambda [source target]
     (define src (geo-track-multiplicity-map source))
     (define tgt (geo-track-multiplicity-map target))

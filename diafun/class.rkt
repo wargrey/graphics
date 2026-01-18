@@ -2,33 +2,36 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/track/base.rkt"))
-(provide (all-from-out "digitama/class/interface.rkt"))
+(provide (all-from-out "digitama/track/freestyle.rkt"))
 (provide (all-from-out "digitama/class/self.rkt"))
 (provide (all-from-out "digitama/class/style.rkt"))
+(provide (all-from-out "digitama/class/relationship.rkt"))
 
 (require geofun/digitama/dc/track)
-(require geofun/digitama/dc/composite)
-
-(require geofun/digitama/layer/type)
-(require geofun/digitama/layer/merge)
-(require geofun/digitama/layer/combine)
 
 (require "digitama/track/dc.rkt")
 (require "digitama/track/base.rkt")
-(require "digitama/track/sticker.rkt")
+(require "digitama/track/realize.rkt")
+(require "digitama/track/freestyle.rkt")
+(require "digitama/track/interface.rkt")
+
+(require "digitama/block/dc.rkt")
+(require "digitama/block/realize.rkt")
+(require "digitama/block/interface.rkt")
 
 (require "digitama/class/self.rkt")
 (require "digitama/class/style.rkt")
-(require "digitama/class/interface.rkt")
+(require "digitama/class/identifier.rkt")
+(require "digitama/class/relationship.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (make-simple-class! stx)
+(define-syntax (make-class-diagram! stx)
   (syntax-parse stx #:literals []
-    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #''(80 %)]))
-              (~optional (~seq #:grid-height gh) #:defaults ([gh #''(50 %)]))
+    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'(~% 80)]))
+              (~optional (~seq #:grid-height gh) #:defaults ([gh #'(~% 50)]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
               (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))
@@ -37,53 +40,70 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diacls-block-width)))]
+       (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-cls-block-width))]
               [dia (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
-           (dia-track-simple-class dia args ...))))]))
+           (dia-track-class dia args ...))))]))
 
-(define-syntax (define-simple-class! stx)
+(define-syntax (define-class-diagram! stx)
   (syntax-parse stx #:literals []
     [(_ name argv ...)
      (syntax/loc stx
-       (define name (make-simple-class! argv ...)))]))
+       (define name (make-class-diagram! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-track-simple-class
+(define dia-track-class
   (lambda [#:id [id : (Option Symbol) #false]
-           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
-           #:block-detect [block-detect : Dia-Block-Identifier default-diacls-block-identify]
-           #:track-detect [track-detect : Dia-Track-Identifier default-diacls-track-identify]
-           #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diacls-block-backstop-style)]
-           #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diacls-track-backstop-style)]
-           #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
-           #:relationship [class-type : (Option DiaCls-RelationShip-Identifier) (default-diacls-relationship-identifier)]
-           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
-           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
-           #:λfree-path [make-free-track : Dia-Free-Track->Path default-dia-free-track->path]
-           #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
-           #:ignore [ignore : (Listof Symbol) null]
+           #:frame [frame : Geo-Frame-Datum #false]
+           #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
+           #:track-factory [track-factory : Cls-Track-Factory (default-cls-track-factory)]
+           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
+           #:block-scale [scale : Nonnegative-Real 1.0]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
            [self : Geo:Track]] : Dia:Class
-    (parameterize ([default-diacls-relationship-identifier class-type]
+    (parameterize ([default-cls-relationship-identifier class-type]
                    [current-master-track self])
-      (define-values (blocks paths)
-        (dia-track-stick self block-detect make-block make-caption #false
-                         track-detect make-path make-label
-                         make-free-track make-free-label (default-diacls-free-track-style-make)
-                         default-diacls-block-fallback-construct make-diacls-free-track-style
-                         block-backstop track-backstop (geo:track-foot-infos self) ignore))
-      (define stickers : (Listof (GLayerof Geo)) (append blocks paths))
+      (create-dia-track dia:class id self
+                        #:frame frame
+                        (dia-track-realize self track-factory free-factory block-factory #false
+                                           (geo:track-foot-infos self)
+                                           (real->double-flonum scale)
+                                           (and opacity (real->double-flonum opacity)))))))
 
-      (create-geometry-group dia:class id #false #false
-                             #:border bdr #:background bg
-                             #:margin margin #:padding padding
-                             (if (pair? stickers)
-                                 (let ([maybe-group (geo-layers-try-extend stickers 0.0 0.0)])
-                                   (cond [(or maybe-group) maybe-group]
-                                         [else #;#:deadcode
-                                               (let-values ([(Width Height) (geo-flsize self)])
-                                                 (glayer-group Width Height stickers))]))
-                                 #;'#:deadcode (geo-own-layers self))
-                             self))))
+(define #:forall (TS BS BM) dia-track-class*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
+           #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
+           #:track-factory [track-factory : (Dia-Track-Factory TS)]
+           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
+           #:block-scale [scale : Nonnegative-Real 1.0]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           [self : Geo:Track]] : Dia:Class
+    (parameterize ([default-cls-relationship-identifier class-type]
+                   [current-master-track self])
+      (create-dia-track dia:class id self
+                        #:frame frame
+                        (dia-track-realize self track-factory free-factory block-factory #false
+                                           (geo:track-foot-infos self)
+                                           (real->double-flonum scale)
+                                           (and opacity (real->double-flonum opacity)))))))           
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-class-block
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:scale [scale : Nonnegative-Real 0.5]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           #:factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
+    (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([current-master-track #false])
+      (dia-block-realize block-factory #false
+                         (cond [(symbol? caption) caption]
+                               [(keyword? caption) caption]
+                               [(string? caption) (string->symbol caption)]
+                               [else (string->symbol (format "~a" caption))])
+                         direction
+                         (real->double-flonum scale)
+                         (and opacity (real->double-flonum opacity))))))

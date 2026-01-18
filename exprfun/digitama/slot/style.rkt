@@ -11,8 +11,8 @@
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
-(require geofun/digitama/geometry/anchor)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/track/anchor)
+(require geofun/digitama/geometry/insets)
 
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/realize)
@@ -46,7 +46,7 @@
   #:type-name Expr-Slot-Backstop-Style
   #:transparent)
 
-(define default-expr-slot-margin : (Parameterof Geo-Spacing) (make-parameter 4.0))
+(define default-expr-slot-margin : (Parameterof Geo-Insets-Datum) (make-parameter 4.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define expr-slot-text-term : (->* (Geo-Rich-Text Expr-Slot-Style-Layers)

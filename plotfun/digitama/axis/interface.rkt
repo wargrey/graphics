@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/font)
 (require geofun/digitama/base)

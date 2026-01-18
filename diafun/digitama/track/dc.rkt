@@ -2,18 +2,18 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/track)
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/composite)
 
-(require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/combine)
+(require geofun/digitama/nice/box)
 
-(require "../interface.rkt")
 (require "../block/style.rkt")
+(require "../block/interface.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -21,22 +21,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-dia-track stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo id 
-        (~alt (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
-              (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
-              (~optional (~seq #:border border) #:defaults ([border #'#false]))
-              (~optional (~seq #:background bgsource) #:defaults ([bgsource #'#false])))
-        ...
-        self tracks blocks argl ...)
+    [(_ Geo id self (~seq #:frame frame) realize:expr argl ...)
      (syntax/loc stx
-       (let ([stickers (append tracks blocks)])
+       (let*-values ([(blocks tracks) realize]
+                     [(stickers) (append tracks blocks)]
+                     [(border background margin padding) (geo-frame-values frame)])
          (create-geometry-group Geo id #false #false
-                                #:border border #:background bgsource
-                                #:margin margin #:padding inset
+                                #:border border #:background background
+                                #:margin margin #:padding padding
                                 (or (and (pair? stickers)
                                          (geo-layers-try-extend stickers 0.0 0.0))
                                     #;'#:deadcode (geo-own-layers self))
-                                self)))]))
+                                self argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia:track geo:group
@@ -45,20 +41,20 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-initial-track : (-> (Option Symbol) Real+% Real+% Real
+(define dia-initial-track : (-> (Option Symbol) Length+% Length+% Real
                                 Geo-Print-Datum Geo-Anchor-Name Nonnegative-Flonum
                                 Gomamon)
-  (lambda [id gw gh ts home anchor 100%]
-    (define grid-width  (~length gw 100%))
-    (define grid-height (~length gh grid-width))
-    (define scale (make-rectangular ts (* ts (/ grid-width grid-height))))
+  (lambda [id grid-width grid-height turn-scale home-position home-anchor 100%]
+    (define xstep-size (~dimension grid-width 100%))
+    (define ystep-size (~dimension grid-height xstep-size))
+    (define scale (make-rectangular turn-scale (* turn-scale (/ xstep-size ystep-size))))
     
     (make-gomamon
-     #:id id #:at home #:anchor anchor
+     #:id id #:at home-position #:anchor home-anchor
      #:T-scale scale #:U-scale scale
-     grid-width grid-height)))
+     xstep-size ystep-size)))
 
-(define dia-register-home-name : (-> Geo-Anchor-Name (Option String) (Option Dia-Block-Describe) (Option Dia-Block-Describe))
+(define dia-register-home-name : (-> Geo-Anchor-Name (Option String) (Option Dia-Block-Describer) (Option Dia-Block-Describer))
   (lambda [home name block-desc]
     (cond [(not name) block-desc]
           [(not block-desc) (make-immutable-hash (list (cons home name)))]

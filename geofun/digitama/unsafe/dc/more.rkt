@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/constant)
+(require digimon/measure)
 
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")

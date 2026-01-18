@@ -29,4 +29,4 @@
 (bitmap-bounding-box text)
 (bitmap-frame trimed-text)
 (bitmap-bounding-box trimed-text)
-(bitmap-skew text 20 10 #false)
+(bitmap-skew text 20 10 'deg)

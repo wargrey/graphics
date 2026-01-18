@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/color)
 (require geofun/font)
@@ -12,7 +12,7 @@
 (require geofun/digitama/path/tick)
 (require geofun/digitama/path/tip/self)
 
-(require "../singleton.rkt")
+(require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-Axis-Label-Placement (U 'axis 'digit 'mirror 'digit-mirror 'mirror-digit))
@@ -39,23 +39,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style
-  ([positive-shape : (Option Geo-Tip) default-axis-arrow]
+  ([positive-shape : (Option Geo-Tip) plot-preset-axis-arrow]
    [negative-shape : (Option Geo-Tip) #false]
-   [positive-margin : Real+% '(8 %)]
-   [negative-margin : Real+% 0.0]))
+   [positive-margin : Length+% (~% 8)]
+   [negative-margin : Length+% 0.0]))
 
 (define-struct/parameter plot-axis-style : Plot-Axis-Style
-  ([pen : Pen default-axis-pen]
-   [font : Font default-axis-font]
+  ([pen : Pen plot-preset-axis-pen]
+   [font : Font plot-preset-axis-font]
    [tick-thickness : Real+% 1.0]
-   [tick-length : Real+% '(300 %)]
+   [tick-length : Length+% (~% 300)]
    [tick-color : (Option Color) #false]
    [tick-placement : Geo-Tick-Placement 'positive]
-   [minor-tick-length : Real+% '(61.8 %)]
+   [minor-tick-length : Length+% (~% 61.8)]
    [digit-color : (Option Color) #false]
-   [digit-font : (Option Font) default-axis-digit-font]
+   [digit-font : (Option Font) plot-preset-axis-digit-font]
    [digit-position : Complex -1.2-0.618i]
-   [label-font : (Option Font) default-axis-label-font]
+   [label-font : (Option Font) plot-preset-axis-label-font]
    [label-color : (Option Color) #false]
    [label-placement : Plot-Axis-Label-Placement 'axis]
    [desc-font : (Option Font) #false]
@@ -68,5 +68,5 @@
                             #:positive-margin 0.0 #:negative-margin 0.0))
 
 (define plot-bi-tip
-  (make-plot-axis-tip-style #:negative-shape default-axis-arrow
-                            #:positive-margin '(10 %) #:negative-margin '(10 %)))
+  (make-plot-axis-tip-style #:negative-shape plot-preset-axis-arrow
+                            #:positive-margin (~% 10) #:negative-margin (~% 10)))

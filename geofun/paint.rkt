@@ -1,12 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out "digitama/base.rkt"))
+
 (provide Geo-Pin-Operator default-pin-operator)
 (provide Geo-Pattern-Extend Geo-Pattern-Filter)
 (provide Pen Stroke-Paint Option-Stroke-Paint Maybe-Stroke-Paint)
 (provide Brush Fill-Paint Option-Fill-Paint Maybe-Fill-Paint)
 
+(require "digitama/base.rkt")
 (require "digitama/color.rkt")
+
 (require "digitama/composite.rkt")
 (require "digitama/paint/self.rkt")
 (require "digitama/paint/pattern.rkt")

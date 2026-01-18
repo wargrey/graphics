@@ -8,7 +8,6 @@
 (require geofun/font)
 (require geofun/paint)
 (require geofun/stroke)
-(require geofun/digitama/base)
 
 (require exprfun/digitama/slot/style)
 (require exprfun/digitama/shared)

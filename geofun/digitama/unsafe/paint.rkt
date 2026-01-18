@@ -74,17 +74,22 @@
       [(cr stroke)
        (cairo-set-rgba cr (unsafe-struct*-ref stroke 0) (unsafe-struct*-ref stroke 7))
        (cairo_set_line_width cr (unsafe-struct*-ref stroke 1))
-       (cairo_set_line_cap cr (linecap->integer (unsafe-struct*-ref stroke 2)))
-       (cairo_set_line_join cr (linejoin->integer (unsafe-struct*-ref stroke 3)))
-       (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))
-       (let ([ml (unsafe-struct*-ref stroke 4)])
-         (unless (nan? ml) (cairo_set_miter_limit cr ml)))]
+       (cairo_set_line_cap cr (unsafe-struct*-ref stroke 2))
+       (cairo_set_line_join cr (unsafe-struct*-ref stroke 3))
+       (cairo_set_miter_limit cr (unsafe-struct*-ref stroke 4))
+       (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))]
       [(cr stroke alt-width color-scale round?)
        (cairo-set-rgba cr (unsafe-struct*-ref stroke 0) (unsafe-struct*-ref stroke 7) color-scale)
        (cairo_set_line_width cr (or alt-width (unsafe-struct*-ref stroke 1)))
-       (cairo_set_line_cap cr (if (not round?) (linecap->integer (unsafe-struct*-ref stroke 2)) CAIRO_LINE_CAP_ROUND))
-       (cairo_set_line_join cr (if (not round?) (linejoin->integer (unsafe-struct*-ref stroke 3)) CAIRO_LINE_JOIN_ROUND))
-       (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))]))
+       (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))
+       (if (or round?)
+           (let ()
+             (cairo_set_line_cap cr CAIRO_LINE_CAP_ROUND)
+             (cairo_set_line_join cr CAIRO_LINE_JOIN_ROUND))
+           (let ()
+             (cairo_set_line_cap cr (unsafe-struct*-ref stroke 2))
+             (cairo_set_line_join cr (unsafe-struct*-ref stroke 3))
+             (cairo_set_miter_limit cr (unsafe-struct*-ref stroke 4))))]))
 
   (define cairo-set-source-as-stroke
     (lambda [cr src width color-scale round?]

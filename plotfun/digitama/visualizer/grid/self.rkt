@@ -5,10 +5,10 @@
 (require digimon/struct)
 (require geofun/digitama/paint/self)
 
-(require "../../singleton.rkt")
+(require "../../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-grid-style : Plot-Grid-Style
-  ([major-pen : (Option Pen) default-major-grid-pen]
-   [minor-pen : (Option Pen) default-minor-grid-pen]
+  ([major-pen : (Option Pen) plot-preset-major-grid-pen]
+   [minor-pen : (Option Pen) plot-preset-minor-grid-pen]
    [minor-count :  (U False Index (-> Real Real Index)) 9]))

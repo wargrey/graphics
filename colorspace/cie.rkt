@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require math/matrix)
 (require math/flonum)

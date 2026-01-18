@@ -5,7 +5,6 @@
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
 
-(require "../../geometry/radius.rkt")
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -133,13 +132,6 @@
     
     (cairo_close_path cr)
     (cairo-render cr stroke background)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define regular-polygon-radius->circumsphere-radius : (-> Positive-Index Nonnegative-Flonum 2D-Radius-Type Nonnegative-Flonum)
-  (lambda [n R type]
-    ; r = Rcos(pi/n)
-    (cond [(eq? type 'vertex) R]
-          [else (max (/ R (cos (/ pi (exact->inexact n)))) 0.0)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-line-position : (-> Flonum Flonum Flonum)

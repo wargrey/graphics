@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/math)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -28,14 +28,14 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Real) null]
            #:hlines [hlines : (Listof Real) null]
-           [width : Real] [corner-radius : Real+% 0.0]] : Geo:Rectangle
-    (define w : Nonnegative-Flonum (~length width))
+           [width : Real-Length] [corner-radius : Length+% 0.0]] : Geo:Rectangle
+    (define w : Nonnegative-Flonum (~dimension width))
     
     (create-geometry-object geo:rect
                             #:with [id (geo-draw-rectangle stroke pattern)
                                        (geo-shape-extent w 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            w w (~length corner-radius w)
+                            w w (~dimension corner-radius w)
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))
 
@@ -45,14 +45,15 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Real) null]
            #:hlines [hlines : (Listof Real) null]
-           [width : Real] [height : Real+% '(61.8 %)] [corner-radius : Real+% 0.0]]
+           [width : Real-Length] [height : Length+% (~% 61.8)]
+           [corner-radius : Length+% 0.0]]
     (define-values (w h) (~extent width height))
     
     (create-geometry-object geo:rect
                             #:with [id (geo-draw-rectangle stroke pattern)
                                        (geo-shape-extent w h 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            w h (~length corner-radius (min w h))
+                            w h (~dimension corner-radius (min w h))
                             (map real->double-flonum vlines)
                             (map real->double-flonum hlines))))
 

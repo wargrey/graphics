@@ -2,11 +2,10 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 (require bitmap/digitama/self)
 (require bitmap/digitama/unsafe/image)
 
-(require "../base.rkt")
 (require "../self.rkt")
 (require "../convert.rkt")
 
@@ -35,7 +34,7 @@
 (define geo-rectangular
   (lambda [#:id [id : (Option Symbol) #false]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
-           [width : Real] [height : Real+%] [λargb : XYWH->ARGB]] : Geo:Bitmap
+           [width : Real-Length] [height : Length+%] [λargb : XYWH->ARGB]] : Geo:Bitmap
     (define-values (w h) (~extent width height))
     (create-geometry-object geo:bitmap
                             #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]

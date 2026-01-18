@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/number)
-(require digimon/metrics)
+(require digimon/measure)
 (require math/matrix)
 
 (require "cie.rkt")

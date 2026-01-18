@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "self.rkt")
 
@@ -13,8 +13,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct geo:tip:diamond : Geo:Tip:Diamond #:-> geo-tip
   #:head ([geo-tip cfg : Geo-Tip-Config geo-filled-cfg])
-  ([width : Real+% '(600 %)]
-   [height : Real+% '(400 %)]
+  ([width : Length+% (~% 600)]
+   [height : Length+% (~% 400)]
    [fill? : Boolean #true])
   #:transparent)
 
@@ -29,8 +29,8 @@
             [(eq? pos 'center) (values -0.5 +0.0)]
             [else (values 0.0 +0.5)]))
     
-    (define w : Nonnegative-Flonum (~length (geo:tip:diamond-width self) 100%))
-    (define h : Nonnegative-Flonum (~length (geo:tip:diamond-height self) 100%))
+    (define w : Nonnegative-Flonum (~dimension (geo:tip:diamond-width self) 100%))
+    (define h : Nonnegative-Flonum (~dimension (geo:tip:diamond-height self) 100%))
     (define endpoint-offset : Float-Complex (+ (make-polar (* w pos-wfrac) angle.rad)))
     (define origin : Float-Complex (+ (make-polar (* w pos-ofrac) angle.rad)))
     (define balanced : Float-Complex (make-rectangular (* w -0.5) (* h -0.5)))

@@ -21,12 +21,13 @@
   (syntax-parse stx #:datum-literals [:]
     [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
               (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
+              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
                          #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
               (~optional (~seq #:alignment sx% sy% (~optional (~seq tx%:expr ty%:expr)))
-                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false])))
+                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false]))
+              (~optional (~seq #:margin margin) #:defaults ([margin #'#false])))
         ...
         #:create-with style [make-shape shape-argl ...]
         block-argl ...)
@@ -36,20 +37,22 @@
                                 #:fill (dia-block-resolve-fill-paint style)
                                 shape-argl ...)])
          (create-dia-block #:block make-block #:id name
-                           #:type type subtype #:intersect intersect
+                           #:tag type extra-tags #:intersect intersect
                            #:fit-region hfit% vfit% lft% top%
                            #:alignment sx% sy% tx% ty%
-                           #:with shape block-argl ...)))]
+                           #:margin margin
+                           #:with style shape block-argl ...)))]
     [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
               (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:type type subtype) #:defaults ([type #''Customized] [subtype #'#false]))
+              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
                          #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
               (~optional (~seq #:alignment sx% sy% (~optional (~seq tx%:expr ty%:expr)))
-                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false])))
+                         #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false]))
+              (~optional (~seq #:margin margin) #:defaults ([margin #'#false])))
         ...
-        #:with shape maybe-caption extra-argl ...)
+        #:with style shape maybe-caption extra-argl ...)
      (syntax/loc stx
        (create-geometry-group make-block name #false #false
                               #:outline (geo-outline shape)
@@ -57,12 +60,29 @@
                               (geo-dsfit-layers shape maybe-caption
                                                 lft% top% hfit% vfit%
                                                 sx% sy% (or tx% sx%) (or ty% sy%)
-                                                (default-dia-block-margin))
-                              (dia-block-tags type subtype)
-                              intersect extra-argl ...))]))
+                                                (dia-block-resolve-padding style #:padding margin))
+                              (dia-block-tags type extra-tags)
+                              intersect extra-argl ...))]
+    [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
+              (~optional (~seq #:id name) #:defaults ([name #'#false]))
+              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
+              (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect])))
+        ...
+        #:with-group shape:expr extra-argl ...)
+     (syntax/loc stx
+       (let ([g shape])
+         (with-asserts ([g geo:group?])
+           (create-geometry-group make-block (or name (geo-id g)) #false #false
+                                  #:outline (geo-outline g)
+                                  #:desc (geo:group-desc g)
+                                  (geo:group-selves g)
+                                  (dia-block-tags type extra-tags)
+                                  intersect extra-argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Block-Intersect (-> Float-Complex Float-Complex Float-Complex (GLayerof Geo) (Option Float-Complex)))
+(define-type Dia-Option-Block (Option Dia:Block))
+(define-type Dia-Maybe-Block (U Void Dia-Option-Block))
 
 (struct dia:block geo:group
   ([tags : (Pairof Symbol (Listof Symbol))]
@@ -97,16 +117,19 @@
     (car (dia:block-tags self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-default-intersect : Dia-Block-Intersect
-  (lambda [A B node-pos nlayer]
-    (define-values (+ox +oy) (geo-layer-size nlayer 0.50))
-    (define-values (-ox -oy) (values (- +ox) (- +oy)))
+(define dia-apothem-intersect : (-> Nonnegative-Flonum Nonnegative-Flonum Dia-Block-Intersect)
+  (lambda [horizon% vertical%]
+    (λ [A B node-pos nlayer]
+      (define-values (+ox +oy) (geo-layer-size nlayer horizon% vertical%))
+      (define-values (-ox -oy) (values (- +ox) (- +oy)))
+      
+      (geo-line-polygon-intersect/first* #:translate node-pos A B
+                                         (list (make-rectangular -ox -oy)
+                                               (make-rectangular +ox -oy)
+                                               (make-rectangular +ox +oy)
+                                               (make-rectangular -ox +oy))))))
 
-    (geo-line-polygon-intersect/first* #:translate node-pos A B
-                                       (list (make-rectangular -ox -oy)
-                                             (make-rectangular +ox -oy)
-                                             (make-rectangular +ox +oy)
-                                             (make-rectangular -ox +oy)))))
+(define dia-default-intersect : Dia-Block-Intersect (dia-apothem-intersect 0.5 0.5))
 
 (define dia-polygon-intersect : Dia-Block-Intersect
   (lambda [A B node-pos nlayer]
@@ -155,10 +178,12 @@
          ((dia:block-intersect g) A B node-pos nlayer))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-tags : (-> Symbol (Option Symbol) (Pairof Symbol (Listof Symbol)))
-  (lambda [type subtype]
-    (cond [(not subtype) (list type)]
-          [else (list type subtype)])))
+(define dia-block-tags : (->* (Symbol) (Any) (Pairof Symbol (Listof Symbol)))
+  (lambda [type [extra-tags #false]]
+    (cond [(not extra-tags) (list type)]
+          [(symbol? extra-tags) (list type extra-tags)]
+          [(list? extra-tags) (cons type(filter symbol? extra-tags))]
+          [else (list type)])))
 
 (define dia-block-desc-from-caption : (-> (Option Geo) (Option String))
   (lambda [maybe-caption]

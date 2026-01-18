@@ -17,23 +17,23 @@
 (define Page1 : Symbol (string->symbol "&Page 1."))
 (define Page2 : Symbol (string->symbol "&Page 2"))
 
-(define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:border (default-border-paint) #:background 'Azure] #:-
+(define frame (make-geo-box #:border (default-border-paint) #:background 'Snow))
+
+(define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:frame frame] #:-
   ; Portion on Page 1
   (move-down 1 'Initialization!)
   (move-down 1 Create)
   (move-down 1 Wait)
   
   [#:tree (move-down 1 '-type+)
-   [=> (move-down 0.5)
-       (move-right 1 #false "Pressed Up/Down")
+   [=> (move-right 1 #false "Pressed Up/Down")
        (move-down 1 Select)
-       (L-step -1+i)]
+       (move-down 1)
+       (move-left 1 '=expr-)]
    
-   [=> (move-down 0.5)
-       (move-left 1.0 #false "Input Expression")
+   [=> (move-left 1.0 #false "Input Expression")
        (move-down 1 Read)
-       (L-step 1)
-       (move-down 0.5 '=expr-)
+       (L-step '=expr-)
        (move-down 1 Update)
        (move-down 1 'λEvaluate)
 

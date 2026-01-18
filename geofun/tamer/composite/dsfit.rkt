@@ -13,20 +13,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (geo-lc-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-lc-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage icon)
   
-  (geo-cc-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-cc-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage icon)
   
-  (geo-rc-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-rc-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage icon)
   
-  (geo-ct-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-ct-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage text)
   
-  (geo-cc-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-cc-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage text)
   
-  (geo-cb-stamp #:margin 4.0 #:hfit% hfit% #:vfit% 1.0
+  (geo-cb-stamp #:padding 4.0 #:hfit% hfit% #:vfit% 1.0
                 storage text))

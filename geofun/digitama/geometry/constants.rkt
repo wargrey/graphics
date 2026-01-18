@@ -1,9 +1,10 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out digimon/constant))
+(provide -pi/2 pi/2 3pi/2 2pi pi -2pi pi/4 3pi/4 2pi/5 4pi/5)
+(provide phi 1/phi -phi -1/phi)
 
-(require digimon/constant)
+(require digimon/measure)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define 2√3 : Nonnegative-Flonum (* 2.0 (sqrt 3.0)))

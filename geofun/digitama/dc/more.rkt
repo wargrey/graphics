@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -58,12 +58,12 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-stadium : (->* (Real Real+%)
+(define geo-stadium : (->* (Real-Length Length+%)
                            (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                            Geo:Stadium)
   (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define flength : Nonnegative-Flonum (~length length))
-    (define flradius : Nonnegative-Flonum (~length radius flength))
+    (define flength : Nonnegative-Flonum (~dimension length))
+    (define flradius : Nonnegative-Flonum (~dimension radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
     (create-geometry-object geo:stadium
@@ -72,12 +72,12 @@
                                        (geo-shape-outline stroke)]
                             flength flradius 'both)))
 
-(define geo-lstadium : (->* (Real Real+%)
+(define geo-lstadium : (->* (Real-Length Length+%)
                             (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Geo:Stadium)
   (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define flength : Nonnegative-Flonum (~length length))
-    (define flradius : Nonnegative-Flonum (~length radius flength))
+    (define flength : Nonnegative-Flonum (~dimension length))
+    (define flradius : Nonnegative-Flonum (~dimension radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
     (create-geometry-object geo:stadium
@@ -86,12 +86,12 @@
                                        (geo-shape-outline stroke)]
                             flength flradius 'left)))
 
-(define geo-rstadium : (->* (Real Real+%)
+(define geo-rstadium : (->* (Real-Length Length+%)
                             (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Geo:Stadium)
   (lambda [length radius #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
-    (define flength : Nonnegative-Flonum (~length length))
-    (define flradius : Nonnegative-Flonum (~length radius flength))
+    (define flength : Nonnegative-Flonum (~dimension length))
+    (define flradius : Nonnegative-Flonum (~dimension radius flength))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
     (create-geometry-object geo:stadium
@@ -100,12 +100,12 @@
                                        (geo-shape-outline stroke)]
                             flength flradius 'right)))
 
-(define geo-bullet : (->* (Real Real+%)
-                          (Real+% #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+(define geo-bullet : (->* (Real-Length Length+%)
+                          (Length+% #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                           Geo:Bullet)
-  (lambda [ogive radius [barrel '(38.4 %)] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+  (lambda [ogive radius [barrel (~% 38.4)] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (flogive flbarrel) (~extent ogive barrel))
-    (define flradius : Nonnegative-Flonum (~length radius (+ flogive flbarrel)))
+    (define flradius : Nonnegative-Flonum (~dimension radius (+ flogive flbarrel)))
     (define d : Nonnegative-Flonum (* 2.0 flradius))
     
     (create-geometry-object geo:bullet
@@ -115,16 +115,16 @@
                             flogive flbarrel flradius)))
 
 (define geo-sandglass : (->* (Real)
-                             (Real+% #:id (Option Symbol) #:neck-width Real+% #:neck-height Real+% #:tube-height Real+%
+                             (Length+% #:id (Option Symbol) #:neck-width Length+% #:neck-height Length+% #:tube-height Length+%
                                      #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                              Geo:Sandglass)
-  (lambda [#:neck-width [neck-width '(16.18 %)] #:neck-height [neck-height '(6.18 %)] #:tube-height [tube-height 0]
+  (lambda [#:neck-width [neck-width (~% 16.18)] #:neck-height [neck-height (~% 6.18)] #:tube-height [tube-height 0]
            #:stroke [stroke (void)] #:fill [pattern (void)] #:id [id #false]
-           width [height '(161.8 %)]]
+           width [height (~% 161.8)]]
     (define-values (flwidth flheight) (~extent width height))
-    (define neck-flwidth (~length neck-width flwidth))
-    (define neck-flheight (~length neck-height flheight))
-    (define tube-flheight (~length tube-height flheight))
+    (define neck-flwidth (~dimension neck-width flwidth))
+    (define neck-flheight (~dimension neck-height flheight))
+    (define tube-flheight (~dimension tube-height flheight))
     
     (create-geometry-object geo:sandglass
                             #:with [id (geo-draw-sandglass stroke pattern)
@@ -132,12 +132,12 @@
                                        (geo-shape-outline stroke)]
                             neck-flwidth neck-flheight tube-flheight)))
 
-(define geo-storage : (->* (Real Real+%)
-                           (Real+% #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+(define geo-storage : (->* (Real-Length Length+%)
+                           (Length+% #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                            Geo:Storage)
-  (lambda [width height [aradius '(38.4 %)] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
+  (lambda [width height [aradius (~% 38.4)] #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (flwidth flheight) (~extent width height))
-    (define fla : Nonnegative-Flonum (~length aradius (* flheight 0.5)))
+    (define fla : Nonnegative-Flonum (~dimension aradius (* flheight 0.5)))
     
     (create-geometry-object geo:storage
                             #:with [id (geo-draw-storage stroke pattern)
@@ -145,33 +145,33 @@
                                        (geo-shape-outline stroke)]
                             flwidth flheight fla)))
 
-(define geo-document : (->* (Real Real+%)
-                            (Real+% #:id (Option Symbol) #:extra-n Index #:gapsize Real+% #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+(define geo-document : (->* (Real-Length Length+%)
+                            (Length+% #:id (Option Symbol) #:extra-n Index #:gapsize Length+% #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Geo:Document)
-  (lambda [#:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize '(61.8 %)] #:stroke [stroke (void)] #:fill [pattern (void)]
-           width height [wave '(16.18 %)]]
+  (lambda [#:extra-n [extra-n 0] #:id [id #false] #:gapsize [gapsize (~% 61.8)] #:stroke [stroke (void)] #:fill [pattern (void)]
+           width height [wave (~% 16.18)]]
     (define-values (flwidth flheight) (~extent width height))
-    (define flwave : Nonnegative-Flonum (~length wave flheight))
+    (define flwave : Nonnegative-Flonum (~dimension wave flheight))
     
     (create-geometry-object geo:document
                             #:with [id (geo-draw-document stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            flwidth flheight flwave (~length gapsize flwave) extra-n)))
+                            flwidth flheight flwave (~dimension gapsize flwave) extra-n)))
 
-(define geo-database : (->* (Real Real+%)
-                            (Real+% #:id (Option Symbol) #:extra-n Index #:gapsize Real+% #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+(define geo-database : (->* (Real-Length Length+%)
+                            (Length+% #:id (Option Symbol) #:extra-n Index #:gapsize Length+% #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Geo:Database)
-  (lambda [#:extra-n [extra-n 2] #:id [id #false] #:gapsize [gapsize '(61.8 %)] #:stroke [stroke (void)] #:fill [pattern (void)]
-           width height [bradius '(16.18 %)]]
+  (lambda [#:extra-n [extra-n 2] #:id [id #false] #:gapsize [gapsize (~% 61.8)] #:stroke [stroke (void)] #:fill [pattern (void)]
+           width height [bradius (~% 16.18)]]
     (define-values (flwidth flheight) (~extent width height))
-    (define flb : Nonnegative-Flonum (~length bradius flheight))
+    (define flb : Nonnegative-Flonum (~dimension bradius flheight))
     
     (create-geometry-object geo:database
                             #:with [id (geo-draw-database stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            flwidth flheight flb (~length gapsize flb) extra-n)))
+                            flwidth flheight flb (~dimension gapsize flb) extra-n)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-stadium : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

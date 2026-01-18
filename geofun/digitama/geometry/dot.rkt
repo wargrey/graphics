@@ -19,13 +19,12 @@
     (define-values (x y) (point2d-real-values dt))
     (make-rectangular x y)))
 
-(define ~point2ds : (case-> [(Listof Point2D) Complex Point2D -> (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum)]
+(define ~point2ds : (case-> [(Listof Point2D) Complex Flonum Flonum -> (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum)]
                             [(Listof Point2D) Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Boolean Boolean Boolean Boolean
                                               -> (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum)])
   (case-lambda
-    [(raws offset scale)
-     (let-values ([(xoff yoff) (point2d-values offset)]
-                  [(fx fy) (point2d-scale-values scale)])
+    [(raws offset fx fy)
+     (let-values ([(xoff yoff) (point2d-values offset)])
        (~point2ds raws xoff yoff (abs fx) (abs fy) (< fx 0.0) (< fy 0.0) #false #false))]
     [(raws xoff yoff afx afy xflip? yflip? ignore-nan? delay-flipping?)
      (let normalize ([dots : (Listof Point2D) raws]
@@ -47,10 +46,10 @@
                       lx ty rx by)]
              [else (values (reverse stod) lx ty rx by)]))]))
 
-(define ~polycurves : (-> (Listof PolyCurve2D) Complex Point2D (Values (Listof (U Float-Complex (Listof Float-Complex))) Flonum Flonum Flonum Flonum))
-  (lambda [raws offset scale]
+(define ~polycurves : (-> (Listof PolyCurve2D) Complex Flonum Flonum
+                          (Values (Listof (U Float-Complex (Listof Float-Complex))) Flonum Flonum Flonum Flonum))
+  (lambda [raws offset fx fy]
     (define-values (xoff yoff) (point2d-values offset))
-    (define-values (fx fy) (point2d-scale-values scale))
     (define-values (afx afy) (values (abs fx) (abs fy)))
     (define-values (xflip? yflip?) (values (< fx 0.0) (< fy 0.0)))
     
@@ -98,14 +97,6 @@
     (cond [(complex? dt) (values (real-part dt) (imag-part dt))]
           [(list? dt) (values (car dt) (cadr dt))]
           [else (values (car dt) (cdr dt))])))
-
-(define point2d-scale-values : (-> Point2D (Values Flonum Flonum))
-  (lambda [st]
-    (define-values (sx0 sy0) (point2d-values st))
-    (define sx (if (= sx0 0.0) 1.0 sx0))
-    (define sy (if (= sy0 0.0)  sx sy0))
-
-    (values sx sy)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define point2d-flip : (-> Float-Complex Flonum Flonum Flonum Flonum Boolean Boolean Float-Complex)

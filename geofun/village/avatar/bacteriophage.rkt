@@ -2,8 +2,8 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
 (require racket/math)
+(require digimon/measure)
 
 (require geofun/vector)
 (require geofun/projection)
@@ -11,18 +11,29 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bacteriophage-logo
-  (lambda [#:sheath-length [sheath-length : Real+% `(,phi :)] #:λ-color [λ-color : Color 'Crimson] #:fibre-color [fibre-color : Color 'Teal]
-           #:fill-color [fill-color : Color 'MintCream] #:fill-alpha [fill-alpha : Real 1/phi]
-           #:border-color [border-color : Color 'DodgerBlue] #:edge-color [edge-color : Color 'DeepSkyBlue] #:edge-alpha [edge-alpha : Real 0.20]
-           #:head-color [head-fill : (Option Color) #false] #:head-alpha [head-alpha : (Option Real) #false]
-           #:tail-color [tail-fill : (Option Color) 'SeaShell] #:tail-alpha [tail-alpha : (Option Real) #false] #:tail.deg [tail.deg : Real +nan.0]
-           #:feet-fill-color [feet-fill : (Option Real) #false] #:feet-alpha [feet-alpha : (Option Real) #false]
-           #:left-foot-border-color [lfcolor : (Option Color) 'Blue] #:right-foot-border-color [rfcolor : (Option Color) 'Lime]
-           #:feet-rotation [foot-rotation : Real 0.0] #:id [id : (Option Symbol) 'bacteriophage]
+  (lambda [#:id [id : (Option Symbol) 'bacteriophage]
+           #:sheath-length [sheath-length : Length+% (~: phi)]
+           #:λ-color [λ-color : Color 'Crimson]
+           #:fibre-color [fibre-color : Color 'Teal]
+           #:fill-color [fill-color : Color 'MintCream]
+           #:fill-alpha [fill-alpha : Real 1/phi]
+           #:border-color [border-color : Color 'DodgerBlue]
+           #:edge-color [edge-color : Color 'DeepSkyBlue]
+           #:edge-alpha [edge-alpha : Real 0.20]
+           #:head-color [head-fill : (Option Color) #false]
+           #:head-alpha [head-alpha : (Option Real) #false]
+           #:tail-color [tail-fill : (Option Color) 'SeaShell]
+           #:tail-alpha [tail-alpha : (Option Real) #false]
+           #:tail.deg [tail.deg : Real +nan.0]
+           #:feet-fill-color [feet-fill : (Option Real) #false]
+           #:feet-alpha [feet-alpha : (Option Real) #false]
+           #:left-foot-border-color [lfcolor : (Option Color) 'Blue]
+           #:right-foot-border-color [rfcolor : (Option Color) 'Lime]
            #:symbol [symtext : Char #\λ]
-           [R : Real]] : Geo
-    (define-values (Rdart Rcollar) (values (~length (* R 1/phi)) (~length (* R 0.5 1/phi))))
-    (define used-sheath-length (~length sheath-length Rdart))
+           [R0 : Real-Length] [foot-rotation : Real 0.0] [unit : Angle-Unit 'rad]] : Geo
+    (define R (~dimension R0))
+    (define-values (Rdart Rcollar) (values (* R 1/phi) (* R 0.5 1/phi)))
+    (define used-sheath-length (~dimension sheath-length Rdart))
     (define no-sheath? : Boolean (< used-sheath-length Rdart))
     (define-values (thickness smart-thickness-scale) (values (/ R 32.0) (if no-sheath? 1.0 2.0)))
     (define edge-stroke (desc-stroke #:color (rgb* edge-color edge-alpha) #:width (* thickness 0.5)))
@@ -37,14 +48,14 @@
     
     (define protein-coat
       (geo-cc-superimpose #:id 'protein-coat
-       (geo-icosahedron-side-projection R 'edge   #:id 'coat/out #:edge #false #:border ohead-stroke #:fill head-color)
+       (geo-icosahedron-side-projection R #:radius-type 'edge   #:id 'coat/out #:edge #false #:border ohead-stroke #:fill head-color)
        (geo-trim (geo-text symtext (desc-font #:size (* R 1.4) #:family "Linux Biolinum Shadow, Bold") #:id 'lambda #:color λ-color))
-       (geo-icosahedron-side-projection R 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke)))
+       (geo-icosahedron-side-projection R #:radius-type 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke)))
 
     (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5))
     (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness `(,1/phi :) #:wing-angle pi
+           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness (~: 1/phi) #:wing-angle pi
                       Rdart used-sheath-length pi/2)))
 
     (define tail.rad : Flonum
@@ -62,12 +73,12 @@
       (let* ([fx (* (+ 1.0 (cos tail.rad)) 0.5)]
              [fy (* (- 1.0 (sin tail.rad)) 0.25)]
              [r (* Rcollar 1/phi (if (not maybe-sheath) 0.382 1.0))]
-             [lft (geo-icosahedron-over-projection #:id 'lfoot #:rotation foot-rotation
+             [lft (geo-icosahedron-over-projection #:id 'lfoot #:radius-type 'face
                                                    #:border (desc-stroke stx-bstroke #:color lfcolor) #:edge stx-estroke #:fill feet-color
-                                                   r 'face)]
-             [rgt (geo-icosahedron-over-projection #:id 'rfoot #:rotation foot-rotation
+                                                   r foot-rotation unit)]
+             [rgt (geo-icosahedron-over-projection #:id 'rfoot #:radius-type  'face
                                                    #:border (desc-stroke stx-bstroke #:color rfcolor) #:edge stx-estroke #:fill feet-color
-                                                   r 'face)])
+                                                   r foot-rotation unit)])
         (if (or lfcolor rfcolor)
             (geo-pin* #:id 'stx-tree #:operator 'over
                       1.0 1.0 (- 1.0 fx) 1.0
@@ -98,4 +109,4 @@
   (bacteriophage-logo 32.0)
   (bacteriophage-logo 64.0)
   (bacteriophage-logo 128.0)
-  (bacteriophage-logo 128.0 #:sheath-length '(80 %)))
+  (bacteriophage-logo 128.0 #:sheath-length (~% 80)))

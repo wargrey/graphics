@@ -47,7 +47,7 @@
   (geo-shear plane 0.5 0.0)
   (geo-shear (geo-circle 32.0) -0.5 0.3)
   (geo-shear (plane-boxed-text "pseudo-3d rotation via shearing") 0.0 -0.3)
-  (geo-skew (plane-boxed-text "pseudo-3d rotation via skewing") 20.0 10.0 #false)
+  (geo-skew (plane-boxed-text "pseudo-3d rotation via skewing") 20.0 10.0 'deg)
   
   (define text (plane-text (string-append "memory: " (number->string (current-memory-use)))))
   (define trimed-text (geo-trim text))

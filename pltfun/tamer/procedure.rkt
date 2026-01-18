@@ -1,7 +1,9 @@
 #lang typed/racket/base
 
-(require pltfun/procedure)
+(require pltfun/digitama/procedure/diagram)
 (require geofun/digitama/richtext/pexpr)
+
+(require geofun/resize)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (plt-procedure #false null)

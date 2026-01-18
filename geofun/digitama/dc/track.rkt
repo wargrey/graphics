@@ -4,14 +4,15 @@
 
 (require "../self.rkt")
 (require "../paint.rkt")
-(require "../track/self.rkt")
 (require "../unsafe/dc/path.rkt")
+
+(require "../track/self.rkt")
+(require "../track/trail.rkt")
+(require "../track/anchor.rkt")
 
 (require "../geometry/dot.rkt")
 (require "../geometry/ink.rkt")
 (require "../geometry/bbox.rkt")
-(require "../geometry/trail.rkt")
-(require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

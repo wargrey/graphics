@@ -7,7 +7,7 @@
 (require geofun/digitama/self)
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/resize)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/geometry/insets)
 
 (require "../slot/style.rkt")
 (require "../slot/dc.rkt")
@@ -17,7 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define mtx-slot-row-header : Mtx-Header-Slot-Create
   (lambda [id term0 style width height direction indices]
-    (define-values (mt mright mb mleft) (geo-spacing-values (default-expr-slot-margin)))
+    (define-values (mt mright mb mleft) (geo-inset-values (default-expr-slot-margin)))
     (define term (mtx-rotate term0 direction))
     (define cell-width
       (cond [(or term) (max (+ (geo-width term) mright mleft) width)]
@@ -28,7 +28,7 @@
 
 (define mtx-slot-col-header : Mtx-Header-Slot-Create
   (lambda [id term0 style width height direction indices]
-    (define-values (mtop mr mbottom ml) (geo-spacing-values (default-expr-slot-margin)))
+    (define-values (mtop mr mbottom ml) (geo-inset-values (default-expr-slot-margin)))
     (define term (mtx-rotate term0 direction))
     (define cell-height
       (cond [(or term) (max (+ (geo-height term) mtop mbottom) height)]

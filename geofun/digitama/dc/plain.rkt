@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -26,10 +26,10 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-blank : (->* () (Real (Option Real+%) #:id (Option Symbol)) Geo:Blank)
+(define geo-blank : (->* () (Real-Length (Option Length+%) #:id (Option Symbol)) Geo:Blank)
   (let ([blank-db : (Weak-HashTable Any Geo:Blank) (make-weak-hash)])
     (lambda [[width 0.0] [height #false] #:id [id #false]]
-      (define-values (flwidth flheight) (~extent* width height))
+      (define-values (flwidth flheight) (~extent width height))
       (hash-ref! blank-db (cons flwidth flheight)
                  (λ [] (create-geometry-object geo:blank
                                                #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
@@ -42,9 +42,9 @@
                             #:with [id void (geo-ghost-extent geo) geo-zero-pads]
                             geo)))
 
-(define geo-solid : (->* () (Color Real #:id (Option Symbol)) Geo:Solid)
+(define geo-solid : (->* () (Color Real-Length #:id (Option Symbol)) Geo:Solid)
   (lambda [[color transparent] [size 1] #:id [id #false]]
-    (define edge-size : Nonnegative-Flonum (~length size))
+    (define edge-size : Nonnegative-Flonum (~dimension size))
     (create-geometry-object geo:solid
                             #:with [id geo-draw-solid (geo-shape-extent edge-size) geo-zero-pads]
                             (desc-brush #:color color))))

@@ -24,11 +24,11 @@
    (geo-path-group (geo-path (list F1 (+ F1 F2) F2) #:stroke aux-pen)
                    (geo-path #:source-tip default-bullet-tip #:target-tip default-arrow-tip #:target-placement 'inside
                              #:stroke (desc-stroke pen #:color 'RoyalBlue)
-                             #:labels (make-geo-path-label (<span> null "F" (<sub> "1")) 1.0 #:rotate? #false #:distance '(-75 %) #:font font)
+                             #:labels (make-geo-path-label (<span> null "F" (<sub> "1")) 1.0 #:rotate? #false #:distance (~% -75) #:font font)
                              (list 0 F1) scale-step)
                    (geo-path #:source-tip default-bullet-tip #:target-tip default-arrow-tip #:target-placement 'inside #:tick-placement 'negative
                              #:stroke (desc-stroke pen #:color 'ForestGreen)
-                             #:labels (make-geo-path-label (<span> null "F" (<sub> "2")) 1.0 #:rotate? #false #:distance '(+75 %) #:font font)
+                             #:labels (make-geo-path-label (<span> null "F" (<sub> "2")) 1.0 #:rotate? #false #:distance (~% +75) #:font font)
                              (list 0 F2) scale-step)
                    (geo-path #:source-tip default-bullet-tip #:target-tip default-arrow-tip #:target-placement 'inside
                              #:stroke (desc-stroke pen #:color 'Purple #:opacity 0.32)

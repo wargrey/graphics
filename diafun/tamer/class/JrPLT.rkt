@@ -5,19 +5,18 @@
 (require diafun/class)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define class-color : (Dia-Block-Style-Make DiaCls-Class-Style)
-  (lambda [anchor datum]
+(define cls-colorize : Cls-Block-Theme-Adjuster
+  (lambda [self anchor datum]
     (cond [(memq anchor '(Sprite Atlas Tracklet Continent Dimensionlet))
-           (make-diacls-class-style #:fill-paint 'RoyalBlue)]
+           (remake-dia-block-style self #:fill-paint 'RoyalBlue)]
           [(memq anchor '(IPlotlet IShapelet ICanvaslet ITextlet IValuelet))
-           (make-diacls-class-style #:fill-paint 'DarkKhaki)]
-          [else (make-diacls-class-style)])))
+           (remake-dia-block-style self #:fill-paint 'DarkKhaki)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-simple-class! cosmos.dia
-  #:parameterize ([default-diacls-class-style-make class-color])
-  #:start 'Cosmos [#:background 'White] #:-
-  (move-up 2.0 'Universe)
+(define-class-diagram! cosmos.dia
+  #:parameterize ([default-cls-block-theme-adjuster cls-colorize])
+  #:start 'Cosmos [#:frame 'White] #:-
+  (move-up 2.0 'Universe#A)
   (move-left 2.5 '#:IDisplay)
 
   (jump-to 'Cosmos)
@@ -30,7 +29,7 @@
 
   (jump-to 'Cosmos)
   (move-down '#:IPlaneInfo 'Plane (gtmult 1 '0..n 'aggregation))
-  (move-to '#:IPlaneInfo #false "<<use>>")
+  (move-to '#:IPlaneInfo #false "«use»")
 
   (jump-to 'Plane)
   (move-down 2.5 'Matter (gtmult 1 '0..n 'composition))
@@ -48,7 +47,7 @@
   (move-down 1.5 '#:IMatterInfo)
   (move-to 'Plane #false (gtmult 1 1 'aggregation))
   (jump-to 'Matter)
-  (move-to '#:IMatterInfo #false "<<use>>"))
+  (move-to '#:IMatterInfo #false "«use»"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

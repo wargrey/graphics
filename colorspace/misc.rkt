@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 (require digimon/digitama/predicate)
 
 (require racket/fixnum)

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Geo-Spacing Expr:Slot expr:slot?)
-(provide (all-from-out digimon/constant digimon/complex digimon/flonum))
+(provide (all-defined-out) Geo-Insets-Datum Expr:Slot expr:slot?)
+(provide (all-from-out digimon/measure digimon/complex digimon/flonum))
 (provide (all-from-out geofun/digitama/base geofun/digitama/self geofun/digitama/paint/self))
 (provide (all-from-out geofun/richtext geofun/composite geofun/resize geofun/adapter))
 (provide (all-from-out geofun/paint geofun/stroke geofun/fill geofun/font geofun/color))
@@ -23,9 +23,9 @@
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/geometry/insets)
 
-(require digimon/constant)
+(require digimon/measure)
 (require digimon/complex)
 (require digimon/flonum)
 

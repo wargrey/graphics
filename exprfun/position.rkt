@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 (require racket/list)
 
 (require geofun/font)
@@ -17,18 +17,20 @@
   (lambda [#:base [base : Byte 10]
            #:nslots [min-slots : Index 0]
            #:font [font : Font (default-font)]
-           #:line-height [line-height : Real+% '(161.8 %)]
+           #:line-height [line-height : Length+% (~% 161.8)]
            #:gapsize [gapsize : Real 2.0]
            [n : Integer] [shift : Integer 0]] : Geo
-    (define slot-size : Nonnegative-Flonum (~length line-height (font-metrics-ref font 'em)))
-    (define empty-slot : Geo (geo-square slot-size))
-    (define weight : Integer (expt 10 (abs shift)))
-    (define digits : String (number->string ((if (>= shift 0) * quotient) (abs n) weight) base))
-    (define nslots : Index (string-length digits))
-
-    (let make-slots ([stols : (Listof Geo) null]
-                     [idx : Nonnegative-Fixnum 0])
-      (cond [(< idx nslots) (make-slots (cons (geo-cc-superimpose empty-slot (geo-text (string-ref digits idx) font)) stols)
-                                        (+ idx 1))]
-            [(< idx min-slots) (make-slots (append stols (make-list (- min-slots idx) empty-slot)) min-slots)]
-            [else (geo-hc-append* (reverse stols) #:gapsize gapsize)]))))
+    (parameterize ([default-font-metrics (font-metrics font)])
+      (define slot-size : Nonnegative-Flonum (~dimension line-height (font-metrics-ref font 'em)))
+      (define empty-slot : Geo (geo-square slot-size))
+      (define weight : Integer (expt 10 (abs shift)))
+      (define digits : String (number->string ((if (>= shift 0) * quotient) (abs n) weight) base))
+      (define nslots : Index (string-length digits))
+      
+      (let make-slots ([stols : (Listof Geo) null]
+                       [idx : Nonnegative-Fixnum 0])
+        (cond [(< idx nslots) (make-slots (cons (geo-cc-superimpose empty-slot (geo-text (string-ref digits idx) font)) stols)
+                                          (+ idx 1))]
+              [(< idx min-slots) (make-slots (append stols (make-list (- min-slots idx) empty-slot)) min-slots)]
+              [else (geo-hc-append* (reverse stols) #:gapsize gapsize)])))))
+  

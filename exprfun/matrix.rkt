@@ -8,7 +8,7 @@
 (provide (all-from-out "digitama/matrix/interface.rkt"))
 
 (require digimon/digitama/unsafe/ops)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require racket/case)
 (require racket/list)
@@ -27,8 +27,8 @@
            #:header-gap [hgap : Complex 0.0] #:gap [egap : Complex 0.0]
            #:border [bdr : Maybe-Stroke-Paint #false]
            #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:margin [margin : (Option Geo-Insets-Datum) #false]
+           #:padding [padding : (Option Geo-Insets-Datum) #false]
            #:desc [entry-desc : (Option (Mtx-Entry M)) #false]
            #:slot-backstop [backstop : Mtx-Backstop-Style (make-mtx-backstop-style)]
            #:corner-desc [corner-desc : Geo-Maybe-Rich-Text #false]
@@ -163,7 +163,7 @@
 (define #:forall (M) $array
   (lambda [#:id [id0 : (Option Symbol) #false]
            #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
+           #:margin [margin : (Option Geo-Insets-Datum) #false] #:padding [padding : (Option Geo-Insets-Datum) #false]
            #:header-gap [hgap : Complex 0.0] #:gap [egap : Complex 0.0]
            #:desc [desc-value : (Option (Mtx-Entry M)) #false]
            #:corner-desc [corner-desc : (Option Geo-Maybe-Rich-Text) #false]

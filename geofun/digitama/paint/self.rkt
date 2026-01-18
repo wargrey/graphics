@@ -2,8 +2,6 @@
 
 (provide (all-defined-out))
 
-(require "stroke.rkt")
-
 (require "../base.rkt")
 (require "../unsafe/typed/c.rkt")
 (require "../unsafe/visual.rkt")
@@ -30,8 +28,8 @@
 (struct pen
   ([color : FlRGBA]
    [width : Nonnegative-Flonum]
-   [linecap : Stroke-Cap-Style]
-   [linejoin : Stroke-Join-Style]
+   [linecap : Byte]
+   [linejoin : Byte]
    [miterlimit : Flonum]
    [dash : (Immutable-Vectorof Nonnegative-Flonum)]
    [offset : Flonum]

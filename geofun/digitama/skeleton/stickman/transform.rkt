@@ -2,8 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/constant)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "self.rkt")
 (require "interface.rkt")
@@ -15,26 +14,26 @@
 (define geo-standing-stickman-snapshot : (-> Geo-Standing-Stickman Geo-Stickman-Skeleton)
   (lambda [self]
     (define-values (torso-width torso-length)
-      (values (~length (geo-standing-stickman-torso-width self)
-                       (~length (geo-standing-stickman-torso-width the-standing-stickman) 100.0))
-              (~length (geo-standing-stickman-torso-length self)
-                       (~length (geo-standing-stickman-torso-length the-standing-stickman) 100.0))))
+      (values (~dimension (geo-standing-stickman-torso-width self)
+                          (~dimension (geo-standing-stickman-torso-width the-standing-stickman) 100.0))
+              (~dimension (geo-standing-stickman-torso-length self)
+                          (~dimension (geo-standing-stickman-torso-length the-standing-stickman) 100.0))))
     
     (define-values (leg-width arm-width)
-      (values (~length (geo-standing-stickman-leg-width self) torso-width)
-              (~length (geo-standing-stickman-arm-width self) torso-width)))
+      (values (~dimension (geo-standing-stickman-leg-width self) torso-width)
+              (~dimension (geo-standing-stickman-arm-width self) torso-width)))
 
-    (define head-radius (~length (geo-standing-stickman-head-radius self) torso-length))
-    (define neck (make-rectangular 0.0 (+ head-radius (~length (geo-standing-stickman-neck-length self) torso-length))))
+    (define head-radius (~dimension (geo-standing-stickman-head-radius self) torso-length))
+    (define neck (make-rectangular 0.0 (+ head-radius (~dimension (geo-standing-stickman-neck-length self) torso-length))))
     (define hip (+ neck (make-rectangular 0.0 torso-length)))
 
     (define-values (lft-arm rgt-arm)
-      (let* ([half-shoulder (* (~length (geo-standing-stickman-shoulder-breadth self) torso-width) 0.5)]
+      (let* ([half-shoulder (* (~dimension (geo-standing-stickman-shoulder-breadth self) torso-width) 0.5)]
              [rgt-arm-angle (real->double-flonum (geo-standing-stickman-arm-angle self))]
              [lft-arm-angle (- pi rgt-arm-angle)]
              [elb-angle (real->double-flonum (geo-standing-stickman-elbow-angle self))]
-             [upper-length (~length (geo-standing-stickman-upper-arm-length self) torso-length)]
-             [lower-length (~length (geo-standing-stickman-lower-arm-length self) torso-length)]
+             [upper-length (~dimension (geo-standing-stickman-upper-arm-length self) torso-length)]
+             [lower-length (~dimension (geo-standing-stickman-lower-arm-length self) torso-length)]
              [lft-shoulder (- neck half-shoulder)]
              [rgt-shoulder (+ neck half-shoulder)]
              [lft-elbow (+ lft-shoulder (make-polar upper-length lft-arm-angle))]
@@ -46,7 +45,7 @@
 
     (define-values (lft-leg rgt-leg)
       (let*-values ([(leg-angle) (real->double-flonum (geo-standing-stickman-leg-angle self))]
-                    [(leg-length) (~length (geo-standing-stickman-leg-length self) torso-length)]
+                    [(leg-length) (~dimension (geo-standing-stickman-leg-length self) torso-length)]
                     [(foot.pt) (make-polar leg-length (+ (* leg-angle 0.5) pi/2))]
                     [(dx dy) (values (real-part foot.pt) (imag-part foot.pt))])
         (values (stickman-leg #false (+ hip (make-rectangular (- dx) dy)))

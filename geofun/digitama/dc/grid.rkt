@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../unsafe/dc/plain.rkt")
 
@@ -28,7 +28,7 @@
            #:extra-major-ys [major-ys : (Listof Real) null]
            #:extra-minor-xs [minor-xs : (Listof Real) null]
            #:extra-minor-ys [minor-ys : (Listof Real) null]
-           [width : Real] [height : Real+%]] : Geo:Grid
+           [width : Real-Length] [height : Length+%]] : Geo:Grid
     (define-values (flwidth flheight) (~extent width height))
     (define +epsilon : Nonnegative-Flonum 1e-3)
     (define -epsilon : Flonum (- +epsilon))

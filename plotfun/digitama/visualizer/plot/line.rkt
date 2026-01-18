@@ -9,6 +9,7 @@
 
 (require geofun/digitama/paint/self)
 (require geofun/digitama/geometry/dot)
+(require geofun/digitama/nice/pairable)
 
 (require "../dot.rkt")
 (require "../self.rkt")
@@ -31,7 +32,7 @@
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
-           #:scale [scale : Point2D 1.0]
+           #:scale [scale : Pairable-Real 1.0]
            #:offset [offset : Complex 0.0+0.0i]
            #:color [strk-color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
@@ -41,7 +42,8 @@
            [pts : (Listof Point2D)]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
-    (define-values (points lx ty rx by) (~point2ds pts offset scale))
+    (define-values (sx sy) (2d-scale-values scale))
+    (define-values (points lx ty rx by) (~point2ds pts offset sx sy))
     (define df/dx : (-> Real (Option Real)) (plot-lines-df/dx points))
     (define safe-f : (-> Real Real) (plot-lines->function points close?))
     (define-values (xrange yrange)

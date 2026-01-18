@@ -6,24 +6,22 @@
 (require geofun/paint)
 (require geofun/fill)
 
-(require geofun/digitama/base)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/paint/pattern)
-(require geofun/digitama/geometry/spacing)
+(require geofun/digitama/geometry/insets)
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 
 (require "../self.rkt")
 (require "../convert.rkt")
 
-(require digimon/metrics)
-(require digimon/sequence)
+(require digimon/measure)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define bitmap-blank : (->* () (Real (Option Real+%) #:density Positive-Flonum) Bitmap)
+(define bitmap-blank : (->* () (Real-Length (Option Length+%) #:density Positive-Flonum) Bitmap)
   (lambda [[width 0.0] [height #false] #:density [density (default-bitmap-density)]]
-    (define-values (flwidth flheight) (~extent* width height))
+    (define-values (flwidth flheight) (~extent width height))
     (create-blank-bitmap flwidth flheight density)))
 
 (define bitmap-ghost : (-> Bitmap Bitmap)
@@ -31,21 +29,21 @@
     (define-values (flw flh) (bitmap-flsize bmp))
     (create-blank-bitmap flw flh (bitmap-density bmp))))
 
-(define bitmap-solid : (->* () (Color Real #:density Positive-Flonum) Bitmap)
+(define bitmap-solid : (->* () (Color Real-Length #:density Positive-Flonum) Bitmap)
   (lambda [[color transparent] [size 1] #:density [density (default-bitmap-density)]]
-    (define side : Nonnegative-Flonum (~length size))
+    (define side : Nonnegative-Flonum (~dimension size))
     (draw-bitmap dc_pattern #:with [side side density #true]
                  (desc-brush #:color color))))
 
 (define bitmap-frame
-  (lambda [#:margin [margin : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
-           #:padding [inset : (U Nonnegative-Real (Listof Nonnegative-Real)) 0.0]
+  (lambda [#:margin [margin : Geo-Insets-Datum 0.0]
+           #:padding [inset : Geo-Insets-Datum 0.0]
            #:border [border : Maybe-Stroke-Paint (default-border-paint)]
            #:background [bg-fill : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            [bmp : Bitmap]] : Bitmap
-    (define-values (mtop mright mbottom mleft) (geo-spacing-values margin))
-    (define-values (ptop pright pbottom pleft) (geo-spacing-values inset))
+    (define-values (mtop mright mbottom mleft) (geo-inset-values margin))
+    (define-values (ptop pright pbottom pleft) (geo-inset-values inset))
     (define-values (bmpw bmph) (bitmap-flsize bmp))
     (define-values (sfc density) (values (bitmap-surface bmp) (bitmap-density bmp)))
     (define s : (Option Pen) (border-paint->source* border))

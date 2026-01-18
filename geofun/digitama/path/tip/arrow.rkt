@@ -5,7 +5,7 @@
 (require racket/math)
 
 (require digimon/struct)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "self.rkt")
 
@@ -15,7 +15,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct geo:tip:arrow : Geo:Tip:Arrow #:-> geo-tip
   #:head ([geo-tip cfg : Geo-Tip-Config geo-filled-cfg])
-  ([radius : Real+% '(300 %)]
+  ([radius : Length+% (~% 300)]
    [wing.deg : (Option Real) #false]
    [curved? : Boolean #true])
   #:transparent)
@@ -23,7 +23,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-arrow-tip : Geo:Tip:Arrow (make-geo:tip:arrow))
 (define default-generalization-tip : Geo:Tip:Arrow
-  (make-geo:tip:arrow #:radius '(350 %) #:wing.deg pi #:curved? #false #:cfg geo-unfilled-cfg))
+  (make-geo:tip:arrow #:radius (~% 350) #:wing.deg pi #:curved? #false #:cfg geo-unfilled-cfg))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-arrow-path : (-> Geo:Tip:Arrow Nonnegative-Flonum Flonum Geo-Tip-Placement Geo-Tip-Datum)
@@ -33,7 +33,7 @@
             [(eq? pos 'center) (values -0.5 0.25)]
             [else (values +0.5 0.0)]))
     
-    (define r : Nonnegative-Flonum (~length (geo:tip:arrow-radius self) 100%))
+    (define r : Nonnegative-Flonum (~dimension (geo:tip:arrow-radius self) 100%))
     (define wing : (Option Real) (geo:tip:arrow-wing.deg self))
     (define endpoint-offset : Float-Complex
       (+ (make-polar (* r pos-rfrac) angle.rad)

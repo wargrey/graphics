@@ -10,7 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-empty-info : Geo:Track:Info (geo:track:info #false 0.0 #false null))
 
-(define geo-track-info/paired-labels : (-> Nonnegative-Flonum Geo-Path-Label Geo-Path-Label
+(define geo-track-info/paired-labels : (-> Nonnegative-Flonum Geo-Path-Label-Text Geo-Path-Label-Text
                                            (Option Geo:Track:Multiplicity) (Listof Geo-Track-Info-Datum)
                                            Geo:Track:Info)
   (lambda [t head tail mult extra]
@@ -19,7 +19,7 @@
           [(or  mult (pair? extra))  (geo:track:info #false t mult extra)]
           [else geo-track-empty-info])))
 
-(define geo-track-info/labels : (-> Nonnegative-Flonum (Listof Geo-Path-Label)
+(define geo-track-info/labels : (-> Nonnegative-Flonum (Listof Geo-Path-Label-Text)
                                     (Option Geo:Track:Multiplicity) (Listof Geo-Track-Info-Datum)
                                     Geo:Track:Info)
   (lambda [t labels mult extra]

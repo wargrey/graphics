@@ -5,35 +5,188 @@
 (provide (all-from-out "../track/style.rkt"))
 
 (require digimon/struct)
+(require digimon/measure)
 
 (require geofun/font)
 (require geofun/paint)
 
-(require geofun/digitama/base)
+(require geofun/digitama/richtext/self)
 (require geofun/digitama/path/tip/self)
 (require geofun/digitama/path/tip/arrow)
 (require geofun/digitama/path/tip/diamond)
 
 (require "../block/style.rkt")
 (require "../track/style.rkt")
-(require "../shared.rkt")
+(require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diacls-association-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Association-Arrow-Style))) (make-parameter #false))
-(define default-diacls-bidirection-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Bidirection-Arrow-Style))) (make-parameter #false))
-(define default-diacls-composition-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Composition-Arrow-Style))) (make-parameter #false))
-(define default-diacls-aggregation-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Aggregation-Arrow-Style))) (make-parameter #false))
-(define default-diacls-generalization-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Generalization-Arrow-Style))) (make-parameter #false))
-(define default-diacls-realization-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Realization-Arrow-Style))) (make-parameter #false))
-(define default-diacls-dependency-arrow-style-make : (Parameterof (Option (Dia-Track-Style-Make DiaCls-Dependency-Arrow-Style))) (make-parameter #false))
-(define default-diacls-free-track-style-make : (Parameterof (Option (Dia-Free-Track-Style-Make DiaCls-Free-Track-Style))) (make-parameter #false))
+(struct cls-block-style () #:type-name Cls-Block-Style)
+(struct cls-track-style () #:type-name Cls-Track-Style)
 
-(define-configuration diacls-track-backstop-style : DiaCls-Track-Backstop-Style #:as dia-track-backstop-style
-  #:format "default-diacls-track-~a"
-  ([font : Font default-track-label-font]
+(define-type Cls-Block-Metadata (Option Symbol))
+(define-type Cls-Block-Theme-Adjuster (Dia-Block-Theme-Adjuster Cls-Block-Style Cls-Block-Metadata))
+(define-type Cls-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster Cls-Track-Style))
+
+(define default-cls-block-theme-adjuster : (Parameterof (Option Cls-Block-Theme-Adjuster)) (make-parameter #false))
+(define default-cls-track-theme-adjuster : (Parameterof (Option Cls-Track-Theme-Adjuster)) (make-parameter #false))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-configuration cls-block-backstop-style : Cls-Block-Backstop-Style #:as dia-block-backstop-style
+  #:format "default-cls-block-~a"
+  ([width : Nonnegative-Flonum 150.0]
+   [height : Nonnegative-Flonum 45.0]
+   [padding : Dia-Block-Padding (~L 0.333 'em)]
+   [font : Font dia-preset-header-font]
+   [font-paint : Fill-Paint 'White]
+   [stroke-paint : Option-Stroke-Paint #false]
+   [fill-paint : Option-Fill-Paint 'CadetBlue]
+   [text-alignment : Geo-Text-Alignment 'center]
+   [text-trim? : Boolean #false]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; NOTICE
+; the class diagram only has one block type, and it is the class;
+; the detialed type of a class is marked with its property of the stereotype.
+(define-phantom-struct cls-class-style : Cls-Class-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-interface-style : Cls-Interface-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Goldenrod]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-abstract-style : Cls-Abstract-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) (make-font:tweak #:style 'italic)]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-enumeration-style : Cls-Enumeration-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'DarkSalmon]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-type-style : Cls-Type-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'DodgerBlue]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-lambda-style : Cls-Lambda-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'RoyalBlue]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-datum-style : Cls-Datum-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Aquamarine]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-structure-style : Cls-Structure-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-behavior-style : Cls-Behavior-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+(define-phantom-struct cls-unrecognized-style : Cls-Unrecognized-Style #:-> cls-block-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Dia-Block-Font-Style) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color #false]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [text-alignment : (Option Geo-Text-Alignment) #false]
+   [text-trim? : (U Void Boolean) (void)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-configuration cls-track-backstop-style : Cls-Track-Backstop-Style #:as dia-track-backstop-style
+  #:format "default-cls-track-~a"
+  ([font : Font dia-preset-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
-   [line-paint : Stroke-Paint default-track-stroke]
-   [opacity : (Option Real) #false]
+   [line-paint : Stroke-Paint dia-preset-track-stroke]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
@@ -41,153 +194,86 @@
    [label-distance : (Option Flonum) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration diacls-generalization-arrow-style : DiaCls-Generalization-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-generalization-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~generalization~style : Cls~Generalization~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'MediumPurple]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-realization-arrow-style : DiaCls-Realization-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-realization-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~realization~style : Cls~Realization~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'MediumPurple]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-composition-arrow-style : DiaCls-Composition-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-include-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~composition~style : Cls~Composition~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'MediumAquamarine]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip default-composition-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-aggregation-arrow-style : DiaCls-Aggregation-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-extend-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~aggregation~style : Cls~Aggregation~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Turquoise]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'Turquoise]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip default-aggregation-tip]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-association-arrow-style : DiaCls-Association-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-association-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~association~style : Cls~Association~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'DimGray]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-bidirection-arrow-style : DiaCls-Bidirection-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-bidirection-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~bidirection~style : Cls~Bidirection~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'DimGray]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'DimGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-configuration diacls-dependency-arrow-style : DiaCls-Dependency-Arrow-Style #:as dia-track-style
-  #:format "default-diacls-dependency-arrow-~a"
-  ([font : (Option Font) #false]
+(define-phantom-struct cls~dependency~style : Cls~Dependency~Style #:-> cls-track-style #:for dia-track-style
+  ([font : (Option Dia-Track-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'DimGray]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'DimGray]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [opacity : (Option Real) #false]
    [source-tip : Maybe-Geo-Tip #false]
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
-
-(define-configuration diacls-free-track-style : DiaCls-Free-Track-Style #:as dia-track-style
-  #:format "default-diacls-free-track-~a"
-  ([font : (Option Font) default-block-caption-font]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Flonum) #false]
-   [color : (U Color Void False) 'Gray]
-   [dash : (Option Stroke-Dash+Offset) 'solid]
-   [opacity : (Option Real) #false]
-   [source-tip : Maybe-Geo-Tip #false]
-   [target-tip : Maybe-Geo-Tip #false]
-   [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-diacls-interface-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaCls-Interface-Style))) (make-parameter #false))
-(define default-diacls-class-style-make : (Parameterof (Option (Dia-Block-Style-Make DiaCls-Class-Style))) (make-parameter #false))
-
-(define-configuration diacls-block-backstop-style : DiaCls-Block-Style #:as dia-block-backstop-style
-  #:format "default-diacls-~a"
-  ([block-width : Nonnegative-Flonum 150.0]
-   [block-height : Nonnegative-Flonum 45.0]
-   [font : Font default-header-font]
-   [font-paint : Fill-Paint 'GhostWhite]
-   [stroke-paint : Option-Stroke-Paint #false]
-   [fill-paint : Option-Fill-Paint 'CadetBlue]
-   [opacity : (Option Real) #false]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration diacls-interface-style : DiaCls-Interface-Style #:as dia-block-style
-  #:format "default-diacls-interface-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) #false]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'DarkKhaki]
-   [opacity : (Option Real) #false]))
-
-(define-configuration diacls-class-style : DiaCls-Class-Style #:as dia-block-style
-  #:format "default-diacls-class-~a"
-  ([block-width : (Option Nonnegative-Flonum) #false]
-   [block-height : (Option Nonnegative-Flonum) #false]
-   [font : (Option Font) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Flonum) #false]
-   [stroke-color : (U Color Void False) #false]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Real) #false]))

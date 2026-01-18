@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun)
+(require geofun/vector)
 
 (require racket/format)
 (require racket/list)
@@ -11,9 +11,9 @@
 (define label-font (desc-font #:family 'monospace #:size 'large))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define named-color-list : (-> Geo)
-  (lambda []
-    (define all-names (sort (list-color-names) symbol<?))
+(define named-color-list : (->* () ((-> Symbol Symbol Boolean)) Geo)
+  (lambda [[< symbol<?]]
+    (define all-names (sort (list-color-names) <))
     (define-values (size mod) (quotient/remainder (length all-names) 2))
       
     (geo-table*
@@ -38,3 +38,8 @@
   (list (geo-square (font-size label-font) #:fill c)
         (geo-text (symbol->string name) label-font)
         (geo-text (~a #\# (string-upcase (~r (flcolor->hex c) #:base 16 #:min-width 6 #:pad-string "0"))) label-font)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(module+ main
+  (named-color-list)
+  (xterm-color-list 'white))

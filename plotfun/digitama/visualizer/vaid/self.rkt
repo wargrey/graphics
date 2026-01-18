@@ -6,7 +6,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/path/tip/self)
 
-(require "../../singleton.rkt")
+(require "../../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Plot-AALine-Visible-Axis (U 'x 'y 'both))
@@ -24,4 +24,4 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-visual-aid-style : Plot-Visual-Aid-Style
-  ([aaline-pen : Pen default-aaline-pen]))
+  ([aaline-pen : Pen plot-preset-aaline-pen]))

@@ -21,5 +21,5 @@
                                  #:y-ticks (plot-fixed-ticks (list 0 2 4 6 8 9))))
 
   (geo-hb-append #:gapsize 32.0
-                 (plot-cartesian #:screen? #f #:x-range (cons -5 +5) #:y-range (cons -1 16) #:unit-length '(10 %))
-                 (plot-cartesian #:screen? #t #:x-range (cons -5 +5) #:y-range (cons -1 16) #:unit-length '(10 %))))
+                 (plot-cartesian #:screen? #f #:x-range (cons -5 +5) #:y-range (cons -1 16) #:unit-length (~% 10))
+                 (plot-cartesian #:screen? #t #:x-range (cons -5 +5) #:y-range (cons -1 16) #:unit-length (~% 10))))

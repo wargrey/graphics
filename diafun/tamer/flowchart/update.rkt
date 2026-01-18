@@ -5,7 +5,10 @@
 (require diafun/flowchart)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-flowchart! update.dia #:at 3 [#:start-name "Update\nCourse Software" #:background 'White] #:-
+(define-flowchart! update.dia #:at 3
+  [#:start-name "Update\nCourse Software"
+   #:frame 'White
+   #:opacity 0.32] #:-
   (move-down 1 ':|Run PowerShell|)
   
   [#:tree (move-down 1 '-=)

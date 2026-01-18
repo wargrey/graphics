@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/track/base.rkt"))
-(provide (all-from-out "digitama/usecase/interface.rkt"))
+(provide (all-from-out "digitama/track/freestyle.rkt"))
 (provide (all-from-out "digitama/usecase/self.rkt"))
 (provide (all-from-out "digitama/usecase/style.rkt"))
 
@@ -10,20 +10,25 @@
 
 (require "digitama/track/dc.rkt")
 (require "digitama/track/base.rkt")
-(require "digitama/track/sticker.rkt")
+(require "digitama/track/realize.rkt")
+(require "digitama/track/freestyle.rkt")
+(require "digitama/track/interface.rkt")
+
+(require "digitama/block/dc.rkt")
+(require "digitama/block/realize.rkt")
+(require "digitama/block/interface.rkt")
 
 (require "digitama/usecase/self.rkt")
 (require "digitama/usecase/style.rkt")
-(require "digitama/usecase/interface.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-syntax (make-use-case! stx)
+(define-syntax (make-use-case-diagram! stx)
   (syntax-parse stx #:literals []
-    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #''(80 %)]))
-              (~optional (~seq #:grid-height gh) #:defaults ([gh #''(50 %)]))
+    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'(~% 80)]))
+              (~optional (~seq #:grid-height gh) #:defaults ([gh #'(~% 50)]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'+0.05]))
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
               (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))
@@ -32,46 +37,69 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-track pid gw gh ts home anchor ((default-diauc-block-width)))]
+       (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-uc-block-width))]
               [dia (with-gomamon! goma move-expr ...)])
          (parameterize pexpr
            (dia-track-use-case dia args ...))))]))
 
-(define-syntax (define-use-case! stx)
+(define-syntax (define-use-case-diagram! stx)
   (syntax-parse stx #:literals []
     [(_ name argv ...)
      (syntax/loc stx
-       (define name (make-use-case! argv ...)))]))
+       (define name (make-use-case-diagram! argv ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-track-use-case
   (lambda [#:id [id : (Option Symbol) #false]
-           #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
-           #:operator [sibs-op : (Option Geo-Pin-Operator) #false] 
-           #:border [bdr : Maybe-Stroke-Paint #false] #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false] #:padding [padding : (Option Geo-Spacing) #false]
-           #:block-detect [block-detect : Dia-Block-Identifier default-diauc-block-identify]
-           #:track-detect [track-detect : Dia-Track-Identifier default-diauc-track-identify]
-           #:block-backstop [block-backstop : Dia-Block-Backstop-Style (make-diauc-block-backstop-style)]
-           #:track-backstop [track-backstop : Dia-Track-Backstop-Style (make-diauc-track-backstop-style)]
-           #:λblock [make-block : (Option Dia-Anchor->Block) #false]
-           #:λcaption [make-caption : Dia-Anchor->Caption default-dia-anchor->caption]
-           #:block-desc [block-desc : (Option Dia-Block-Describe) #false]
-           #:λpath [make-path : Dia-Track->Path default-dia-track->path]
-           #:λlabel [make-label : Dia-Track->Label default-dia-track->label]
-           #:λfree-path [make-free-track : Dia-Free-Track->Path default-dia-free-track->path]
-           #:λfree-label [make-free-label : Dia-Free-Track->Label default-dia-free-track->label]
-           #:ignore [ignore : (Listof Symbol) null]
+           #:frame [frame : Geo-Frame-Datum #false]
+           #:block-factory [block-factory : UC-Block-Factory (default-uc-block-factory)]
+           #:track-factory [track-factory : UC-Track-Factory (default-uc-track-factory)]
+           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:block-desc [block-desc : (Option Dia-Block-Describer) #false]
+           #:block-scale [scale : Nonnegative-Real 1.0]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
            [self : Geo:Track]] : Dia:Use-Case
     (parameterize ([current-master-track self])
-      (define-values (blocks uses)
-        (dia-track-stick self block-detect make-block make-caption block-desc
-                         track-detect make-path make-label
-                         make-free-track make-free-label (default-diauc-free-track-style-make)
-                         default-diauc-block-fallback-construct make-diauc-free-track-style
-                         block-backstop track-backstop (geo:track-foot-infos self) ignore))
+      (create-dia-track dia:use-case id self
+                        #:frame frame
+                        (dia-track-realize self track-factory free-factory block-factory
+                                           block-desc (geo:track-foot-infos self)
+                                           (real->double-flonum scale)
+                                           (and opacity (real->double-flonum opacity)))))))
 
-      (create-dia-track dia:use-case id
-                        #:border bdr #:background bg
-                        #:margin margin #:padding padding
-                        self uses blocks))))
+(define #:forall (TS BS BM) dia-track-use-case*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
+           #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
+           #:track-factory [track-factory : (Dia-Track-Factory TS)]
+           #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:block-desc [block-desc : (Option Dia-Block-Describer) #false]
+           #:block-scale [scale : Nonnegative-Real 1.0]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           [self : Geo:Track]] : Dia:Use-Case
+    (parameterize ([current-master-track self])
+      (create-dia-track dia:use-case id self
+                        #:frame frame
+                        (dia-track-realize self track-factory free-factory block-factory
+                                           block-desc (geo:track-foot-infos self)
+                                           (real->double-flonum scale)
+                                           (and opacity (real->double-flonum opacity)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-use-case-block
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:scale [scale : Nonnegative-Real 0.5]
+           #:opacity [opacity : (Option Nonnegative-Real) #false]
+           #:factory [block-factory : UC-Block-Factory (default-uc-block-factory)]
+           #:desc [desc : (Option Dia-Block-Describer) #false]
+           [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
+    (define ns : Nonnegative-Flonum (if (> scale 0) (real->double-flonum scale) 1.0))
+    (parameterize ([current-master-track #false])
+      (dia-block-realize block-factory desc
+                         (cond [(symbol? caption) caption]
+                               [(keyword? caption) caption]
+                               [(string? caption) (string->symbol caption)]
+                               [else (string->symbol (format "~a" caption))])
+                         direction
+                         (real->double-flonum scale)
+                         (and opacity (real->double-flonum opacity))))))

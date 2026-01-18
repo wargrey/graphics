@@ -2,9 +2,9 @@
 
 (provide (all-defined-out))
 
+(require digimon/measure)
+
 (require racket/math)
-(require racket/list)
-(require digimon/metrics)
 
 (require "../../font.rkt")
 
@@ -22,13 +22,13 @@
 (require "../geometry/computation/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Path-Label (Option Geo-Rich-Text))
-(define-type Geo-Path-Labels (U Geo-Path-Label (Pairof Geo-Rich-Text Geo-Rich-Text) (Listof Geo-Path-Label)))
+(define-type Geo-Path-Label-Text (Option Geo-Rich-Text))
+(define-type Geo-Path-Label-Datum (U Geo-Path-Label-Text (Pairof Geo-Rich-Text Geo-Rich-Text) (Listof Geo-Path-Label-Text)))
 
 (struct geo:path:label
   ([idx : (Option Integer)]
    [sticker : Geo]
-   [time : Flonum]
+   [position : Flonum]
    [distance : (Option Real+%)]
    [rotate? : Boolean]
    [adjust-angle : (Option Flonum)])
@@ -37,26 +37,32 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-geo-path-label : (->* (Geo-Rich-Text)
-                                   (Flonum #:index (Option Integer) #:font (Option Font) #:color Option-Fill-Paint
-                                           #:distance (Option Real+%) #:rotate? Boolean #:adjust-angle (Option Flonum))
-                                   Geo:Path:Label)
-  (lambda [#:index [idx 0] #:font [font #false] #:color [font-paint #false]
-           #:distance [distance #false] #:adjust-angle [adjust #false]
-           #:rotate? [rotate? #true] #:mirror? [mirror? #false]
-           label [position 0.5]]
-    (unsafe-geo:path:label idx (geo-path-label-realize label #false font font-paint)
-                           position distance rotate? adjust)))
+(define make-geo-path-label
+  (lambda [#:index [idx : (Option Integer) 0]
+           #:font [font : (Option Font) #false]
+           #:color [font-paint : Option-Fill-Paint #false]
+           #:distance [distance : (Option Length+%) #false]
+           #:rotate? [rotate? : Boolean #true]
+           #:mirror? [mirror? : Boolean #false]
+           [label : Geo-Rich-Text] [position : Flonum 0.5]
+           [adjust : (Option Real) #false] [unit : Angle-Unit 'rad]] : Geo:Path:Label
+    (unsafe-geo:path:label idx
+                           (geo-path-label-realize label #false font font-paint) position
+                           (if (~L? distance)
+                               (parameterize ([default-font-metrics (font-metrics (or font (default-font)))])
+                                 (~px distance))
+                               distance)
+                           rotate? (and adjust (~rad adjust unit)))))
 
-(define make-geo-path-labels : (->* (Geo-Path-Labels)
-                                    ((U Flonum (Pairof Flonum Flonum))
-                                     #:index (Option Integer) #:font (Option Font) #:color Option-Fill-Paint
-                                     #:distance (Option Real+%)
-                                     #:rotate? Boolean #:adjust-angle (Option Flonum) #:reverse? Boolean)
-                                    (Listof Geo:Path:Label))
-  (lambda [#:index [idx 0] #:font [font #false] #:color [font-paint #false] #:reverse? [reverse? #false]
-           #:distance [distance #false] #:adjust-angle [adjust #false] #:rotate? [rotate? #true]
-           selves [rng 0.25]]
+(define make-geo-path-labels
+  (lambda [#:index [idx : (Option Integer) 0]
+           #:font [font : (Option Font) #false]
+           #:color [font-paint : Option-Fill-Paint #false]
+           #:reverse? [reverse? : Boolean #false]
+           #:distance [distance : (Option Length+%) #false]
+           #:rotate? [rotate? : Boolean #true]
+           [selves : Geo-Path-Label-Datum] [rng : (U Flonum (Pairof Flonum Flonum)) 0.25]
+           [adjust : (Option Real) #false] [unit : Angle-Unit 'rad]] : (Listof Geo:Path:Label)
     (define-values (bgn end)
       (if (pair? rng)
           (values (car rng) (cdr rng))
@@ -79,7 +85,12 @@
             [else null]))
 
     (for/list ([g (in-list glabels)])
-      (unsafe-geo:path:label idx (car g) (cdr g) distance rotate? adjust))))
+      (unsafe-geo:path:label idx (car g) (cdr g)
+                             (if (~L? distance)
+                                 (parameterize ([default-font-metrics (font-metrics (or font (default-font)))])
+                                   (~px distance))
+                                 distance)
+                             rotate? (and adjust (~rad adjust unit))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path-label-realize : (-> Geo-Rich-Text (Option Symbol) (Option Font) Option-Fill-Paint Geo)
@@ -100,9 +111,9 @@
            [rotate? (geo:path:label-rotate? self)])
        (define sticker : Geo
          (cond [(not rotate?) label]
-               [(and adjust) (geo-rotate label (+ (angle dir) adjust) #true)]
-               [(negative? (real-part dir)) (geo-rotate label (+ (angle dir) pi) #true)]
-               [else (geo-rotate label (angle dir) #true)]))
+               [(and adjust) (geo-rotate label (+ (angle dir) adjust))]
+               [(negative? (real-part dir)) (geo-rotate label (+ (angle dir) pi))]
+               [else (geo-rotate label (angle dir))]))
        
        (define distance : Flonum
          (cond [(or maybe-distance) (~distance maybe-distance (geo-height label))]
@@ -112,7 +123,7 @@
                        (* (let ([Re (real-part dir)])
                             (cond [(positive? Re) 1.0]
                                   [(zero? Re) (if (positive? (imag-part dir)) 1.0 -1.0)]
-                                     [else -1.0]))
+                                  [else -1.0]))
                           (magnitude (make-rectangular (* (max lw 16.0) (sin theta))
                                                        (* lh (cos theta))))
                           0.75))]))
@@ -128,7 +139,7 @@
     [(self pos.dir) (geo-path-label-layer self (car pos.dir) (cdr pos.dir))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-match-any-label? : (-> (Listof Geo-Path-Labels) (U Regexp Byte-Regexp) Boolean)
+(define geo-path-match-any-label? : (-> (Listof Geo-Path-Label-Datum) (U Regexp Byte-Regexp) Boolean)
   (lambda [labels pattern]
     (for/or : Boolean ([label (in-list labels)])
       (cond [(string? label) (regexp-match? pattern label)]
@@ -140,3 +151,7 @@
                      (geo-rich-text-match? (cdr label) pattern)))]
             [(geo-rich-text? label) (geo-rich-text-match? label pattern)]
             [else #false]))))
+
+(define geo-path-label-has-stereotype? : (-> (Listof Geo-Path-Label-Datum) Boolean)
+  (lambda [labels]
+    (geo-path-match-any-label? labels #px"^(?:<<|«)[^<«»>]*(?:»|>>)$")))

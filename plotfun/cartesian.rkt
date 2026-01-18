@@ -9,7 +9,7 @@
 (provide (all-from-out "digitama/visualizer/vaid/self.rkt"))
 
 (require racket/case)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/digitama/dc/grid)
 (require geofun/digitama/dc/text)
@@ -49,7 +49,7 @@
            #:screen? [screen? : Boolean #false]
            #:O [chO : Char #\O]
            #:origin [maybe-origin : (Option Complex) #false]
-           #:unit-length [maybe-unit : (Option Complex+%) #false]
+           #:unit-length [maybe-unit : (Option (Pairable Length+%)) #false]
            #:width [width : Real (default-plot-cartesian-view-width)]
            #:height [height : Real (default-plot-cartesian-view-height)]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
@@ -73,11 +73,9 @@
            #:palette [palette : Plot-Palette (default-plot-palette)]
            #:layer-order [layer-order : (Listof Plot-Cartesian-Layer) (default-plot-cartesian-layer-order)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
-           #:border [bdr : Maybe-Stroke-Paint #false]
-           #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
+    (define-values (border background margin padding) (geo-frame-values frame))
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview0 yview0)
       (plot-visualizer-ranges visualizers
@@ -119,15 +117,15 @@
                                                        maybe-xstep (plot-tick-engine-format yticks-engine))
                                   ytick-range ytick-format)]))
     
-    (define bg-color : (Option FlRGBA) (brush-maybe-rgba bg))
+    (define bg-color : (Option FlRGBA) (brush-maybe-rgba background))
     (define adjust-color (λ [[c : FlRGBA]] (plot-adjust-pen-color palette c bg-color)))
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
       (plot-axis-visual-values axis-style adjust-color))
     (define-values (pin-pen mark-font mark-color mark-anchor) (plot-mark-visual-values mark-style axis-font axis-pen adjust-color))
     
-    (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
-    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
-    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
+    (define fltick-thickness : Nonnegative-Flonum (~dimension (plot-axis-style-tick-thickness axis-style) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~dimension (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~dimension (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (* fltick-thickness 0.5))
     (define xtick-min : Nonnegative-Flonum (+ fltick-min x-neg-margin))
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
@@ -325,7 +323,7 @@
 
     (if (or translated-layers)
         (create-geometry-group plot:cartesian id #false #false
-                               #:border bdr #:background bg
+                               #:border border #:background background
                                #:margin margin #:padding padding
                                translated-layers delta-origin
                                (map plot-tick-value visible-xticks)
@@ -339,7 +337,7 @@
         ; just in case. say, infinite width
         ; WARNING: this would be also true, if rotation is supported.
         (create-geometry-group plot:cartesian id #false #false
-                               #:border bdr #:background bg
+                               #:border border #:background background
                                #:margin margin #:padding padding
                                (geo-own-layers zero) delta-origin null null
                                origin-dot->pos))))

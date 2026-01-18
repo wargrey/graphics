@@ -2,17 +2,19 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
 
 (require "../paint.rkt")
-(require "../unsafe/dc/path.rkt")
-(require "../unsafe/dc/shape.rkt")
+(require "../nice/pairable.rkt")
 
 (require "../geometry/dot.rkt")
 (require "../geometry/radius.rkt")
+
+(require "../unsafe/dc/path.rkt")
+(require "../unsafe/dc/shape.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:regular-polygon geo
@@ -46,7 +48,7 @@
            #:id [id : (Option Symbol) #false]
            #:inscribed? [inscribed? : Boolean #false]
            [n : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
-    (define R : Nonnegative-Flonum (~length radius))
+    (define R : Nonnegative-Flonum (~dimension radius))
     (define N : Index (if (index? n) n 0))
     (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
     (define d : Nonnegative-Flonum
@@ -66,7 +68,7 @@
            #:id [id : (Option Symbol) #false]
            #:inscribed? [inscribed? : Boolean #false]
            [n : Integer] [step : Integer] [radius : Real] [rotation : Real 0.0]] : Geo:Regular-Polygon
-    (define R : Nonnegative-Flonum (~length radius))
+    (define R : Nonnegative-Flonum (~dimension radius))
     (define N : Index (if (index? n) n 0))
     (define K : Positive-Index (if (and (index? step) (> step 0)) step 1))
     (define rtype : 2D-Radius-Type (if inscribed? 'edge 'vertex))
@@ -85,11 +87,12 @@
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
-           #:scale [scale : Point2D 1.0]
+           #:scale [scale : Pairable-Real 1.0]
            #:offset [offset : Complex 0.0+0.0i]
            #:window [window : (Option Point2D) #false]
            [pts : (U Point2D (Listof Point2D))]] : Geo:Polygon
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
+    (define-values (sx sy) (2d-scale-values scale))
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset sx sy))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
     (create-geometry-object geo:polygon
@@ -101,12 +104,13 @@
 (define geo-polyline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:id [id : (Option Symbol) #false]
-           #:scale [scale : Point2D 1.0]
+           #:scale [scale : Pairable-Real 1.0]
            #:offset [offset : Complex 0.0+0.0i]
            #:window [window : (Option Point2D) #false]
            #:close? [close? : Boolean #false]
            [pts : (U Point2D (Listof Point2D))]] : Geo:Polyline
-    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset scale))
+    (define-values (sx sy) (2d-scale-values scale))
+    (define-values (prints lx ty rx by) (~point2ds (if (list? pts) pts (list pts)) offset sx sy))
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window (or window +nan.0+nan.0i) lx ty rx by))
     
     (create-geometry-object geo:polyline

@@ -2,15 +2,14 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
-(require digimon/constant)
+(require digimon/measure)
 
 (require "../polygon.rkt")
 (require "../../paint/self.rkt")
 (require "../../geometry/polygon/pentagon.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-house : (->* (Real Real+%)
+(define geo-house : (->* (Real-Length Length+%)
                          (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                          Geo:Polygon)
   (lambda [width height [t 0.618] #:id [id #false] #:stroke [outline (void)] #:fill [pattern (void)]]

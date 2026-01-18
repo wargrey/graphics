@@ -12,7 +12,7 @@
 
 (require "digitama/dc/resize.rkt")
 (require "digitama/geometry/ink.rkt")
-(require "digitama/geometry/spacing.rkt")
+(require "digitama/geometry/insets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-section : (case-> [Geo Complex Complex -> Geo]
@@ -39,10 +39,12 @@
 (define geo-inset : (case-> [Geo -> Geo]
                             [Geo Real -> Geo:Region]
                             [Geo Real Real -> Geo:Region]
+                            [Geo Real Real Real -> Geo:Region]
                             [Geo Real Real Real Real -> Geo:Region])
   (case-lambda
     [(self inset) (geo-inset self inset inset inset inset)]
     [(self vertical horizontal) (geo-inset self vertical horizontal vertical horizontal)]
+    [(self top horizontal bottom) (geo-inset self top horizontal bottom horizontal)]
     [(self top right bottom left)
      (let-values ([(flwidth flheight) (geo-flsize self)])
        (make-geo:region self (- left) (- top) (max (+ left flwidth right) 0.0) (max (+ top flheight bottom) 0.0)))]
@@ -96,13 +98,13 @@
 (define geo-try-dsfit : (case-> [Geo Geo -> (Option Geo)]
                                 [Geo Real Real -> (Option Geo)]
                                 [Geo Geo Nonnegative-Real Nonnegative-Real -> (Option Geo)]
-                                [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> (Option Geo)])
+                                [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Insets-Datum+% -> (Option Geo)])
   (case-lambda
     [(self refer) (geo-dsfit self refer 1.0 1.0 0.0)]
     [(self refer wratio hratio) (geo-dsfit self refer wratio hratio 0.0)]
-    [(self refer wratio hratio margin)
-     (let-values ([(mtop mright mbottom mleft) (geo-spacing-values margin)]
-                  [(flwidth flheight) (geo-flsize refer)])
+    [(self refer wratio hratio padding)
+     (let*-values ([(flwidth flheight) (geo-flsize refer)]
+                   [(mtop mright mbottom mleft) (geo-inset*-values padding flwidth)])
        (geo-dsfit self
                   (- (* flwidth  (real->double-flonum wratio)) mleft mright)
                   (- (* flheight (real->double-flonum hratio)) mtop mbottom)))]
@@ -119,9 +121,9 @@
 (define geo-dsfit : (case-> [Geo Geo -> Geo]
                             [Geo Real Real -> Geo]
                             [Geo Geo Nonnegative-Real Nonnegative-Real -> Geo]
-                            [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Spacing -> Geo])
+                            [Geo Geo Nonnegative-Real Nonnegative-Real Geo-Insets-Datum+% -> Geo])
   (case-lambda
     [(self refer) (or (geo-try-dsfit self refer) self)]
     [(self refer wratio hratio) (or (geo-try-dsfit self refer wratio hratio) self)]
-    [(self refer wratio hratio margin) (or (geo-try-dsfit self refer wratio hratio margin) self)]
+    [(self refer wratio hratio padding) (or (geo-try-dsfit self refer wratio hratio padding) self)]
     [(self width height) (or (geo-try-dsfit self width height) self)]))

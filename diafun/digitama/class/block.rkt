@@ -2,30 +2,42 @@
 
 (provide (all-defined-out))
 
-(require "../block/style.rkt")
-(require "../block/dc.rkt")
-(require "../interface.rkt")
-(require "../shared.rkt")
-
-(require geofun/digitama/dc/rect)
-(require geofun/digitama/dc/text)
+(require digimon/measure)
 (require geofun/composite)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diacls-block-interface : Dia-Block-Create
-  (lambda [block-key caption style width height direction subtype]
-    (create-dia-block #:id block-key #:type 'Interface subtype
-                      #:fit-region 0.85 1.0
-                      #:create-with style [geo-rectangle width height '(12.5 %)]
-                      (and caption
-                           (geo-vc-append #:gapsize 2.0
-                                          (geo-text #:color (dia-block-resolve-font-paint style)
-                                                    "<<interface>>" default-label-tag-font)
-                                          caption)))))
+(require geofun/digitama/self)
+(require geofun/digitama/dc/text)
 
-(define diacls-block-class : Dia-Block-Create
-  (lambda [block-key caption style width height direction subtype]
-    (create-dia-block #:id block-key #:type 'Class subtype
-                      #:fit-region 0.85 1.0
-                      #:create-with style [geo-rectangle width height '(12.5 %)]
-                      caption)))
+(require "../block/style.rkt")
+(require "../block/interface.rkt")
+(require "../block/dc/node.rkt")
+
+(require "parameter.rkt")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) cls-block-interface : (Dia-Block-Create S (Option Symbol))
+  (lambda [block-key caption style width height direction stereotype]
+    (dia-block-rectangle/cr:8th block-key
+                                (or (cls-block-caption caption (or stereotype 'Interface) style height)
+                                    caption)
+                                style width height direction 'Interface stereotype)))
+
+(define #:forall (S) cls-block-class : (Dia-Block-Create S (Option Symbol))
+  (lambda [block-key caption style width height direction stereotype]
+    (dia-block-rectangle/cr:8th block-key
+                                (or (cls-block-caption caption stereotype style height)
+                                    caption)
+                                style width height direction 'Class stereotype)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) cls-block-caption : (-> (Option Geo) (Option Symbol) (Dia-Block-Style-Spec S) Nonnegative-Flonum (Option Geo))
+  (lambda [caption stereotype style height]
+    (and caption
+         (or (symbol? stereotype)
+             (pair? stereotype))
+         (geo-vc-append #:gapsize (~dimension (default-cls-stereotype-gapsize) height)
+                        (geo-text #:color (dia-block-resolve-font-paint style)
+                                  (format "«~a»" (if (symbol? stereotype) stereotype (car stereotype)))
+                                  (or (default-cls-stereotype-font)
+                                      (dia-block-resolve-font style)))
+                        caption))))

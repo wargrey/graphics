@@ -2,49 +2,37 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
+(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Mark-Vector (U (Pairof Flonum Flonum) (List Flonum Flonum (U '% ':))))
+(define-type Plot-Mark-Vector (Pairof (Option Length+%) Flonum))
 
 (define-type Plot-Mark-Fallback-Angle (U Real (-> Real (Option Real))))
-(define-type Plot-Mark-Fallback-Vector
-  (U (Pairof Flonum Plot-Mark-Fallback-Angle)
-     (List Flonum Plot-Mark-Fallback-Angle (U '% ':))))
+(define-type Plot-Mark-Fallback-Vector (Pairof Length+% Plot-Mark-Fallback-Angle))
 
-(define plot-mark-null-vector : Plot-Mark-Vector (cons +nan.0 +nan.0))
+(define plot-mark-null-vector : Plot-Mark-Vector (cons #false +nan.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-vector : (-> Real+% Real Plot-Mark-Vector)
+(define plot-mark-vector : (-> Length+% Real Plot-Mark-Vector)
   (lambda [length angle]
-    (define l-ok? (if (list? length) (rational? (car length)) (rational? length)))
-    (define a-ok? (rational? angle))
-    
-    (if (list? length)
-        (list (if (not l-ok?) +nan.0 (real->double-flonum (car length)))
-              (if (not a-ok?) +nan.0 (real->double-flonum angle))
-              (cadr length))
-        (cons (if (not l-ok?) +nan.0 (real->double-flonum length))
-              (if (not a-ok?) +nan.0 (real->double-flonum angle))))))
+    (cons (and (~rational? length) length)
+          (if (rational? angle) (real->double-flonum angle) +nan.0))))
 
-(define plot-mark-pin-vector : (-> Boolean (Option Real+%) (Option Real) (Option Plot-Mark-Vector))
+(define plot-mark-pin-vector : (-> Boolean (Option Length+%) (Option Real) (Option Plot-Mark-Vector))
   (lambda [pin? length angle]
     (and pin?
          (or length angle)
          (plot-mark-vector (or length +nan.0)
                            (or  angle +nan.0)))))
 
-(define plot-mark-fallback-vector-guard : (-> Real+% Real Plot-Mark-Fallback-Angle (Option Plot-Mark-Fallback-Vector))
+(define plot-mark-fallback-vector-guard : (-> Length+% Real Plot-Mark-Fallback-Angle (Option Plot-Mark-Fallback-Vector))
   (lambda [length maybe-angle dynamic-angle]
-    (and (if (list? length) (rational? (car length)) (rational? length))
-         (let ([angle (cond [(rational? maybe-angle) (real->double-flonum maybe-angle)]
-                            [(procedure? dynamic-angle) dynamic-angle]
-                            [(rational? dynamic-angle) dynamic-angle]
-                            [else #false])])
-           (and angle
-                (if (list? length)
-                    (list (real->double-flonum (car length)) angle (cadr length))
-                    (cons (real->double-flonum length) angle)))))))
+    (and (~rational? length)
+         (cond [(rational? maybe-angle) (cons length (real->double-flonum maybe-angle))]
+               [(procedure? dynamic-angle) (cons length dynamic-angle)]
+               [(rational? dynamic-angle) (cons length dynamic-angle)]
+               [else #false]))))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-vector-guard : (-> (Option Plot-Mark-Vector) (Option Plot-Mark-Fallback-Vector) Nonnegative-Flonum Real Flonum
@@ -71,16 +59,10 @@
               (and (rational? guarded-rad)
                    (angle (make-polar 1.0 guarded-rad)))))
     
-    (cond [(list? self)
-           (let* ([len (car self)]
-                  [len (if (rational? len) (list len (caddr self)) length)])
-             (guard (~length len 100%)
-                    (cadr self)))]
-          [(pair? self)
-           (let ([len (car self)])
-             (guard (if (rational? len) len (~length length 100%))
-                    (cdr self)))]
-          [else (values #false #false)])))
+    (if (pair? self)
+        (guard (~dimension (or (car self) length) 100%)
+               (cdr self))
+        (values #false #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-point-guard : (-> Complex (-> Real Real) Positive-Fixnum Positive-Index Real Real Real Real Real (Pairof Real Real) (Option Complex))

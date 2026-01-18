@@ -2,14 +2,14 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../polygon.rkt")
 (require "../../paint/self.rkt")
 (require "../../geometry/polygon/hexagon.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-hexagon-tile : (-> Real Real+%
+(define geo-hexagon-tile : (-> Real-Length Length+%
                                [#:id (Option Symbol)]
                                [#:stroke Maybe-Stroke-Paint]
                                [#:fill Maybe-Fill-Paint]

@@ -3,8 +3,7 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
-(require digimon/metrics)
-(require digimon/constant)
+(require digimon/measure)
 
 (require "self.rkt")
 
@@ -13,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct geo:tip:dot : Geo:Tip:Dot #:-> geo-tip
   #:head ([geo-tip cfg : Geo-Tip-Config geo-filled-cfg])
-  ([radius : Real+% '(150 %)])
+  ([radius : Length+% (~% 150)])
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -31,7 +30,7 @@
             [(eq? pos 'outside) (values +0.0 +0.5)]
             [else (values -1.0 0.0)]))
     
-    (define r : Nonnegative-Flonum (~length (geo:tip:dot-radius self) 100%))
+    (define r : Nonnegative-Flonum (~dimension (geo:tip:dot-radius self) 100%))
     (define size : Nonnegative-Flonum (* (+ r 1.0) 2.0))
     (define endpoint-offset : Float-Complex
       (+ (make-polar (* r pos-rfrac) angle.rad)

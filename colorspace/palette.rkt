@@ -4,8 +4,7 @@
 
 (require racket/math)
 
-(require digimon/constant)
-(require digimon/metrics)
+(require digimon/measure)
 (require geofun/digitama/base)
 
 (require "ok.rkt")

@@ -5,6 +5,7 @@
 (require racket/vector)
 (require digimon/sequence)
 (require digimon/function)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -13,7 +14,7 @@
 (require "../composite.rkt")
 
 (require "../geometry/ink.rkt")
-(require "../geometry/spacing.rkt")
+(require "../geometry/insets.rkt")
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")
@@ -144,7 +145,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo:group : (case-> [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group -> Geo:Group]
                                  [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group
-                                                  (Option Geo-Spacing) (Option Geo-Spacing)
+                                                  (Option Geo-Insets-Datum) (Option Geo-Insets-Datum)
                                                   Maybe-Stroke-Paint Maybe-Fill-Paint
                                                   -> Geo:Group])
   (case-lambda
@@ -177,7 +178,7 @@
 
 (define geo-table-metrics : (-> (Vectorof (GLayerof Geo)) Positive-Index Positive-Index
                                 (Geo-Config-Argof Geo-Pin-Anchor) (Geo-Config-Argof Geo-Pin-Anchor)
-                                (Geo-Config-Argof Real) (Geo-Config-Argof Real)
+                                (Geo-Config-Argof Real-Length) (Geo-Config-Argof Real-Length)
                                 (Values Geo-Layer-Group
                                         (Pairof Positive-Index Positive-Index)
                                         (Pairof (Vectorof Geo-Pin-Anchor) (Vectorof Geo-Pin-Anchor))
@@ -185,8 +186,8 @@
   (lambda [table ncols nrows col-anchors row-anchors col-gaps row-gaps]
     (define pcols : (Vectorof Geo-Pin-Anchor) (geo-config-expand col-anchors ncols 'cc))
     (define prows : (Vectorof Geo-Pin-Anchor) (geo-config-expand row-anchors nrows 'cc))
-    (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 real->double-flonum))
-    (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 real->double-flonum))
+    (define gcols : (Vectorof Flonum) (geo-config-expand col-gaps ncols 0.0 ~distance))
+    (define grows : (Vectorof Flonum) (geo-config-expand row-gaps nrows 0.0 ~distance))
     
     (define size : Index (vector-length table))
     (define cwidths : (Vectorof Nonnegative-Flonum) (geo-table-column-widths table nrows ncols size))
@@ -228,10 +229,10 @@
     (λ [self]
       (values w h #false))))
 
-(define geo-group-frame-extent : (-> (Option Geo-Spacing) (Option Geo-Spacing) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
+(define geo-group-frame-extent : (-> (Option Geo-Insets-Datum) (Option Geo-Insets-Datum) Geo-Layer-Group Maybe-Stroke-Paint Geo-Calculate-Extent)
   (lambda [margin inset layers maybe-border]
-    (define-values (mtop mright mbottom mleft) (geo-spacing-values margin))
-    (define-values (ptop pright pbottom pleft) (geo-spacing-values inset))
+    (define-values (mtop mright mbottom mleft) (geo-inset-values margin))
+    (define-values (ptop pright pbottom pleft) (geo-inset-values inset))
 
     (define frame-outline : Geo-Calculate-Outline (geo-group-outline layers))
     (define-values (gwidth gheight) (values (glayer-group-width layers) (glayer-group-height layers)))

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/metrics)
+(require digimon/measure)
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -57,14 +57,23 @@
                                       self sx sy)]
              [else (geo-scale (geo:transform-source self) (* sx (geo:scale-sx self)) (* sy (geo:scale-sy self)))]))]))
 
-(define geo-rotate : (->* (Geo Real) (Boolean) Geo)
-  (lambda [self theta [radian? #true]]
-    (define fltheta : Flonum (~radian theta radian?))
-    (cond [(= fltheta 0.0) self]
-          [(geo:rotation? self) (geo-rotate (geo:transform-source self) (+ fltheta (geo:rotation-theta self)))]
-          [else (create-geometry-object geo:rotation
-                                        #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent (geo-outline self)]
-                                        self fltheta)])))
+(define geo-rotate : (case-> [Geo Real -> Geo]
+                             [Geo Real Angle-Unit -> Geo])
+  (case-lambda
+    [(self theta)
+     (let ([fltheta (real->double-flonum theta)])
+       (cond [(= fltheta 0.0) self]
+             [(geo:rotation? self) (geo-rotate (geo:transform-source self) (+ fltheta (geo:rotation-theta self)))]
+             [else (create-geometry-object geo:rotation
+                                           #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent (geo-outline self)]
+                                           self fltheta)]))]
+    [(self theta unit) (geo-rotate self (~rad theta unit))]))
+
+(define geo-skew : (case-> [Geo Real Real -> Geo]
+                           [Geo Real Real Angle-Unit -> Geo])
+  (case-lambda
+    [(self skx sky) (geo-shear self (tan skx) (tan sky))]
+    [(self skx sky unit) (geo-shear self (tan (~rad skx unit)) (tan (~rad sky unit)))]))
 
 (define geo-shear : (-> Geo Real Real Geo)
   (lambda [self shx shy]
@@ -76,12 +85,6 @@
           [else (create-geometry-object geo:shear
                                         #:with [(geo-id self) geo-draw/shear! geo-shear-extent (geo-outline self)]
                                         self fx fy)])))
-
-(define geo-skew : (->* (Geo Real Real) (Boolean) Geo)
-  (lambda [self skx sky [radian? #true]]
-    (geo-shear self
-               (tan (~radian skx radian?))
-               (tan (~radian sky radian?)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-geo:region : (-> Geo Real Real Nonnegative-Real Nonnegative-Real Geo:Region)

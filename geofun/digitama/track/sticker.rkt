@@ -5,6 +5,7 @@
 (require "../self.rkt")
 (require "../convert.rkt")
 (require "../composite.rkt")
+(require "../geometry/bbox.rkt")
 
 (require "../dc/text.rkt")
 (require "../dc/track.rkt")
@@ -14,9 +15,8 @@
 (require "../layer/sticker.rkt")
 (require "../layer/merge.rkt")
 
-(require "../geometry/bbox.rkt")
-(require "../geometry/trail.rkt")
-(require "../geometry/anchor.rkt")
+(require "../track/trail.rkt")
+(require "../track/anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Track-Anchor->Sticker

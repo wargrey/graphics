@@ -4,7 +4,7 @@
 
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
-(require "../../geometry/radius.rkt")
+
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -105,24 +105,6 @@
     (for ([vt (in-vector vts)])
       (cairo_line_to cr (real-part vt) (imag-part vt)))
     (cairo_close_path cr)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define icosahedron-edge-length->circumsphere-radius : (-> Nonnegative-Flonum Nonnegative-Flonum)
-  (lambda [a]
-    (* a sin72º)))
-
-(define icosahedron-radius->edge-length : (-> Nonnegative-Flonum 3D-Radius-Type Nonnegative-Flonum)
-  (lambda [r type]
-    (cond [(eq? type 'edge)   (* r 2.0 1/phi)] ; midsphere    R = a•φ/2
-          [(eq? type 'face)   (* r 2√3 1/φ²)]  ; insphere     R = a•φ²/(2√3)
-          [(eq? type 'vertex) (* r 1/sin72º)]  ; circumsphere R = a•sin72º = a•√(φ²+1)/2
-          [else '#:deadcode r])))
-
-(define icosahedron-radius->circumsphere-radius : (-> Nonnegative-Flonum 3D-Radius-Type Nonnegative-Flonum)
-  (lambda [r type]
-    (cond [(eq? type 'vertex) r]
-          [else (icosahedron-edge-length->circumsphere-radius
-                 (icosahedron-radius->edge-length r type))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define icosahedron-edge-length->outline : (-> Nonnegative-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))

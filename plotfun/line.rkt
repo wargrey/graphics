@@ -7,7 +7,7 @@
 (provide (all-from-out "digitama/base.rkt"))
 
 (require racket/case)
-(require digimon/metrics)
+(require digimon/measure)
 
 (require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
@@ -34,7 +34,7 @@
 (define plot-real-line
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [line-length : Real (default-plot-axis-length)]
-           #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
+           #:unit-length [maybe-unit : (Option Length+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
@@ -45,10 +45,7 @@
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:mark-style [real-style : (Option Plot-Mark-Style) #false]
            #:mark-template [desc-real : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
-           #:border [bdr : Maybe-Stroke-Paint #false]
-           #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
            #:rotate [rotate : Real 0.0]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
@@ -69,9 +66,9 @@
     (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
 
-    (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
-    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
-    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
+    (define fltick-thickness : Nonnegative-Flonum (~dimension (plot-axis-style-tick-thickness axis-style) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~dimension (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~dimension (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -149,19 +146,20 @@
 
     (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
+    (define-values (border background margin padding) (geo-frame-values frame))
 
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
                [dot->pos (λ [[x : Flonum]] : Float-Complex (+ delta-origin (make-polar (* x flunit) α)))])
           (create-geometry-group plot:line id #false #false
-                                 #:border bdr #:background bg
+                                 #:border border #:background background
                                  #:margin margin #:padding padding
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
                                    [(pt) (dot->pos (real-part pt))])))
         (create-geometry-group plot:line id #false #false
-                               #:border bdr #:background bg
+                               #:border border #:background background
                                #:margin margin #:padding padding
                                (geo-layers-merge (cons the-main-axis-layer layers))
                                flc-origin actual-tick-values
@@ -170,7 +168,7 @@
 (define plot-integer-line
   (lambda [#:id [id : (Option Symbol) #false]
            #:length [line-length : Real (default-plot-axis-length)]
-           #:unit-length [maybe-unit : (Option Real+%) (default-plot-axis-unit-length)]
+           #:unit-length [maybe-unit : (Option Length+%) (default-plot-axis-unit-length)]
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
@@ -182,10 +180,7 @@
            #:mark-style [int-style : (Option Plot-Mark-Style) #false]
            #:mark-template [desc-int : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
            #:exclude-zero? [exclude-zero? : Boolean #true]
-           #:border [bdr : Maybe-Stroke-Paint #false]
-           #:background [bg : Maybe-Fill-Paint #false]
-           #:margin [margin : (Option Geo-Spacing) #false]
-           #:padding [padding : (Option Geo-Spacing) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))
@@ -201,9 +196,9 @@
     (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     
-    (define fltick-thickness : Nonnegative-Flonum (~length (plot-axis-style-tick-thickness axis-style) flthickness))
-    (define fltick-length : Nonnegative-Flonum (~length (plot-axis-style-tick-length axis-style) flthickness))
-    (define fltick-sublen : Nonnegative-Flonum (~length (plot-axis-style-minor-tick-length axis-style) fltick-length))
+    (define fltick-thickness : Nonnegative-Flonum (~dimension (plot-axis-style-tick-thickness axis-style) flthickness))
+    (define fltick-length : Nonnegative-Flonum (~dimension (plot-axis-style-tick-length axis-style) flthickness))
+    (define fltick-sublen : Nonnegative-Flonum (~dimension (plot-axis-style-minor-tick-length axis-style) fltick-length))
     (define fltick-min : Nonnegative-Flonum (+ neg-margin (* fltick-thickness 0.5)))
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
@@ -267,19 +262,20 @@
     
     (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
+    (define-values (border background margin padding) (geo-frame-values frame))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
                [dot->pos (λ [[x : Flonum]] : Float-Complex (+ delta-origin (* x flunit)))])
           (create-geometry-group plot:line id #false #false
-                                 #:border bdr #:background bg
+                                 #:border border #:background background
                                  #:margin margin #:padding padding
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
                                    [(pt) (dot->pos (real-part pt))])))
         (create-geometry-group plot:line id #false #false
-                               #:border bdr #:background bg
+                               #:border border #:background background
                                #:margin margin #:padding padding
                                (geo-layers-merge (cons the-main-axis-layer layers))
                                flc-origin actual-tick-values

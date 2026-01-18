@@ -7,7 +7,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO: should it be rich text? or plain text + comment block
 (define-type Geo-Track-Multiplicity-Datum (U Integer Symbol Keyword Char String False))
-(define-type Geo-Track-Multiplicity+Label (U Geo-Track-Multiplicity-Datum (Pairof Geo-Track-Multiplicity-Datum Geo-Path-Label)))
+(define-type Geo-Track-Multiplicity+Label (U Geo-Track-Multiplicity-Datum (Pairof Geo-Track-Multiplicity-Datum Geo-Path-Label-Text)))
 (define-type Geo-Track-Info-Datum (U Number Symbol Keyword Char Geo:Track:Datum))
 
 (define default-geo-track-label-base-position : (Parameterof Nonnegative-Flonum) (make-parameter 0.25))
@@ -18,7 +18,7 @@
   #:transparent)
 
 (struct geo:track:info
-  ([labels : Geo-Path-Labels]
+  ([labels : Geo-Path-Label-Datum]
    [base-position : Nonnegative-Flonum]
    [multiplicity : (Option Geo:Track:Multiplicity)]
    [extra : (Listof Geo-Track-Info-Datum)])

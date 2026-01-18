@@ -3,13 +3,13 @@
 (provide (all-defined-out))
 
 (require "datum.rkt")
+(require "trail.rkt")
+(require "anchor.rkt")
 
 (require "../base.rkt")
 (require "../dc/track.rkt")
 
 (require "../geometry/bbox.rkt")
-(require "../geometry/trail.rkt")
-(require "../geometry/anchor.rkt")
 (require "../geometry/footprint.rkt")
 
 (require (for-syntax racket/base))
@@ -254,3 +254,15 @@
            [else (make-rectangular (real->double-flonum (real-part target))
                                    (real->double-flonum (imag-part target)))])]
     [(self target offset) (+ offset (geo-track-target-position self target))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-track-zone : (-> Gomamon Real Real Void)
+  (lambda [self width height]
+    (define init-pos (geo:track-origin self))
+    
+    (set-geo:track-here! self init-pos)
+    (set-geo:track-footprints! self (cons the-Z (geo:track-footprints self)))))
+
+(define geo-track-lane : (-> Gomamon Void)
+  (lambda [self]
+    (void)))

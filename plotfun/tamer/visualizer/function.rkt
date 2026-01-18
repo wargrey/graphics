@@ -47,9 +47,9 @@
           (function sqrt -3   +4)
           (function log  +1/4 #f)))
 
-(define white-cart (plot-cartesian #:background white vtree))
-(define  grey-cart (plot-cartesian #:x-grid-style #false #:background grey  vtree))
-(define black-cart (plot-cartesian #:x-grid-style #false #:background black vtree))
+(define white-cart (plot-cartesian #:frame white vtree))
+(define  grey-cart (plot-cartesian #:frame grey  #:x-grid-style #false vtree))
+(define black-cart (plot-cartesian #:frame black #:x-grid-style #false vtree))
 
 (define carts (geo-hb-append #:gapsize 32.0 white-cart grey-cart black-cart))
 
