@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bacteriophage-logo
   (lambda [#:id [id : (Option Symbol) 'bacteriophage]
-           #:sheath-length [sheath-length : Length+% (~: phi)]
+           #:sheath-length [sheath-length : Length+% (&: phi)]
            #:λ-color [λ-color : Color 'Crimson]
            #:fibre-color [fibre-color : Color 'Teal]
            #:fill-color [fill-color : Color 'MintCream]
@@ -55,7 +55,7 @@
     (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5))
     (define maybe-sheath : (Option Geo)
       (and (not no-sheath?)
-           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness (~: 1/phi) #:wing-angle pi
+           (geo-arrow #:id 'sheath #:fill tail-color #:stroke ohead-stroke #:shaft-thickness (&: 1/phi) #:wing-angle pi
                       Rdart used-sheath-length pi/2)))
 
     (define tail.rad : Flonum
@@ -109,4 +109,4 @@
   (bacteriophage-logo 32.0)
   (bacteriophage-logo 64.0)
   (bacteriophage-logo 128.0)
-  (bacteriophage-logo 128.0 #:sheath-length (~% 80)))
+  (bacteriophage-logo 128.0 #:sheath-length (&% 80)))

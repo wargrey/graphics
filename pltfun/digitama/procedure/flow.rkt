@@ -35,8 +35,8 @@
            #:block-scale [block-scale : Nonnegative-Real 1.00]
            #:downward? [downward? : Boolean #false]
            #:rotate-label? [rotation? : Boolean (not downward?)]
-           #:grid-width [grid-width : Length+% (~% 100)]
-           #:grid-height [grid-height : Length+% (~% 81)]
+           #:grid-width [grid-width : Length+% (&% 100)]
+           #:grid-height [grid-height : Length+% (&% 81)]
            #:xstep [xstep : Real 1.0]
            #:ystep [ystep : Real 1.0]
            #:file-position [file-position : Real 0.42]
@@ -44,7 +44,7 @@
            #:output-desc [alt-out : (Option (-> Any (U Void Geo-Rich-Text))) #false]
            #:reader [f : (-> Input-Port Any) read] #:peek-size [peek-size : Index 8]
            [in : Input-Port] [repeats : Index 1]] : Dia:FlowChart
-    (parameterize ([default-flow-file-style (make-flow-file-style #:width (~% 40.0) #:height (~% 61.8) #:padding (~% 8))]
+    (parameterize ([default-flow-file-style (make-flow-file-style #:width (&% 40.0) #:height (&% 61.8) #:padding (&% 8))]
                    [default-flow~storage~style (make-flow~storage~style #:label-rotate? rotation?)])
       (define-values (base-width base-height) (dia-block-reference-size block-factory))
       (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:>>
@@ -96,8 +96,8 @@
            #:block-scale [block-scale : Nonnegative-Real 1.00]
            #:downward? [downward? : Boolean #false]
            #:rotate-label? [rotation? : Boolean (not downward?)]
-           #:grid-width [grid-width : Length+% (~% 100)]
-           #:grid-height [grid-height : Length+% (~% 81)]
+           #:grid-width [grid-width : Length+% (&% 100)]
+           #:grid-height [grid-height : Length+% (&% 81)]
            #:xstep [xstep : Real 1.0]
            #:ystep [ystep : Real 1.0]
            #:input-desc [alt-in : (U Geo-Option-Rich-Text (-> In (U Void Geo-Rich-Text))) #false]
@@ -130,8 +130,8 @@
            #:block-scale [block-scale : Nonnegative-Real 1.00]
            #:downward? [downward? : Boolean #false]
            #:rotate-label? [rotation? : Boolean (not downward?)]
-           #:grid-width [grid-width : Length+% (~% 100)]
-           #:grid-height [grid-height : Length+% (~% 81)]
+           #:grid-width [grid-width : Length+% (&% 100)]
+           #:grid-height [grid-height : Length+% (&% 81)]
            #:xstep [xstep : Real 1.0]
            #:ystep [ystep : Real 1.0]
            #:input-desc [alt-in : Geo-Option-Rich-Text #false]
@@ -173,14 +173,14 @@
            #:block-scale [block-scale : Nonnegative-Real 1.00]
            #:and? [and? : Boolean #true]
            #:downward? [downward? : Boolean #false] #:rotate-label? [rotation? : Boolean (not downward?)]
-           #:grid-width [grid-width : Length+% (~% 85)]
-           #:grid-height [grid-height : Length+% (~% 61.8)]
+           #:grid-width [grid-width : Length+% (&% 85)]
+           #:grid-height [grid-height : Length+% (&% 61.8)]
            #:xstep [xstep : Real 1.0] #:ystep [ystep : Real 1.0]
            #:input-desc [alt-in : (Listof Geo-Option-Rich-Text) null]
            #:output-desc [alt-out : (Listof (U Geo-Option-Rich-Text (-> Any (U Void Geo-Rich-Text)))) null]
            [f : (U (-> In Any) (Pairof (-> In Any) (Listof (-> In Any))))] [ins : (Pairof In (Listof In))]] : Dia:FlowChart
-      (parameterize ([default-flow-junction-style (make-flow-junction-style #:height (~% 32))]
-                     [default-flow-selection-style (make-flow-selection-style #:height (~% 32))]
+      (parameterize ([default-flow-junction-style (make-flow-junction-style #:height (&% 32))]
+                     [default-flow-selection-style (make-flow-selection-style #:height (&% 32))]
                      [default-flow~storage~style (make-flow~storage~style #:label-rotate? rotation?)])
         (define-values (base-width base-height) (dia-block-reference-size block-factory))
         (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:>>
@@ -230,15 +230,15 @@
              #:block-scale [block-scale : Nonnegative-Real 1.00]
              #:or? [or? : Boolean #true]
              #:downward? [downward? : Boolean #false] #:rotate-label? [rotation? : Boolean (not downward?)]
-             #:grid-width [grid-width : Length+% (~% 85)]
-             #:grid-height [grid-height : Length+% (~% 61.8)]
+             #:grid-width [grid-width : Length+% (&% 85)]
+             #:grid-height [grid-height : Length+% (&% 61.8)]
              #:xstep [xstep : Real 1.0]
              #:ystep [ystep : Real 1.0]
              #:input-desc [alt-in : Geo-Option-Rich-Text #false]
              #:output-desc [alt-out : (Listof (U Geo-Option-Rich-Text (-> Out (U Void Geo-Rich-Text)))) null]
              [f : (-> In Out)] [ins : (Pairof In (Listof In))]] : Dia:FlowChart
-      (parameterize ([default-flow-junction-style (make-flow-junction-style #:height (~% 32))]
-                     [default-flow-selection-style (make-flow-selection-style #:height (~% 32))]
+      (parameterize ([default-flow-junction-style (make-flow-junction-style #:height (&% 32))]
+                     [default-flow-selection-style (make-flow-selection-style #:height (&% 32))]
                      [default-flow~storage~style (make-flow~storage~style #:label-rotate? rotation?)])
         (define-values (base-width base-height) (dia-block-reference-size block-factory))
         (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:>>
@@ -290,14 +290,14 @@
              #:track-factory [track-factory : Plt-Flow-Track-Factory (default-plt-flow-track-factory)]
              #:block-factory [block-factory : Plt-Flow-Block-Factory (default-plt-flow-block-factory)]
              #:block-scale [block-scale : Nonnegative-Real 1.00]
-             #:grid-width [grid-width : Length+% (~% 100)]
-             #:grid-height [grid-height : Length+% (~% 50)]
+             #:grid-width [grid-width : Length+% (&% 100)]
+             #:grid-height [grid-height : Length+% (&% 50)]
              #:xstep [xstep : Real 1.00]
              #:ystep [ystep : Real 1.00]
              #:read-desc [read-desc : Any "Read"]
              #:write-desc [write-desc : Any "Write"]
              [variable : Symbol] [f : Symbol] [out-desc : Any]] : Dia:FlowChart
-      (parameterize ([default-flow-storage-style (make-flow-storage-style #:width (~% 50.0) #:height (~% 61.8) #:font plt-flow-preset-block-font)])
+      (parameterize ([default-flow-storage-style (make-flow-storage-style #:width (&% 50.0) #:height (&% 61.8) #:font plt-flow-preset-block-font)])
         (define v : Symbol (string->symbol (format "/proc/~a" variable)))
         (define-values (base-width base-height) (dia-block-reference-size block-factory))
         (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i v

@@ -36,7 +36,7 @@
   #:format "default-uc-block-~a"
   ([width : Nonnegative-Flonum 160.0]
    [height : Nonnegative-Flonum 50.0]
-   [padding : Dia-Block-Padding (~L 0.333 'em)]
+   [padding : Dia-Block-Padding (&L 0.333 'em)]
    [font : Font dia-preset-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint dia-preset-block-stroke]
@@ -44,8 +44,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct uc-actor-style : UC-Actor-Style #:-> uc-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size (~% 80)] ; ignored by its shape, but used to limit the length of its caption 
-   [height : Dia-Block-Option-Size (~% 200)]
+  ([width : Dia-Block-Option-Size (&% 80)] ; ignored by its shape, but used to limit the length of its caption 
+   [height : Dia-Block-Option-Size (&% 200)]
    [padding : Dia-Block-Option-Padding #false] ; the top padding would be used as the gapsize of its caption
    [font : (Option Dia-Block-Font-Style) dia-preset-header-font-tweak]
    [font-paint : Option-Fill-Paint #false]

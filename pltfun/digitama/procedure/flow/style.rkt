@@ -19,7 +19,7 @@
 (define plt-flow-preset-track-font : Font (desc-font #:family 'math #:size 'x-large))
 (define plt-flow-preset-block-font : Font (desc-font #:family 'math #:size 'xx-large))
 (define plt-flow-preset-track-stroke : Pen (desc-stroke dia-preset-track-stroke #:color 'DodgerBlue #:dash 'dot))
-(define plt-flow-preset-block-stroke : Pen (desc-stroke dia-preset-block-stroke #:width (~% 75)))
+(define plt-flow-preset-block-stroke : Pen (desc-stroke dia-preset-block-stroke #:width (&% 75)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration plt-flow-track-backstop-style : Plt-Flow-Track-Backstop-Style #:as dia-track-backstop-style
@@ -38,7 +38,7 @@
   #:format "default-plt-flow-block-~a"
   ([width : Nonnegative-Flonum 150.0]
    [height : Nonnegative-Flonum 75.0] ; 1/2 of the width
-   [padding : Dia-Block-Padding (~% 4)]
+   [padding : Dia-Block-Padding (&% 4)]
    [font : Font dia-preset-header-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint plt-flow-preset-block-stroke]

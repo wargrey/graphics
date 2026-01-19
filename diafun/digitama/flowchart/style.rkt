@@ -40,7 +40,7 @@
   #:format "default-flow-block-~a"
   ([width : Nonnegative-Flonum 200.0]
    [height : Nonnegative-Flonum 50.0]
-   [padding : Dia-Block-Padding (~L 0.333 'em)]
+   [padding : Dia-Block-Padding (&L 0.333 'em)]
    [font : Font dia-preset-block-caption-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint dia-preset-block-stroke]
@@ -73,8 +73,8 @@
 ; On-Page-Connector -> Inspection
 (define-phantom-struct flow-inspection-style : Flow-Inspection-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
-   [height : Dia-Block-Option-Size (~% 61.8)]
-   [padding : Dia-Block-Option-Padding #false]
+   [height : Dia-Block-Option-Size (&% 61.8)]
+   [padding : Dia-Block-Option-Padding (&% 2)]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
@@ -86,7 +86,7 @@
 (define-phantom-struct flow-reference-style : Flow-Reference-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
    [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding #false]
+   [padding : Dia-Block-Option-Padding (&% 2)]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
@@ -117,8 +117,8 @@
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-decision-style : Flow-Decision-Style #:-> flow-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (~% 85)]
-   [height : Dia-Block-Option-Size (~% 85)]
+  ([width : Dia-Block-Option-Size  (&% 85)]
+   [height : Dia-Block-Option-Size (&% 85)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -177,7 +177,7 @@
 ; Or -> Selection, when a decision produces exclusive multiple outcomes
 (define-phantom-struct flow-selection-style : Flow-Selection-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
-   [height : Dia-Block-Option-Size (~% 61.8)]
+   [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -188,7 +188,7 @@
 
 (define-phantom-struct flow-junction-style : Flow-Junction-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
-   [height : Dia-Block-Option-Size (~% 61.8)]
+   [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -200,7 +200,7 @@
 ; Normal dividing of a flow into multiple parallel ones
 (define-phantom-struct flow-extract-style : Flow-Extract-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, since the shape should be an equilateral triangle
-   [height : Dia-Block-Option-Size (~% 61.8)]
+   [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -211,7 +211,7 @@
 
 (define-phantom-struct flow-merge-style : Flow-Merge-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, since the shape should be an equilateral triangle
-   [height : Dia-Block-Option-Size (~% 61.8)]
+   [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -222,7 +222,7 @@
 
 (define-phantom-struct flow-collation-style : Flow-Collation-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
-   [height : Dia-Block-Option-Size (~% 16.18)]
+   [height : Dia-Block-Option-Size (&% 16.18)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -233,7 +233,7 @@
 
 (define-phantom-struct flow-sort-style : Flow-Sort-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
-   [height : Dia-Block-Option-Size (~% 16.18)]
+   [height : Dia-Block-Option-Size (&% 16.18)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -243,8 +243,8 @@
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct flow-storage-style : Flow-Storage-Style #:-> flow-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (~% 61.8)]
-   [height : Dia-Block-Option-Size (~% 161.8)]
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
@@ -254,8 +254,8 @@
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
 (define-phantom-struct flow-file-style : Flow-File-Style #:-> flow-storage-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (~% 61.8)]
-   [height : Dia-Block-Option-Size (~% 161.8)]
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) dia-preset-file-font]
    [font-paint : Option-Fill-Paint #false]
@@ -266,7 +266,7 @@
 
 (define-phantom-struct flow-database-style : Flow-Database-Style #:-> flow-storage-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
-   [height : Dia-Block-Option-Size (~% 16.18)]
+   [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]

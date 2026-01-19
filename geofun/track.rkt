@@ -81,7 +81,7 @@
   (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
-           xstepsize0 [ystepsize (~% 100.0)]]
+           xstepsize0 [ystepsize (&% 100.0)]]
     (define xstepsize (~dimension xstepsize0))
     (define xstep : Nonnegative-Flonum
       (cond [(<= xstepsize 0.0) 1.0]

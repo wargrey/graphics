@@ -18,7 +18,7 @@
   ([font : (Option Font) #false]
    [color : (Option Color) #false]
    [pin-pen : (Option Pen) plot-preset-marker-pin-pen]
-   [pin-length : Length+% (~% 100)]
+   [pin-length : Length+% (&% 100)]
    [pin-angle : Real +nan.0]
    [gap-length : Length+% 0.0]
    [gap-angle : Real +nan.0]

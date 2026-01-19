@@ -45,7 +45,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Real) null]
            #:hlines [hlines : (Listof Real) null]
-           [width : Real-Length] [height : Length+% (~% 61.8)]
+           [width : Real-Length] [height : Length+% (&% 61.8)]
            [corner-radius : Length+% 0.0]]
     (define-values (w h) (~extent width height))
     

@@ -15,7 +15,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct geo:tip:arrow : Geo:Tip:Arrow #:-> geo-tip
   #:head ([geo-tip cfg : Geo-Tip-Config geo-filled-cfg])
-  ([radius : Length+% (~% 300)]
+  ([radius : Length+% (&% 300)]
    [wing.deg : (Option Real) #false]
    [curved? : Boolean #true])
   #:transparent)
@@ -23,7 +23,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-arrow-tip : Geo:Tip:Arrow (make-geo:tip:arrow))
 (define default-generalization-tip : Geo:Tip:Arrow
-  (make-geo:tip:arrow #:radius (~% 350) #:wing.deg pi #:curved? #false #:cfg geo-unfilled-cfg))
+  (make-geo:tip:arrow #:radius (&% 350) #:wing.deg pi #:curved? #false #:cfg geo-unfilled-cfg))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-arrow-path : (-> Geo:Tip:Arrow Nonnegative-Flonum Flonum Geo-Tip-Placement Geo-Tip-Datum)

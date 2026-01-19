@@ -13,8 +13,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct geo:tip:diamond : Geo:Tip:Diamond #:-> geo-tip
   #:head ([geo-tip cfg : Geo-Tip-Config geo-filled-cfg])
-  ([width : Length+% (~% 600)]
-   [height : Length+% (~% 400)]
+  ([width : Length+% (&% 600)]
+   [height : Length+% (&% 400)]
    [fill? : Boolean #true])
   #:transparent)
 

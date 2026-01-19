@@ -17,7 +17,7 @@
   (lambda [#:base [base : Byte 10]
            #:nslots [min-slots : Index 0]
            #:font [font : Font (default-font)]
-           #:line-height [line-height : Length+% (~% 161.8)]
+           #:line-height [line-height : Length+% (&% 161.8)]
            #:gapsize [gapsize : Real 2.0]
            [n : Integer] [shift : Integer 0]] : Geo
     (parameterize ([default-font-metrics (font-metrics font)])

@@ -99,8 +99,8 @@
            #:shape [shape : (Option Geo-Tip) #false]
            #:at [x : Complex]
            #:pin? [pin? : Boolean #true]
-           #:pin-length [p-length : (Option Length+%) (~% 100)] #:pin-angle [p-angle : (Option Real) +nan.0]
-           #:gap-length [g-length : Length+% (~% 42)] #:gap-angle [g-angle : Real +nan.0]
+           #:pin-length [p-length : (Option Length+%) (&% 100)] #:pin-angle [p-angle : (Option Real) +nan.0]
+           #:gap-length [g-length : Length+% (&% 42)] #:gap-angle [g-angle : Real +nan.0]
            #:anchor [anchor : (Option Geo-Pin-Anchor) #false]
            #:debug? [debug? : (U Boolean Pen) #false]
            [desc : Plot-Mark-Static-Description]] : Plot:Mark

@@ -32,7 +32,7 @@
   (lambda [id caption style width height direction type [etags #false]]
     (create-dia-block #:id id #:tag type etags
                       ;#:fit-region 0.85 1.0
-                      #:create-with style [geo-rectangle width height (~% 25)]
+                      #:create-with style [geo-rectangle width height (&% 25)]
                       caption)))
 
 (define #:forall (S) dia-block-rectangle/cr:8th : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
@@ -43,7 +43,7 @@
   (lambda [id caption style width height direction type [etags #false]]
     (create-dia-block #:id id #:tag type etags
                       ;#:fit-region 0.85 1.0
-                      #:create-with style [geo-rectangle width height (~% 12.5)]
+                      #:create-with style [geo-rectangle width height (&% 12.5)]
                       caption)))
 
 (define #:forall (S) dia-block-circle : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)

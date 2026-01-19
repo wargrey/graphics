@@ -178,7 +178,7 @@
     (create-dia-block #:id block-key #:tag 'Storage subtype
                       #:fit-region 1.0 hratio 0.0 0.0
                       #:alignment 0.0 0.0 0.0 0.0
-                      #:create-with style [geo-document width height (~: (* (- 1.0 hratio) 0.5))]
+                      #:create-with style [geo-document width height (&: (* (- 1.0 hratio) 0.5))]
                       caption)))
 
 (define #:forall (S) flow-block-multiple-document : (Dia-Block-Create S (Option Symbol))
@@ -191,7 +191,7 @@
     
     (create-dia-block #:id block-key #:tag 'Storage subtype
                       #:fit-region (- 1.00 offset%) (- 1.00 wave% offset%) 0.0 offset%
-                      #:create-with style [geo-document #:gapsize gapsize #:extra-n extra-n width height (~: (* wave% 0.5))]
+                      #:create-with style [geo-document #:gapsize gapsize #:extra-n extra-n width height (&: (* wave% 0.5))]
                       caption)))
 
 (define #:forall (S) flow-block-database : (Dia-Block-Create S (Option Symbol))
@@ -199,10 +199,10 @@
     (define extra-n : Index 2)
     (define bradius : Nonnegative-Flonum (* height 0.1618))
     (define gapsize : Nonnegative-Flonum (* bradius 0.618))
-    (define caption-height-zone : Flonum (- height (* bradius 3.0) (* gapsize (exact->inexact extra-n))))
+    (define caption-pos : Flonum (/ (+ (* bradius 2.0) (* gapsize (exact->inexact extra-n))) height))
     (define width (* height 1.618))
     
     (create-dia-block #:id block-key #:tag 'Storage subtype
-                      #:fit-region 1.0 (/ caption-height-zone height) 0.0 0.5
+                      #:fit-region 1.0 (- 1.0 caption-pos) 0.0 caption-pos
                       #:create-with style [geo-database #:extra-n extra-n #:gapsize gapsize width height bradius]
                       caption)))

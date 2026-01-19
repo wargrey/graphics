@@ -16,7 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-vector : (-> Length+% Real Plot-Mark-Vector)
   (lambda [length angle]
-    (cons (and (~rational? length) length)
+    (cons (and (&rational? length) length)
           (if (rational? angle) (real->double-flonum angle) +nan.0))))
 
 (define plot-mark-pin-vector : (-> Boolean (Option Length+%) (Option Real) (Option Plot-Mark-Vector))
@@ -28,7 +28,7 @@
 
 (define plot-mark-fallback-vector-guard : (-> Length+% Real Plot-Mark-Fallback-Angle (Option Plot-Mark-Fallback-Vector))
   (lambda [length maybe-angle dynamic-angle]
-    (and (~rational? length)
+    (and (&rational? length)
          (cond [(rational? maybe-angle) (cons length (real->double-flonum maybe-angle))]
                [(procedure? dynamic-angle) (cons length dynamic-angle)]
                [(rational? dynamic-angle) (cons length dynamic-angle)]

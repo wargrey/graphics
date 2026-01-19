@@ -28,8 +28,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (make-flowchart! stx)
   (syntax-parse stx #:literals []
-    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'(~% 80)]))
-              (~optional (~seq #:grid-height gh) #:defaults ([gh #'(~% 50)]))
+    [(_ (~alt (~optional (~seq #:grid-width  gw) #:defaults ([gw #'(&% 80)]))
+              (~optional (~seq #:grid-height gh) #:defaults ([gh #'(&% 50)]))
               (~optional (~seq #:turn-scale  ts) #:defaults ([ts #'0.05]))
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
               (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))

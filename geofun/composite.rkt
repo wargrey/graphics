@@ -53,7 +53,7 @@
   #:with [geobjs #:base-operator [base-op : (Option Geo-Pin-Operator) #false] #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
                  #:gapsize [delta : Real-Length 0.0] #:id [id : (Option Symbol) #false] #:desc [desc : (Option String) #false]]
   #:empty the-void-geo
-  #:short-path #:for alignment base sibling #:if (~zero? delta)
+  #:short-path #:for alignment base sibling #:if (&zero? delta)
   ([(vl) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 0.0 1.0 0.0 0.0))]
    [(vc) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 0.5 1.0 0.5 0.0))]
    [(vr) (make-geo:group id base-op sibs-op desc (geo-composite-layers base sibling 1.0 1.0 1.0 0.0))]

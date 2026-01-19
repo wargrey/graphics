@@ -29,8 +29,8 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:pressure-angle [angle : Real (/ pi 9.0)]
-           #:root-radius [root-radius : Length+% (~% 81)]
-           #:inner-radius [inner-radius : Length+% (~% 61.8)]
+           #:root-radius [root-radius : Length+% (&% 81)]
+           #:inner-radius [inner-radius : Length+% (&% 61.8)]
            #:reference-ratio [ref-ratio : Nonnegative-Real 5/9]
            [n : Integer] [tip-radius : Real-Length]
            [rotation : Real 0.0] [unit : Angle-Unit 'rad]] : Geo:Gear

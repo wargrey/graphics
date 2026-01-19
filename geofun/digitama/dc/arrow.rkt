@@ -47,7 +47,7 @@
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
-           #:shaft-thickness [shaft-thickness : Length+% (~% 30)]
+           #:shaft-thickness [shaft-thickness : Length+% (&% 30)]
            #:wing-angle [wing-angle : (Option Real) #false]
            [head-radius : Real-Length] [shaft-length : Length+%]
            [start : Real 0.0] [unit : Angle-Unit 'rad]] : Geo:Arrow

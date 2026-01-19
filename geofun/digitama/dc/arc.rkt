@@ -61,7 +61,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false]
            #:diameters [diameters : (Listof Real) null]
-           [width : Real-Length] [height : Length+% (~% 61.8)]] : (U Geo:Circle Geo:Ellipse)
+           [width : Real-Length] [height : Length+% (&% 61.8)]] : (U Geo:Circle Geo:Ellipse)
     (define-values (w h) (~extent width height))
     (define ellipse-extent : Geo-Calculate-Extent (geo-shape-extent w h 0.0 0.0))
     (define rads : (Listof Flonum)

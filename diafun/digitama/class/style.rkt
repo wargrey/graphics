@@ -37,7 +37,7 @@
   #:format "default-cls-block-~a"
   ([width : Nonnegative-Flonum 150.0]
    [height : Nonnegative-Flonum 45.0]
-   [padding : Dia-Block-Padding (~L 0.333 'em)]
+   [padding : Dia-Block-Padding (&L 0.333 'em)]
    [font : Font dia-preset-header-font]
    [font-paint : Fill-Paint 'White]
    [stroke-paint : Option-Stroke-Paint #false]

@@ -33,7 +33,8 @@
        (move-down '.=-)
        (move-left '#:home)]]
   
-  (jump-to 5.5 '/plteen.fun)
+  (jump-to 7.0 '/db/student.db)
+  (move-left 1.5 '/plteen.fun "[auth]")
   (move-down '>>:|Update digimon|)
   (move-left 1 #false "git pull")
   (move-left 4)

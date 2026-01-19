@@ -48,7 +48,7 @@
            [adjust : (Option Real) #false] [unit : Angle-Unit 'rad]] : Geo:Path:Label
     (unsafe-geo:path:label idx
                            (geo-path-label-realize label #false font font-paint) position
-                           (if (~L? distance)
+                           (if (&L? distance)
                                (parameterize ([default-font-metrics (font-metrics (or font (default-font)))])
                                  (~px distance))
                                distance)
@@ -86,7 +86,7 @@
 
     (for/list ([g (in-list glabels)])
       (unsafe-geo:path:label idx (car g) (cdr g)
-                             (if (~L? distance)
+                             (if (&L? distance)
                                  (parameterize ([default-font-metrics (font-metrics (or font (default-font)))])
                                    (~px distance))
                                  distance)

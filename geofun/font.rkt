@@ -57,7 +57,7 @@
                 [else (font-face basefont)])
           (cond [(not size) (font-size basefont)]
                 [(symbol? size) (generic-font-size-filter size (font-size basefont) (font-size (default-font)))]
-                [(not (~L? size)) (~dimension size (font-size basefont))]
+                [(not (&L? size)) (~dimension size (font-size basefont))]
                 [else (parameterize ([default-font-metrics (font-metrics basefont)])
                         (~dimension size (font-size basefont)))])
           (cond [(not weight) (font-weight basefont)]

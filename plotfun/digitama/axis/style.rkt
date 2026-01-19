@@ -41,17 +41,17 @@
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style
   ([positive-shape : (Option Geo-Tip) plot-preset-axis-arrow]
    [negative-shape : (Option Geo-Tip) #false]
-   [positive-margin : Length+% (~% 8)]
+   [positive-margin : Length+% (&% 8)]
    [negative-margin : Length+% 0.0]))
 
 (define-struct/parameter plot-axis-style : Plot-Axis-Style
   ([pen : Pen plot-preset-axis-pen]
    [font : Font plot-preset-axis-font]
    [tick-thickness : Real+% 1.0]
-   [tick-length : Length+% (~% 300)]
+   [tick-length : Length+% (&% 300)]
    [tick-color : (Option Color) #false]
    [tick-placement : Geo-Tick-Placement 'positive]
-   [minor-tick-length : Length+% (~% 61.8)]
+   [minor-tick-length : Length+% (&% 61.8)]
    [digit-color : (Option Color) #false]
    [digit-font : (Option Font) plot-preset-axis-digit-font]
    [digit-position : Complex -1.2-0.618i]
@@ -69,4 +69,4 @@
 
 (define plot-bi-tip
   (make-plot-axis-tip-style #:negative-shape plot-preset-axis-arrow
-                            #:positive-margin (~% 10) #:negative-margin (~% 10)))
+                            #:positive-margin (&% 10) #:negative-margin (&% 10)))
