@@ -53,59 +53,14 @@
     
     (let draw-vl ([vls vlines])
       (when (pair? vls)
-        (define x (+ (dc-line-position flwidth (car vls)) x0))
+        (define x (+ (car vls) x0))
         (cairo-add-line cr x y0 x (+ y0 flheight))
         (draw-vl (cdr vls))))
     
     (let draw-hl ([hls hlines])
       (when (pair? hls)
-        (define y (+ (dc-line-position flheight (car hls)) y0))
+        (define y (+ (car hls) y0))
         (cairo-add-line cr x0 y (+ x0 flwidth) y)
-        (draw-hl (cdr hls))))
-    
-    (cairo-render cr stroke background)))
-
-(define dc_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                   Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum) Any)
-  (lambda [cr x0 y0 flwidth flheight corner-radius stroke background vlines hlines]
-    (define flradius (min corner-radius (* (min flwidth flheight) 0.5)))
-    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
-    (define-values (xlset ytset) (values (+ x0 flradius) (+ y0 flradius)))
-    (define-values (xrset ybset) (values (- xr flradius) (- yb flradius)))
-    
-    (cairo_new_path cr)
-    (cairo_arc cr xrset ytset flradius -pi/2 0.0)
-    (cairo_arc cr xrset ybset flradius 0.0   pi/2)
-    (cairo_arc cr xlset ybset flradius pi/2  pi)
-    (cairo_arc cr xlset ytset flradius pi    3pi/2)
-    (cairo_close_path cr)
-    
-    (let draw-vl ([vls vlines])
-      (when (pair? vls)
-        (define x (+ x0 (dc-line-position flwidth (car vls))))
-        
-        (cond [(< x xlset)
-               (let ([off (dc-line-rounded-length flradius (- xlset x))])
-                 (cairo-add-line cr x (- ytset off) x (+ ybset off)))]
-              [(> x xrset)
-               (let ([off (dc-line-rounded-length flradius (- x xrset))])
-                 (cairo-add-line cr x (- ytset off) x (+ ybset off)))]
-              [else (cairo-add-line cr x y0 x yb)])
-        
-        (draw-vl (cdr vls))))
-    
-    (let draw-hl ([hls hlines])
-      (when (pair? hls)
-        (define y (+ y0 (dc-line-position flheight (car hls))))
-        
-        (cond [(< y ytset)
-               (let ([off (dc-line-rounded-length flradius (- ytset y))])
-                 (cairo-add-line cr (- xlset off) y (+ xrset off) y))]
-              [(> y ybset)
-               (let ([off (dc-line-rounded-length flradius (- y ybset))])
-                 (cairo-add-line cr (- xlset off) y (+ xrset off) y))]
-              [else (cairo-add-line cr x0 y xr y)])
-        
         (draw-hl (cdr hls))))
     
     (cairo-render cr stroke background)))
@@ -134,14 +89,116 @@
     (cairo-render cr stroke background)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc-line-position : (-> Flonum Flonum Flonum)
-  (lambda [length pos]
-    (cond [(>= pos 1.0) pos]
-          [(>= pos 0.0) (* length pos)]
-          [(<= pos -1.0) (+ length pos)]
-          [else (* length (+ 1.0 pos))])))
+(define dc_convex_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                          Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
+                                          (List Boolean Boolean Boolean Boolean) Any)
+  (lambda [cr x0 y0 flwidth flheight flradius stroke background vlines hlines corners]
+    (define-values (rlt? rrt? rlb? rrb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
+    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
+    (define-values (xlset ytset) (values (+ x0 flradius) (+ y0 flradius)))
+    (define-values (xrset ybset) (values (- xr flradius) (- yb flradius)))
+    
+    (cairo_new_path cr)
+    (if (and rrt?) (cairo_arc cr xrset ytset flradius -pi/2  0.0)  (cairo_move_to cr xr y0))
+    (if (and rrb?) (cairo_arc cr xrset ybset flradius   0.0  pi/2) (cairo_line_to cr xr yb))
+    (if (and rlb?) (cairo_arc cr xlset ybset flradius  pi/2  pi)   (cairo_line_to cr x0 yb))
+    (if (and rlt?) (cairo_arc cr xlset ytset flradius  pi   3pi/2) (cairo_line_to cr x0 y0))
+    (cairo_close_path cr)
+    
+    (let draw-vl ([vls vlines])
+      (when (pair? vls)
+        (define x (+ x0 (car vls)))
+        
+        (cond [(< x xlset)
+               (let ([off (dc-line-rounded-offset flradius (- xlset x))])
+                 (cairo-add-line cr
+                                 x (if (and rlt?) (- ytset off) y0)
+                                 x (if (and rlb?) (+ ybset off) yb)))]
+              [(> x xrset)
+               (let ([off (dc-line-rounded-offset flradius (- x xrset))])
+                 (cairo-add-line cr
+                                 x (if (and rrt?) (- ytset off) y0)
+                                 x (if (and rrb?) (+ ybset off) yb)))]
+              [else (cairo-add-line cr x y0 x yb)])
+        
+        (draw-vl (cdr vls))))
+    
+    (let draw-hl ([hls hlines])
+      (when (pair? hls)
+        (define y (+ y0 (car hls)))
+        
+        (cond [(< y ytset)
+               (let ([off (dc-line-rounded-offset flradius (- ytset y))])
+                 (cairo-add-line cr
+                                 (if (and rlt?) (- xlset off) x0) y
+                                 (if (and rrt?) (+ xrset off) xr) y))]
+              [(> y ybset)
+               (let ([off (dc-line-rounded-offset flradius (- y ybset))])
+                 (cairo-add-line cr
+                                 (if (and rlb?) (- xlset off) x0) y
+                                 (if (and rrb?) (+ xrset off) xr) y))]
+              [else (cairo-add-line cr x0 y xr y)])
+        
+        (draw-hl (cdr hls))))
+    
+    (cairo-render cr stroke background)))
 
-(define dc-line-rounded-length : (-> Flonum Flonum Flonum)
+(define dc_concave_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                           Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
+                                           (List Boolean Boolean Boolean Boolean) Any)
+  (lambda [cr x0 y0 flwidth flheight flradius stroke background vlines hlines corners]
+    (define-values (rlt? rrt? rlb? rrb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
+    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
+    (define-values (xlset ytset) (values (+ x0 flradius) (+ y0 flradius)))
+    (define-values (xrset ybset) (values (- xr flradius) (- yb flradius)))
+    
+    (cairo_new_path cr)
+    (if (and rrt?) (cairo_arc cr xr y0 flradius  pi/2  pi)   (cairo_move_to cr xr y0))
+    (if (and rlt?) (cairo_arc cr x0 y0 flradius  0.0   pi/2) (cairo_line_to cr x0 y0))
+    (if (and rlb?) (cairo_arc cr x0 yb flradius -pi/2  0.0)  (cairo_line_to cr x0 yb))
+    (if (and rrb?) (cairo_arc cr xr yb flradius  pi   3pi/2) (cairo_line_to cr xr yb))
+    (cairo_close_path cr)
+    
+    (let draw-vl ([vls vlines])
+      (when (pair? vls)
+        (define x (+ x0 (car vls)))
+        
+        (cond [(< x xlset)
+               (let ([off (dc-line-rounded-offset flradius x)])
+                 (cairo-add-line cr
+                                 x (if (and rlt?) (+ y0 off) y0)
+                                 x (if (and rlb?) (- yb off) yb)))]
+              [(> x xrset)
+               (let ([off (dc-line-rounded-offset flradius (- xr x))])
+                 (cairo-add-line cr
+                                 x (if (and rrt?) (+ y0 off) y0)
+                                 x (if (and rrb?) (- yb off) yb)))]
+              [else (cairo-add-line cr x y0 x yb)])
+        
+        (draw-vl (cdr vls))))
+    
+    (let draw-hl ([hls hlines])
+      (when (pair? hls)
+        (define y (+ y0 (car hls)))
+        
+        (cond [(< y ytset)
+               (let ([off (dc-line-rounded-offset flradius y)])
+                 (cairo-add-line cr
+                                 (if (and rlt?) (+ x0 off) x0) y
+                                 (if (and rrt?) (- xr off) xr) y))]
+              [(> y ybset)
+               (let ([off (dc-line-rounded-offset flradius (- yb y))])
+                 (cairo-add-line cr
+                                 (if (and rlb?) (+ x0 off) x0) y
+                                 (if (and rrb?) (- xr off) xr) y))]
+              [else (cairo-add-line cr x0 y xr y)])
+        
+        (draw-hl (cdr hls))))
+    
+    (cairo-render cr stroke background)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dc-line-rounded-offset : (-> Flonum Flonum Flonum)
   (lambda [r d]
     (sqrt (max 0.0
                (- (* r r)

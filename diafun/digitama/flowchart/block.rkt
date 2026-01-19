@@ -29,7 +29,7 @@
 (define #:forall (S) flow-block-prefab : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (define width% : Nonnegative-Flonum 0.84)
-    (define vline : Flonum (* (- 1.0 width%) 0.5))
+    (define vline : Flonum (* (- 1.0 width%) 0.5 width))
     
     (create-dia-block #:id block-key #:tag 'Process subtype
                       #:fit-region width% 1.0

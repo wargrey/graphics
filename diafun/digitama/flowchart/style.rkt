@@ -74,7 +74,7 @@
 (define-phantom-struct flow-inspection-style : Flow-Inspection-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
    [height : Dia-Block-Option-Size (&% 61.8)]
-   [padding : Dia-Block-Option-Padding (&% 2)]
+   [padding : Dia-Block-Option-Padding (&% 4)]
    [font : (Option Dia-Block-Font-Style) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]

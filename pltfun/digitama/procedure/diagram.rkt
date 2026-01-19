@@ -137,7 +137,7 @@
         (let* ([wunit (+ io:gapsize io:width)]
                [body-width (max min-width (* wunit (max icount ocount)) (if (not description) (* wunit 1.0) (+ (geo-width description) io:gapsize)))]
                [body-height (max min-height (if (not description) (* body-width 0.618) (+ (geo-height description) io:gapsize)))]
-               [body (geo-rectangle body-width body-height cr #:fill b:fill #:stroke border)])
+               [body (geo-rounded-rectangle body-width body-height cr #:fill b:fill #:stroke border)])
           (cond [(not description) body]
                 [else (geo-dsfit-composite #:hfit% 1.00 #:vfit% 1.00
                                            body body-wratio body-hratio

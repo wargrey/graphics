@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Geo-Tick-Placement)
+(provide (all-defined-out) Geo-Tick-Placement Geo-Rectangle-Corner-Datum)
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
@@ -20,7 +20,9 @@
 (provide geo-text geo:text? Geo:Text Geo-Text-Line geo-text-line?)
 (provide geo-art-text geo:art-text? Geo:Art-Text)
 (provide geo-paragraph geo:para? Geo:Paragraph)
-(provide geo-square geo-rectangle geo:rect? Geo:Rectangle)
+(provide geo-square geo-rectangle geo:rectangle? Geo:Rectangle)
+(provide geo-rounded-square geo-rounded-rectangle geo:rounded-rectangle? Geo:Rounded-Rectangle)
+(provide geo-chamfered-square geo-chamfered-rectangle geo:chamfered-rectangle? Geo:Chamfered-Rectangle)
 (provide geo-vline geo-hline geo-diagonal geo-anti-diagonal geo:line? Geo:Line)
 (provide geo-circle geo:circle? Geo:Circle)
 (provide geo-ellipse geo:ellipse? Geo:Ellipse)
