@@ -11,10 +11,14 @@
 (require "../block/dc/node.rkt")
 (require "../block/dc/symbol.rkt")
 
-(require geofun/constructor)
+(require "shape.rkt")
+
 (require geofun/composite)
 
-(require geofun/digitama/geometry/constants)
+(require geofun/digitama/dc/rect)
+(require geofun/digitama/dc/gadget)
+(require geofun/digitama/dc/dingbat)
+
 (require geofun/digitama/geometry/polygon/triangle)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 (require geofun/digitama/geometry/polygon/pentagon)
@@ -124,7 +128,8 @@
     
     (create-dia-block #:id block-key #:tag 'Delay subtype
                       #:fit-region (- 1.0 (/ r width)) 1.00 (* (/ r width) 0.25) 0.0
-                      #:create-with style [geo-rstadium (- width r) r]
+                      #:create-with style [geo-rounded-rectangle #:exclude-corners '(lt lb)
+                                                                 width height (&% 50)]
                       caption)))
 
 (define #:forall (S) flow-block-collation : (Dia-Block-Create S (Option Symbol))
@@ -157,7 +162,7 @@
                        [ar% (/ aradius width)])
                   (create-dia-block #:id block-key #:tag 'Storage subtype
                                     #:fit-region (- 1.0 ar% ar%) 1.0 (* ar% 0.5) 0.0
-                                    #:create-with style [geo-storage width height aradius]
+                                    #:create-with style [dia-flow-storage width height aradius]
                                     caption))])))
 
 (define #:forall (S) flow-block-memory : (Dia-Block-Create S (Option Symbol))

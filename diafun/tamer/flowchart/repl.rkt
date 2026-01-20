@@ -21,7 +21,7 @@
 
 (define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:frame frame] #:-
   ; Portion on Page 1
-  (move-down 1 'Initialization!)
+  (move-down 1 'Initialize!)
   (move-down 1 Create)
   (move-down 1 Wait)
   
@@ -65,11 +65,13 @@
   (move-down 1 'λ|Call Exit Handler|)
 
   [#:seq
-   [(move-down 1 'Byte? "Check Exit Status") [=> (move-left 1 #false "N")
-                                                 (move-down 2 'Exit$)]]
-   [(move-down 1 'Zero? "Y") =>
-                             (move-down-right 1 1 '|Exit with Error Status| "False")
-                             (move-down 1 Page2)]
+   [(move-down 1 'Byte? "Check Exit Status")
+    [=> (move-left 1 #false "N")
+        (move-down 2 'Exit$)]]
+   [(move-down 1 'Zero? "Y")
+    =>
+    (move-down-right 1 1 '|Exit with Error Status| "False")
+    (move-down 1 Page2)]
    [(move-to 'Exit$ #false "True")]]
 
   (jump-to Sync)
@@ -95,5 +97,5 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  ; 36 -> 72ms
+  ; 36 - 72ms
   (time (geo-freeze repl.dia)))

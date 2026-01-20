@@ -43,7 +43,7 @@
 (provide geo-path-endpoints geo-path-endpoint-offsets geo-path-tip-sizes)
 (provide geo-path-tangent-vector geo-path-normal-vector)
 
-(provide geo-stadium geo-lstadium geo-rstadium geo:stadium? Geo:Stadium)
+(provide geo-stadium geo:stadium? Geo:Stadium)
 (provide geo-bullet geo:bullet? Geo:Bullet)
 (provide geo-sandglass geo:sandglass? Geo:Sandglass)
 
@@ -52,7 +52,6 @@
 (provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-star geo-hexagon-tile)
 
-(provide geo-storage geo:storage? Geo:Storage)
 (provide geo-document geo:document? Geo:Document)
 (provide geo-database geo:database? Geo:Database)
 
@@ -64,11 +63,11 @@
 (require "digitama/dc/raster.rkt")
 (require "digitama/dc/line.rkt")
 (require "digitama/dc/arrow.rkt")
-(require "digitama/dc/gear.rkt")
 (require "digitama/dc/adjuster.rkt")
 (require "digitama/dc/stickman.rkt")
 (require "digitama/dc/grid.rkt")
-(require "digitama/dc/more.rkt")
+(require "digitama/dc/gadget.rkt")
+(require "digitama/dc/dingbat.rkt")
 
 (require "digitama/dc/polycurve.rkt")
 (require "digitama/dc/polygon.rkt")

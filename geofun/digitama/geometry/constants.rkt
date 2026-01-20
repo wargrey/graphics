@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide -pi/2 pi/2 3pi/2 2pi pi -2pi pi/4 3pi/4 2pi/5 4pi/5)
+(provide -pi/2 pi/2 3pi/2 2pi pi -pi -2pi pi/4 3pi/4 2pi/5 4pi/5)
 (provide phi 1/phi -phi -1/phi)
 
 (require digimon/measure)
