@@ -95,7 +95,5 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  ;(default-diaflow-fill-paint #false)
-
   ; 36 -> 72ms
   (time (geo-freeze repl.dia)))

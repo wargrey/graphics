@@ -166,10 +166,39 @@
                                   [Cairo-Ctx Flonum Flonum (Listof Float-Complex) -> Void])
   (case-lambda
     [(cr pt pts) (cairo-add-lines cr (real-part pt) (imag-part pt) pts)]
-    [(cr pts)
-     (when (pair? pts)
-       (cairo-add-lines cr (car pts) (cdr pts)))]
+    [(cr pts) (when (pair? pts) (cairo-add-lines cr (car pts) (cdr pts)))]
     [(cr x y pts)
      (cairo_move_to cr x y)
+     (for ([pt (in-list pts)])
+        (cairo_line_to cr (real-part pt) (imag-part pt)))]))
+
+(define cairo-cont-line : (case-> [Cairo-Ctx Float-Complex Float-Complex -> Void]
+                                 [Cairo-Ctx Float-Complex Float-Complex Float-Complex -> Void]
+                                 [Cairo-Ctx Flonum Flonum Flonum Flonum -> Void]
+                                 [Cairo-Ctx Flonum Flonum Flonum Flonum Flonum Flonum -> Void])
+  (case-lambda
+    [(cr pt1 pt2)
+     (cairo_line_to cr (real-part pt1) (imag-part pt1))
+     (cairo_line_to cr (real-part pt2) (imag-part pt2))]
+    [(cr pt1 pt2 pt3)
+     (cairo_line_to cr (real-part pt1) (imag-part pt1))
+     (cairo_line_to cr (real-part pt2) (imag-part pt2))
+     (cairo_line_to cr (real-part pt3) (imag-part pt3))]
+    [(cr x1 y1 x2 y2)
+     (cairo_line_to cr x1 y1)
+     (cairo_line_to cr x2 y2)]
+    [(cr x1 y1 x2 y2 x3 y3)
+     (cairo_line_to cr x1 y1)
+     (cairo_line_to cr x2 y2)
+     (cairo_line_to cr x3 y3)]))
+
+(define cairo-cont-lines : (case-> [Cairo-Ctx (Listof Float-Complex) -> Void]
+                                   [Cairo-Ctx Float-Complex (Listof Float-Complex) -> Void]
+                                   [Cairo-Ctx Flonum Flonum (Listof Float-Complex) -> Void])
+  (case-lambda
+    [(cr pt pts) (cairo-cont-lines cr (real-part pt) (imag-part pt) pts)]
+    [(cr pts) (when (pair? pts) (cairo-cont-lines cr (car pts) (cdr pts)))]
+    [(cr x y pts)
+     (cairo_line_to cr x y)
      (for ([pt (in-list pts)])
         (cairo_line_to cr (real-part pt) (imag-part pt)))]))

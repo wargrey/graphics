@@ -101,6 +101,7 @@
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             prints xoff yoff)))
 
+;;; @see `geo-polycurve*` for filled polylines 
 (define geo-polyline
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:id [id : (Option Symbol) #false]

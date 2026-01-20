@@ -164,7 +164,7 @@
         (define x (+ x0 (car vls)))
         
         (cond [(< x xlset)
-               (let ([off (dc-line-rounded-offset flradius x)])
+               (let ([off (dc-line-rounded-offset flradius (- x x0))])
                  (cairo-add-line cr
                                  x (if (and rlt?) (+ y0 off) y0)
                                  x (if (and rlb?) (- yb off) yb)))]
@@ -182,7 +182,7 @@
         (define y (+ y0 (car hls)))
         
         (cond [(< y ytset)
-               (let ([off (dc-line-rounded-offset flradius y)])
+               (let ([off (dc-line-rounded-offset flradius (- y y0))])
                  (cairo-add-line cr
                                  (if (and rlt?) (+ x0 off) x0) y
                                  (if (and rrt?) (- xr off) xr) y))]
@@ -197,9 +197,67 @@
     
     (cairo-render cr stroke background)))
 
+(define dc_chamfered_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                     Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
+                                     (List Boolean Boolean Boolean Boolean) Any)
+  (lambda [cr x0 y0 flwidth flheight flxcsize flycsize stroke background vlines hlines corners]
+    (define-values (clt? crt? clb? crb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
+    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
+    (define-values (xlset ytset) (values (+ x0 flxcsize) (+ y0 flycsize)))
+    (define-values (xrset ybset) (values (- xr flxcsize) (- yb flycsize)))
+    
+    (cairo_new_path cr)
+    (if (and crt?) (cairo-add-line cr xrset y0 xr ytset)  (cairo_move_to cr xr y0))
+    (if (and crb?) (cairo-cont-line cr xr ybset xrset yb) (cairo_line_to cr xr yb))
+    (if (and clb?) (cairo-cont-line cr xlset yb x0 ybset) (cairo_line_to cr x0 yb))
+    (if (and clt?) (cairo-cont-line cr x0 ytset xlset y0) (cairo_line_to cr x0 y0))
+    (cairo_close_path cr)
+    
+    (let draw-vl ([vls vlines])
+      (when (pair? vls)
+        (define x (+ x0 (car vls)))
+        
+        (cond [(< x xlset)
+               (let ([off (dc-line-chamfered-offset flxcsize (- xlset x) flycsize)])
+                 (cairo-add-line cr
+                                 x (if (and clt?) (+ y0 off) y0)
+                                 x (if (and clb?) (- yb off) yb)))]
+              [(> x xrset)
+               (let ([off (dc-line-chamfered-offset flxcsize (- x xrset) flycsize)])
+                 (cairo-add-line cr
+                                 x (if (and crt?) (+ y0 off) y0)
+                                 x (if (and crb?) (- yb off) yb)))]
+              [else (cairo-add-line cr x y0 x yb)])
+        
+        (draw-vl (cdr vls))))
+    
+    (let draw-hl ([hls hlines])
+      (when (pair? hls)
+        (define y (+ y0 (car hls)))
+        
+        (cond [(< y ytset)
+               (let ([off (dc-line-chamfered-offset flycsize (- ytset y) flxcsize)])
+                 (cairo-add-line cr
+                                 (if (and clt?) (+ x0 off) x0) y
+                                 (if (and crt?) (- xr off) xr) y))]
+              [(> y ybset)
+               (let ([off (dc-line-chamfered-offset flycsize (- y ybset) flxcsize)])
+                 (cairo-add-line cr
+                                 (if (and clb?) (+ x0 off) x0) y
+                                 (if (and crb?) (- xr off) xr) y))]
+              [else (cairo-add-line cr x0 y xr y)])
+        
+        (draw-hl (cdr hls))))
+    
+    (cairo-render cr stroke background)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-line-rounded-offset : (-> Flonum Flonum Flonum)
-  (lambda [r d]
+  (lambda [r t]
     (sqrt (max 0.0
                (- (* r r)
-                  (* d d))))))
+                  (* t t))))))
+
+(define dc-line-chamfered-offset : (-> Flonum Flonum Flonum Flonum)
+  (lambda [s t ps]
+    (* ps (/ t s))))
