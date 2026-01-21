@@ -67,7 +67,7 @@
         (let ([ratio 0.80])
           (dia-block-polygon block-key caption style direction
                              (geo-keyboard-vertices width height ratio)
-                             1.0 ratio 0.0 (- 1.0 ratio)
+                             1.0 ratio 0.0 1.0
                              'Input subtype))
         (dia-block-parallelogram block-key caption style width height direction 'Input subtype))))
 
@@ -76,7 +76,7 @@
     (if (eq? subtype 'user)
         (let-values ([(ogive barrel r) (values (* width 0.384) (* width 0.618) (* height 0.5))])
           (create-dia-block #:id block-key #:tag 'Output subtype
-                            #:fit-region 0.75 1.00 (/ (- ogive r) width) 0.0
+                            #:fit-region 0.75 1.00 1.0 0.0
                             #:create-with style [geo-bullet ogive r barrel]
                             caption))
         (dia-block-parallelogram block-key caption style width height direction 'Output subtype))))
@@ -127,7 +127,7 @@
     (define r : Nonnegative-Flonum (* height 0.5))
     
     (create-dia-block #:id block-key #:tag 'Delay subtype
-                      #:fit-region (- 1.0 (/ r width)) 1.00 (* (/ r width) 0.25) 0.0
+                      #:fit-region (- 1.0 (/ r width)) 1.00 0.5 0.5
                       #:create-with style [geo-rounded-rectangle #:exclude-corners '(lt lb)
                                                                  width height (&% 50)]
                       caption)))
@@ -161,7 +161,7 @@
           [else (let* ([aradius (* height 0.5 0.384)]
                        [ar% (/ aradius width)])
                   (create-dia-block #:id block-key #:tag 'Storage subtype
-                                    #:fit-region (- 1.0 ar% ar%) 1.0 (* ar% 0.5) 0.0
+                                    #:fit-region (- 1.0 ar% ar%) 1.0 0.25 0.0
                                     #:create-with style [dia-flow-storage width height aradius]
                                     caption))])))
 
@@ -173,7 +173,7 @@
     (define top% : Flonum (/ caption-pos height))
     
     (create-dia-block #:id block-key #:tag 'Storage subtype
-                      #:fit-region (- 1.0 left%) (- 1.0 top%) left% top%
+                      #:fit-region (- 1.0 left%) (- 1.0 top%) 1.0 1.0
                       #:create-with style [geo-rectangle #:vlines (list caption-pos) #:hlines (list caption-pos) width height]
                       caption)))
 
@@ -194,7 +194,7 @@
     (define wave% : Nonnegative-Flonum 0.25)
     
     (create-dia-block #:id block-key #:tag 'Storage subtype
-                      #:fit-region (- 1.00 offset%) (- 1.00 wave% offset%) 0.0 offset%
+                      #:fit-region (- 1.00 offset%) (- 1.00 wave% offset%) 0.0 0.0
                       #:create-with style [geo-document #:gapsize gapsize #:extra-n extra-n width height (&: (* wave% 0.5))]
                       caption)))
 
@@ -207,6 +207,6 @@
     (define width (* height 1.618))
     
     (create-dia-block #:id block-key #:tag 'Storage subtype
-                      #:fit-region 1.0 (- 1.0 caption-pos) 0.0 caption-pos
+                      #:fit-region 1.0 (- 1.0 caption-pos) 0.0 1.0
                       #:create-with style [geo-database #:extra-n extra-n #:gapsize gapsize width height bradius]
                       caption)))

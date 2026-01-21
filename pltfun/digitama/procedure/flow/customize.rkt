@@ -51,7 +51,7 @@
   (lambda [id caption style width height direction subtype]
     (define dog-ear% 0.1618)
     (create-dia-block #:id id #:tag 'Storage subtype
-                      #:fit-region 1.00 (- 1.0 dog-ear%) 0.0 dog-ear%
+                      #:fit-region 1.00 (- 1.0 dog-ear%) 0.0 1.0
                       #:alignment 0.0 0.0
                       #:create-with style [geo-file width height #:dog-ear-size (&: dog-ear%)]
                       caption)))

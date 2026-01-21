@@ -72,11 +72,17 @@
         (current-border-source)
         (border-paint->source* alt-bdr))))
 
-(define geo-select-stroke-paint : (-> Maybe-Stroke-Paint (Option Pen))
-  (lambda [alt-strk]
-    (if (void? alt-strk)
-        (current-stroke-source)
-        (stroke-paint->source* alt-strk))))
+(define geo-select-stroke-paint : (case-> [Maybe-Stroke-Paint -> (Option Pen)]
+                                          [Maybe-Stroke-Paint (Option Pen) -> (Option Pen)])
+  (case-lambda
+    [(alt-strk)
+     (if (void? alt-strk)
+         (current-stroke-source)
+         (stroke-paint->source* alt-strk))]
+    [(alt-strk maybe-fallback-strk)
+     (if (void? alt-strk)
+         maybe-fallback-strk
+         (stroke-paint->source* alt-strk))]))
 
 (define geo-select-stroke-paint* : (-> Maybe-Stroke-Paint Pen)
   (lambda [alt-strk]

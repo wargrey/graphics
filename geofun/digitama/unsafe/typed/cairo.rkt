@@ -8,7 +8,8 @@
 (require typed/racket/unsafe)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Corner-Position (U 'lt 'rt 'lb 'rb))
+(define-type Geo-Side-Choice (U 't 'r 'l 'b))
+(define-type Geo-Corner-Choice (U 'lt 'rt 'lb 'rb))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide

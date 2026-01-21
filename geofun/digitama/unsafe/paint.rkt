@@ -169,7 +169,7 @@
   (define cairo-composite!
     (lambda [master cr draw! dest-x dest-y dest-width dest-height]
       (cairo_save cr)
-      (cairo_new_path cr)
+      (cairo_new_path cr) ; some weird cases require this
       (draw! master cr dest-x dest-y dest-width dest-height)
       (cairo_restore cr)))
 

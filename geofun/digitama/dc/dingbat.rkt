@@ -26,7 +26,10 @@
    [height : Nonnegative-Flonum]
    [x-fold-size : Nonnegative-Flonum]
    [y-fold-size : Nonnegative-Flonum]
-   [corner : Geo-Corner-Position])
+   [corner : Geo-Corner-Choice]
+   [lines : (Listof Nonnegative-Flonum)]
+   [line-span : Nonnegative-Flonum]
+   [line-pos% : Nonnegative-Flonum])
   #:type-name Geo:File
   #:transparent)
 
@@ -68,22 +71,30 @@
 (define geo-file
   (lambda [#:id [id : (Option Symbol) #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:line-stroke [line-stroke : Maybe-Stroke-Paint (void)]
            #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:dog-ear-size [fold-size : Length+% (&% 16.18)]
-           #:dog-ear-corner [corner : Geo-Corner-Position 'rt]
-           #:angle [angle : (Option Real) #false]
+           #:dog-ear-size [fold-size : Length+% (&% 25)]
+           #:dog-ear-corner [corner : Geo-Corner-Choice 'rt]
+           #:dog-ear-angle [angle : (Option Real) #false]
+           #:lines [lines : (Listof Length+%) null]
+           #:line-span [span : Length+% (&% 72)]
+           #:line-pos% [pos : Real 0.5]
            [width : Real-Length]
            [height : Length+% (&% 161.8)]] : Geo:File
     (define-values (flwidth flheight) (~extent width height))
     (define short-side-len (min flwidth flheight))
-    (define xf-size (~clamp (~dimension fold-size short-side-len) (* short-side-len 0.5)))
-    (define yf-size (if (not angle) xf-size (~clamp (* xf-size (tan angle)) 0.0 (* flheight 0.5))))
+    (define xdgr-size (~clamp (~dimension fold-size short-side-len) (* short-side-len 0.5)))
+    (define ydgr-size (if (not angle) xdgr-size (~clamp (* xdgr-size (tan angle)) 0.0 (* flheight 0.5))))
+    (define ctxt-zone-height (max (- flheight ydgr-size) 0.0))
     
     (create-geometry-object geo:file
-                            #:with [id (geo-draw-file stroke pattern)
+                            #:with [id (geo-draw-file stroke line-stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
                                        (geo-shape-outline stroke)]
-                            flwidth flheight xf-size yf-size corner)))
+                            flwidth flheight xdgr-size ydgr-size corner
+                            (for/list ([l (in-list lines)]) (~placement l ctxt-zone-height))
+                            (~clamp (~dimension span flwidth) 0.0 flwidth)
+                            (~clamp pos 0.0 1.0))))
 
 (define geo-document
   (lambda [#:extra-n [extra-n : Index 0]
@@ -129,13 +140,16 @@
         (dc_stadium cr x0 y0 width height
                     (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
 
-(define geo-draw-file : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-stroke alt-fill]
+(define geo-draw-file : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke line-stroke alt-fill]
     (λ [self cr x0 y0 width height]
       (when (geo:file? self)
+        (define border-pen (geo-select-stroke-paint alt-stroke))
+        
         (dc_file cr x0 y0 width height
                  (geo:file-x-fold-size self) (geo:file-y-fold-size self) (geo:file-corner self)
-                 (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
+                 border-pen (geo-select-fill-source alt-fill) (geo-select-stroke-paint line-stroke border-pen)
+                 (geo:file-lines self) (geo:file-line-span self) (geo:file-line-pos% self))))))
 
 (define geo-draw-document : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]

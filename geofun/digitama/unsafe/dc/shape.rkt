@@ -8,19 +8,19 @@
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Geo-Open-Side-Datum (Pairof Nonnegative-Flonum Nonnegative-Flonum))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum Flonum Pen Any)
   (lambda [cr x0 y0 width height x y dx dy stroke]
-    (cairo_new_path cr)
-    
     (cairo_move_to     cr (+ x0 x) (+ y0 y))
     (cairo_rel_line_to cr dx       dy)
-    
     (cairo-render cr stroke #false)))
 
 (define dc_ellipse : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) Any)
   (lambda [cr x0 y0 flwidth flheight stroke background diameters]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
-    
+
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
     (cairo-negative-arc cr aradius bradius (- 2pi) 0.0)
     
@@ -37,7 +37,7 @@
 (define dc_arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Pen) (Option Brush) Boolean Any)
   (lambda [cr x0 y0 flwidth flheight rstart rend stroke background sector?]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
-
+    
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
     (cairo-positive-arc cr aradius bradius rstart rend)
     
@@ -250,6 +250,90 @@
         (draw-hl (cdr hls))))
     
     (cairo-render cr stroke background)))
+
+(define dc_open_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                                (Option Pen) (Option Pen) (Option Brush)
+                                (Listof Flonum) Nonnegative-Flonum Nonnegative-Flonum
+                                (Listof Flonum) Nonnegative-Flonum Nonnegative-Flonum
+                                (List Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum) Any)
+  (lambda [cr x0 y0 flwidth flheight stroke line-stroke background vlines vspan vpos% hlines hspan hpos% open-sides]
+    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
+    (define xlset (+ x0 (* (-  flwidth hspan) hpos%)))
+    (define ytset (+ y0 (* (- flheight vspan) vpos%)))
+    (define-values (xrset ybset) (values (+ xlset hspan) (+ ytset vspan)))
+    
+    (cairo_rectangle cr x0 y0 flwidth flheight)
+    
+    (when (and background)
+      (cairo-render-with-fill cr background))
+
+    (when (and line-stroke (or (pair? vlines) (pair? hlines)))
+      (cairo_new_path cr)
+      
+      (let draw-vl ([vls vlines])
+        (when (pair? vls)
+          (define x (+ (car vls) x0))
+          (cairo-add-line cr x ytset x ybset)
+          (draw-vl (cdr vls))))
+      
+      (let draw-hl ([hls hlines])
+        (when (pair? hls)
+          (define y (+ (car hls) y0))
+          (cairo-add-line cr xlset y xrset y)
+          (draw-hl (cdr hls))))
+      
+      (cairo-render cr line-stroke))
+
+    (when (and stroke)
+      (define-values (t r b l) (values (car open-sides) (cadr open-sides) (caddr open-sides) (cadddr open-sides)))
+      
+      (cairo_new_path cr)
+      (cairo_move_to cr x0 y0)
+
+      (define maybe-xterm
+        (let-values ([(span pos%) (values (car t) (cdr t))])
+          (cond [(= span 0.0) (cairo_line_to cr xr y0) xr]
+                [(= span 1.0) (cairo_move_to cr xr y0) #false]
+                [(= pos% 0.0) (cairo_move_to cr (+ x0 span) y0) (cairo_line_to cr xr y0) (+ x0 span)]
+                [(= pos% 1.0) (cairo_line_to cr (- xr span) y0) (cairo_move_to cr xr y0) #false]
+                [else (let ([offset (* (- flwidth span) pos%)])
+                        (cairo_line_to cr (+ x0 offset) y0)
+                        (cairo_move_to cr (+ x0 offset span) y0)
+                        (cairo_line_to cr xr y0)
+                        (+ x0 offset))])))
+
+      (let-values ([(span pos%) (values (car r) (cdr r))])
+        (cond [(= span 0.0) (cairo_line_to cr xr yb)]
+              [(= span 1.0) (cairo_move_to cr xr yb)]
+              [(= pos% 0.0) (cairo_move_to cr xr (+ y0 span)) (cairo_line_to cr xr yb)]
+              [(= pos% 1.0) (cairo_line_to cr xr (- yb span)) (cairo_move_to cr xr yb)]
+              [else (let ([offset (* (- flheight span) pos%)])
+                      (cairo_line_to cr xr (+ y0 offset))
+                      (cairo_move_to cr xr (+ y0 offset span))
+                      (cairo_line_to cr xr yb))]))
+
+      (let-values ([(span pos%) (values (car b) (cdr b))])
+        (cond [(= span 0.0) (cairo_line_to cr x0 yb)]
+              [(= span 1.0) (cairo_move_to cr x0 yb)]
+              [(= pos% 0.0) (cairo_line_to cr (- xr span) yb) (cairo_move_to cr x0 yb)]
+              [(= pos% 1.0) (cairo_move_to cr (- xr span) yb) (cairo_line_to cr x0 yb)]
+              [else (let ([offset (* (- flwidth span) pos%)])
+                      (cairo_line_to cr (+ x0 offset span) yb)
+                      (cairo_move_to cr (+ x0 offset) yb)
+                      (cairo_line_to cr x0 yb))]))
+
+      (let-values ([(span pos%) (values (car l) (cdr l))])
+        (cond [(= span 0.0) (cairo_line_to cr x0 y0) (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0))]
+              [(= span 1.0) (cairo_move_to cr x0 y0)]
+              [(= pos% 0.0) (cairo_line_to cr x0 (- yb span))]
+              [(= pos% 1.0) (cairo_move_to cr x0 (- yb span)) (cairo_line_to cr x0 y0) (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0))]
+              [else (let ([offset (* (- flheight span) pos%)])
+                      (cairo_line_to cr x0 (+ y0 offset span))
+                      (cairo_move_to cr x0 (+ y0 offset))
+                      (cairo_line_to cr x0 y0)
+                      (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0)))]))
+
+      (cairo-render cr stroke))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-line-rounded-offset : (-> Flonum Flonum Flonum)

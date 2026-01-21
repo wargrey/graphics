@@ -24,10 +24,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_file : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Nonnegative-Flonum Nonnegative-Flonum Symbol
-                      (Option Pen) (Option Brush)
+                      Nonnegative-Flonum Nonnegative-Flonum Symbol (Option Pen) (Option Brush)
+                      (Option Pen) (Listof Nonnegative-Flonum) Nonnegative-Flonum Nonnegative-Flonum
                       Any)
-  (lambda [cr x0 y0 flwidth flheight flxfsize flyfsize corner stroke background]
+  (lambda [cr x0 y0 flwidth flheight flxfsize flyfsize corner stroke background line-pen lines span pos%]
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define-values (xlset ytset) (values (+ x0 flxfsize) (+ y0 flyfsize)))
     (define-values (xrset ybset) (values (- xr flxfsize) (- yb flyfsize)))
@@ -45,7 +45,22 @@
           [(eq? corner 'rb) (cairo-add-line cr xrset yb xrset ybset xr ybset)]
           [(eq? corner 'lb) (cairo-add-line cr x0 ybset xlset ybset xlset yb)])
 
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke background)
+
+    (when (and line-pen (pair? lines))
+      (define ctxt-start (if (or (eq? corner 'rt) (eq? corner 'lt)) ytset y0))
+      (define llset (+ x0 (* (- flwidth span) pos%)))
+      (define lrset (+ llset span))
+
+      (cairo_new_path cr)
+      
+      (let draw-hl ([hls lines])
+        (when (pair? hls)
+          (define y (+ (car hls) ctxt-start))
+          (cairo-add-line cr llset y lrset y)
+          (draw-hl (cdr hls))))
+
+      (cairo-render cr line-pen))))
 
 (define dc_document : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                           Nonnegative-Flonum Nonnegative-Flonum Index (Option Pen) (Option Brush) Any)

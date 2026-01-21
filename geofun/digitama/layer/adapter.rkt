@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/measure)
+
 (require "type.rkt")
 (require "combine.rkt")
 
@@ -69,8 +71,8 @@
   (lambda [base fit-label bwidth bheight lft% top% hfit% vfit% fx% fy% gx% gy% top right bottom left]
     (define-values (ml% mr%) (values (/ left bwidth) (/ right bwidth)))
     (define-values (mt% mb%) (values (/ top bheight) (/ bottom bheight)))
-    (define l0% (if (rational? lft%) (max (min (- 1.0 hfit%) lft%) 0.0) (* (- 1.0 hfit%) 0.5)))
-    (define t0% (if (rational? top%) (max (min (- 1.0 vfit%) top%) 0.0) (* (- 1.0 vfit%) 0.5)))
+    (define l0% (* (- 1.0 hfit%) (if (rational? lft%) (~clamp lft% 0.0 1.0) 0.5)))
+    (define t0% (* (- 1.0 vfit%) (if (rational? top%) (~clamp top% 0.0 1.0) 0.5)))
 
     (geo-composite-layers base fit-label
                           (+ l0% ml% (* (- hfit% ml% mr%) fx%))
