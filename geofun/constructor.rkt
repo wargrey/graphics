@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) Geo-Tick-Placement Geo-Rectangle-Corner-Datum)
+(provide (all-defined-out) Geo-Tick-Placement Geo-Corner-Position)
 (provide (rename-out [geo-polyline geo-lines]))
 (provide (rename-out [geo-sandglass geo-hourglass]))
 (provide (rename-out [geo-dart geo-arrowhead]))
@@ -52,6 +52,7 @@
 (provide geo-polyline geo:polyline? Geo:Polyline)
 (provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-star geo-hexagon-tile)
 
+(provide geo-file geo:file? Geo:File)
 (provide geo-document geo:document? Geo:Document)
 (provide geo-database geo:database? Geo:Database)
 
@@ -82,4 +83,5 @@
 (require "digitama/layer/void.rkt")
 
 (require "digitama/skeleton/stickman/interface.rkt")
+(require "digitama/unsafe/typed/cairo.rkt")
 (require "digitama/unsafe/dc/text-layout.rkt")

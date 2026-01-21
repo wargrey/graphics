@@ -253,17 +253,6 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
-(define-phantom-struct flow-file-style : Flow-File-Style #:-> flow-storage-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (&% 61.8)]
-   [height : Dia-Block-Option-Size (&% 161.8)]
-   [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) dia-preset-file-font]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'MediumSeaGreen]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Azure]))
-
 (define-phantom-struct flow-database-style : Flow-Database-Style #:-> flow-storage-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
    [height : Dia-Block-Option-Size (&% 161.8)]

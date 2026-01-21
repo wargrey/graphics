@@ -23,6 +23,30 @@
     (cairo-render cr stroke background)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dc_file : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                      Nonnegative-Flonum Nonnegative-Flonum Symbol
+                      (Option Pen) (Option Brush)
+                      Any)
+  (lambda [cr x0 y0 flwidth flheight flxfsize flyfsize corner stroke background]
+    (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
+    (define-values (xlset ytset) (values (+ x0 flxfsize) (+ y0 flyfsize)))
+    (define-values (xrset ybset) (values (- xr flxfsize) (- yb flyfsize)))
+    
+    (cairo_new_path cr)
+    (if (eq? corner 'rt) (cairo-add-line cr xrset y0 xr ytset)  (cairo_move_to cr xr y0))
+    (if (eq? corner 'rb) (cairo-cont-line cr xr ybset xrset yb) (cairo_line_to cr xr yb))
+    (if (eq? corner 'lb) (cairo-cont-line cr xlset yb x0 ybset) (cairo_line_to cr x0 yb))
+    (if (eq? corner 'lt) (cairo-cont-line cr x0 ytset xlset y0) (cairo_line_to cr x0 y0))
+    (cairo_close_path cr)
+
+    ;;; order matters
+    (cond [(eq? corner 'rt) (cairo-add-line cr xr ytset xrset ytset xrset y0)]
+          [(eq? corner 'lt) (cairo-add-line cr xlset y0 xlset ytset x0 ytset)]
+          [(eq? corner 'rb) (cairo-add-line cr xrset yb xrset ybset xr ybset)]
+          [(eq? corner 'lb) (cairo-add-line cr x0 ybset xlset ybset xlset yb)])
+
+    (cairo-render cr stroke background)))
+
 (define dc_document : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                           Nonnegative-Flonum Nonnegative-Flonum Index (Option Pen) (Option Brush) Any)
   (lambda [cr x0 y0 flwidth flheight flhwave gapsize extra-n stroke background]

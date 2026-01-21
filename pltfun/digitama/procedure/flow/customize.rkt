@@ -5,7 +5,8 @@
 (require digimon/measure)
 (require geofun/resize)
 
-(require geofun/digitama/dc/more)
+(require geofun/digitama/dc/gadget)
+(require geofun/digitama/dc/dingbat)
 
 (require diafun/digitama/block/dc)
 (require diafun/digitama/block/dc/void)
@@ -25,7 +26,9 @@
     (dia-block-case style
      [(flow-process-style?) (plt-flow-block-process id label style width height direction subtype)]
      [(flow-input-style?)   (dia-ghost-block id 'Input)]
-     [(flow-output-style?)  (dia-ghost-block id 'Output)])))
+     [(flow-output-style?)  (dia-ghost-block id 'Output)]
+     [(flow-storage-style?) (when (eq? subtype 'File)
+                              (plt-flow-block-file id label style width height direction subtype))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) plt-flow-block-process : (Dia-Block-Create S Flow-Block-Metadata)
@@ -43,3 +46,12 @@
         (create-dia-block #:id id #:tag 'Process subtype
                           #:fit-region 1.00 1.00 0.0 0.0
                           #:with style (geo-rotate fbox (- direction (* pi 0.5))) caption))))
+
+(define #:forall (S) plt-flow-block-file : (Dia-Block-Create S Flow-Block-Metadata)
+  (lambda [id caption style width height direction subtype]
+    (define dog-ear% 0.1618)
+    (create-dia-block #:id id #:tag 'Storage subtype
+                      #:fit-region 1.00 (- 1.0 dog-ear%) 0.0 dog-ear%
+                      #:alignment 0.0 0.0
+                      #:create-with style [geo-file width height #:dog-ear-size (&: dog-ear%)]
+                      caption)))

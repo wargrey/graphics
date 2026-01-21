@@ -182,7 +182,6 @@
     (define hratio : Nonnegative-Flonum 0.85)
     (create-dia-block #:id block-key #:tag 'Storage subtype
                       #:fit-region 1.0 hratio 0.0 0.0
-                      #:alignment 0.0 0.0 0.0 0.0
                       #:create-with style [geo-document width height (&: (* (- 1.0 hratio) 0.5))]
                       caption)))
 

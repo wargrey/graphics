@@ -9,10 +9,9 @@
 
 (require "../paint.rkt")
 (require "../unsafe/dc/shape.rkt")
+(require "../unsafe/typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Rectangle-Corner-Datum (U 'lt 'rt 'lb 'rb))
-
 (struct geo:rectangle geo
   ([width : Nonnegative-Flonum]
    [height : Nonnegative-Flonum]
@@ -75,7 +74,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:exclude-corners [excorners : (Listof Geo-Rectangle-Corner-Datum) null]
+           #:exclude-corners [excorners : (Listof Geo-Corner-Position) null]
            [size : Real-Length] [corner-radius : Length+% 0.0]] : Geo:Rounded-Rectangle
     (define side-len (~dimension size))
     (define cr (~clamp (~distance corner-radius side-len) (* side-len 0.5)))
@@ -101,7 +100,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:exclude-corners [excorners : (Listof Geo-Rectangle-Corner-Datum) null]
+           #:exclude-corners [excorners : (Listof Geo-Corner-Position) null]
            [width : Real-Length] [height : Length+% (&% 61.8)]
            [corner-radius : Length+% 0.0]] : Geo:Rounded-Rectangle
     (define-values (flwidth flheight) (~extent width height))
@@ -129,7 +128,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:exclude-corners [excorners : (Listof Geo-Rectangle-Corner-Datum) null]
+           #:exclude-corners [excorners : (Listof Geo-Corner-Position) null]
            [edge-size : Real-Length]
            [x-chamfered-size : Length+% 0.0]
            [angle : (Option Real) #false]
@@ -159,7 +158,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:exclude-corners [excorners : (Listof Geo-Rectangle-Corner-Datum) null]
+           #:exclude-corners [excorners : (Listof Geo-Corner-Position) null]
            [width : Real-Length] [height : Length+% (&% 61.8)]
            [x-chamfered-size : Length+% 0.0]
            [angle : (Option Real) #false]

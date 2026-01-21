@@ -1,11 +1,10 @@
 #lang racket
 
-(require digimon/measure)
 (require geofun/vector)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define pen (desc-stroke #:width 2.0 #:color 'Crimson))
-(define brush 'Snow)
+(define pen (desc-stroke #:width 2.0 #:color 'Crimson #:opacity 0.5))
+(define brush (desc-brush #:color 'Snow #:opacity 0.5))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (geo-rounded-square 128 16 #:vlines (range% 10 100 10) #:hlines (range% -10 -100 -10) #:stroke 'RoyalBlue)
@@ -47,4 +46,7 @@
 (geo-chamfered-rectangle 256 64 (&: phi) #:exclude-corners '(rt rb lb) #:stroke pen #:fill brush)
 (geo-chamfered-rectangle 256 64 (&: phi) #:exclude-corners '(rt rb lb lt) #:stroke pen #:fill brush)
 
-(geo-chamfered-rectangle 50 150 (&: phi) 90 'deg #:stroke pen #:fill brush)
+(geo-cc-superimpose
+ (geo-chamfered-rectangle 128 256 (&: 1/phi) 30 'deg #:fill brush #:stroke (desc-stroke pen #:color 'red))
+ (geo-chamfered-rectangle 128 256 (&: 1/phi) 60 'deg #:fill brush #:stroke (desc-stroke pen #:color 'green))
+ (geo-chamfered-rectangle 128 256 (&: 1/phi) 90 'deg #:fill brush #:stroke (desc-stroke pen #:color 'blue)))

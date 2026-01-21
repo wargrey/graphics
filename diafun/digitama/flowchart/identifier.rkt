@@ -119,7 +119,7 @@
            (cond [(string-prefix? text "/doc/")
                   (if (eq? ch$ #\/)
                       (flow-block-info anchor (substring text 5 idx$) default-flow-storage-style 'Directory)
-                      (flow-block-info anchor (substring text 5 size) default-flow-file-style 'File))]
+                      (flow-block-info anchor (substring text 5 size) default-flow-storage-style 'File))]
                  [(string-prefix? text "/db/")
                   (flow-block-info anchor (substring text 4 size) default-flow-database-style 'Database)]
                  [(string-prefix? text "/proc/")
