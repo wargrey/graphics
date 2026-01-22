@@ -117,3 +117,27 @@
         (draw-sides (+ y gapsize) (+ i 1))))
     
     (cairo-render cr stroke background)))
+
+(define dc_bucket : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                        Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) Any)
+  (lambda [cr x0 y0 flwidth flheight bradius flbase stroke background]
+    (define rx (+ x0 flwidth))
+    (define ty (+ y0 bradius))
+    (define by (+ y0 (- flheight bradius)))
+    (define aradius (* flwidth 0.5))
+    (define baradius (* flbase 0.5))
+    (define cx (+ x0 aradius))
+    
+    (cairo_new_path cr)
+    (cairo_move_to cr x0 ty)
+    (cairo_line_to cr (- cx baradius) by)
+    (cairo-negative-arc cr cx by baradius bradius pi 0.0)
+    (cairo_line_to cr rx bradius)
+    (cairo-negative-arc cr cx ty aradius bradius 0.0 pi)
+    (cairo_close_path cr)
+    
+    (cairo_move_to cr x0 ty)
+    (cairo-negative-arc cr cx ty aradius bradius pi 0.0)
+        
+    
+    (cairo-render cr stroke background)))

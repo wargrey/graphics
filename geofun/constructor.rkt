@@ -56,6 +56,7 @@
 (provide geo-file geo:file? Geo:File)
 (provide geo-document geo:document? Geo:Document)
 (provide geo-database geo:database? Geo:Database)
+(provide geo-bucket geo:bucket? Geo:Bucket)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require "digitama/dc/text.rkt")

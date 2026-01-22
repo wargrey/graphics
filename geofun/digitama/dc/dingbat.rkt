@@ -51,6 +51,14 @@
   #:type-name Geo:Database
   #:transparent)
 
+(struct geo:bucket geo
+  ([width : Nonnegative-Flonum]
+   [height : Nonnegative-Flonum]
+   [base : Nonnegative-Flonum]
+   [bradius : Nonnegative-Flonum])
+  #:type-name Geo:Bucket
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-stadium
   (lambda [#:id [id : (Option Symbol) #false]
@@ -132,6 +140,26 @@
                                        (geo-shape-outline stroke)]
                             flwidth flheight flb (~dimension gapsize flb) extra-n)))
 
+(define geo-bucket
+  (lambda [#:extra-n [extra-n : Index 2]
+           #:id [id : (Option Symbol) #false]
+           #:gapsize [gapsize : Length+% (&% 61.8)]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:base-length [base : Length+% (&% 85)]
+           [width : Real-Length]
+           [height : Length+%]
+           [bradius : Length+% (&% 16.18)]] : Geo:Bucket
+    (define-values (flwidth flheight) (~extent width height))
+    (define flbr : Nonnegative-Flonum (~dimension bradius flheight))
+    (define flbase : Nonnegative-Flonum (~clamp (~dimension base flwidth) 0.0 flwidth))
+    
+    (create-geometry-object geo:bucket
+                            #:with [id (geo-draw-bucket stroke pattern)
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
+                            flwidth flheight flbase flbr)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-stadium : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]
@@ -166,3 +194,10 @@
         (dc_database cr x0 y0 width height (geo:database-bradius self)
                      (geo:database-gapsize self) (geo:database-extra-n self)
                      (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
+
+(define geo-draw-bucket : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:bucket? self)
+        (dc_bucket cr x0 y0 width height (geo:bucket-bradius self) (geo:bucket-base self)
+                   (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))

@@ -18,7 +18,7 @@
                                                    #:right-span (&% 80) #:left-span (&% 80))
                  128)
 
-(geo-hc-append #:gapsize 32.0
+(geo-hc-append #:gapsize 16.0
                (geo-open-square #:stroke border-pen #:line-stroke line-pen #:fill brush
                                 #:hlines (range% 10 100 10) #:hline-span (&% 85)
                                 #:open-sides (make-geo-open-sides #:top-span (&% 90) #:bottom-span (&% 90)
@@ -33,7 +33,7 @@
                                                                   #:right-span 0)
                                  128))
 
-(geo-vc-append #:gapsize 32.0
+(geo-vc-append #:gapsize 16.0
                (geo-open-square #:stroke border-pen #:line-stroke line-pen #:fill brush
                                 #:hlines (range% 10 100 10) #:hline-span (&% 85)
                                 #:open-sides (make-geo-open-sides #:left-span (&% 90) #:right-span (&% 90)
