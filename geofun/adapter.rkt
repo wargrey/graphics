@@ -6,7 +6,7 @@
 (require "digitama/composite.rkt")
 (require "digitama/dc/composite.rkt")
 (require "digitama/layer/adapter.rkt")
-(require "digitama/geometry/insets.rkt")
+(require "digitama/geometry/sides.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-dsfit-composite

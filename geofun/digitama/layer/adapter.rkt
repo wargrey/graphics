@@ -8,7 +8,7 @@
 (require "combine.rkt")
 
 (require "../self.rkt")
-(require "../geometry/insets.rkt")
+(require "../geometry/sides.rkt")
 (require "../../resize.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -18,7 +18,7 @@
 (require/provide geofun/digitama/base)
 (require/provide geofun/digitama/self)
 (require/provide geofun/digitama/paint/self)
-(require/provide geofun/digitama/geometry/insets)
+(require/provide geofun/digitama/geometry/sides)
 (require/provide geofun/digitama/nice/box)
 (require/provide geofun/digitama/nice/pairable)
 

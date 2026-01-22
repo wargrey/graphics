@@ -20,7 +20,7 @@
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 (require digimon/measure)
 (require digimon/complex)

@@ -2,13 +2,12 @@
 
 (provide (all-defined-out))
 
+(require "border.rkt")
+
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
 
 (require "../../geometry/constants.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Open-Side-Datum (Pairof Nonnegative-Flonum Nonnegative-Flonum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum Flonum Pen Any)
@@ -255,7 +254,8 @@
                                 (Option Pen) (Option Pen) (Option Brush)
                                 (Listof Flonum) Nonnegative-Flonum Nonnegative-Flonum
                                 (Listof Flonum) Nonnegative-Flonum Nonnegative-Flonum
-                                (List Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum) Any)
+                                Geo-Border-Open-Sides
+                                Any)
   (lambda [cr x0 y0 flwidth flheight stroke line-stroke background vlines vspan vpos% hlines hspan hpos% open-sides]
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define xlset (+ x0 (* (-  flwidth hspan) hpos%)))
@@ -284,56 +284,7 @@
       
       (cairo-render cr line-stroke))
 
-    (when (and stroke)
-      (define-values (t r b l) (values (car open-sides) (cadr open-sides) (caddr open-sides) (cadddr open-sides)))
-      
-      (cairo_new_path cr)
-      (cairo_move_to cr x0 y0)
-
-      (define maybe-xterm
-        (let-values ([(span pos%) (values (car t) (cdr t))])
-          (cond [(= span 0.0) (cairo_line_to cr xr y0) xr]
-                [(= span 1.0) (cairo_move_to cr xr y0) #false]
-                [(= pos% 0.0) (cairo_move_to cr (+ x0 span) y0) (cairo_line_to cr xr y0) (+ x0 span)]
-                [(= pos% 1.0) (cairo_line_to cr (- xr span) y0) (cairo_move_to cr xr y0) #false]
-                [else (let ([offset (* (- flwidth span) pos%)])
-                        (cairo_line_to cr (+ x0 offset) y0)
-                        (cairo_move_to cr (+ x0 offset span) y0)
-                        (cairo_line_to cr xr y0)
-                        (+ x0 offset))])))
-
-      (let-values ([(span pos%) (values (car r) (cdr r))])
-        (cond [(= span 0.0) (cairo_line_to cr xr yb)]
-              [(= span 1.0) (cairo_move_to cr xr yb)]
-              [(= pos% 0.0) (cairo_move_to cr xr (+ y0 span)) (cairo_line_to cr xr yb)]
-              [(= pos% 1.0) (cairo_line_to cr xr (- yb span)) (cairo_move_to cr xr yb)]
-              [else (let ([offset (* (- flheight span) pos%)])
-                      (cairo_line_to cr xr (+ y0 offset))
-                      (cairo_move_to cr xr (+ y0 offset span))
-                      (cairo_line_to cr xr yb))]))
-
-      (let-values ([(span pos%) (values (car b) (cdr b))])
-        (cond [(= span 0.0) (cairo_line_to cr x0 yb)]
-              [(= span 1.0) (cairo_move_to cr x0 yb)]
-              [(= pos% 0.0) (cairo_line_to cr (- xr span) yb) (cairo_move_to cr x0 yb)]
-              [(= pos% 1.0) (cairo_move_to cr (- xr span) yb) (cairo_line_to cr x0 yb)]
-              [else (let ([offset (* (- flwidth span) pos%)])
-                      (cairo_line_to cr (+ x0 offset span) yb)
-                      (cairo_move_to cr (+ x0 offset) yb)
-                      (cairo_line_to cr x0 yb))]))
-
-      (let-values ([(span pos%) (values (car l) (cdr l))])
-        (cond [(= span 0.0) (cairo_line_to cr x0 y0) (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0))]
-              [(= span 1.0) (cairo_move_to cr x0 y0)]
-              [(= pos% 0.0) (cairo_line_to cr x0 (- yb span))]
-              [(= pos% 1.0) (cairo_move_to cr x0 (- yb span)) (cairo_line_to cr x0 y0) (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0))]
-              [else (let ([offset (* (- flheight span) pos%)])
-                      (cairo_line_to cr x0 (+ y0 offset span))
-                      (cairo_move_to cr x0 (+ y0 offset))
-                      (cairo_line_to cr x0 y0)
-                      (when (and maybe-xterm) (cairo_line_to cr maybe-xterm y0)))]))
-
-      (cairo-render cr stroke))))
+    (dc_border cr x0 y0 flwidth flheight stroke open-sides)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc-line-rounded-offset : (-> Flonum Flonum Flonum)

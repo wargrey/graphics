@@ -12,7 +12,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/track/anchor)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/realize)

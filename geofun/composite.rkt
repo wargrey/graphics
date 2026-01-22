@@ -31,7 +31,7 @@
 
 (require "digitama/self.rkt")
 (require "digitama/composite.rkt")
-(require "digitama/geometry/insets.rkt")
+(require "digitama/geometry/sides.rkt")
 
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/void.rkt")
@@ -228,8 +228,9 @@
            #:padding [inset : Geo-Insets-Datum 0.0]
            #:border [border : Maybe-Stroke-Paint (void)]
            #:background [bg-fill : Maybe-Fill-Paint (void)]
+           #:open-sides [open-sides : (Option Geo-Open-Sides) #false]
            [geo : Geo]] : Geo:Group
-    (make-geo:group id base-op operator desc (geo-own-layers geo) margin inset border bg-fill)))
+    (make-geo:group id base-op operator desc (geo-own-layers geo) margin inset border bg-fill open-sides)))
 
 ;;; NOTE
 ; As a lower-level compositor, 
@@ -248,6 +249,7 @@
            #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Insets-Datum) #false]
            #:padding [padding : (Option Geo-Insets-Datum) #false]
+           #:open-sides [open-sides : (Option Geo-Open-Sides) #false]
            [ncols : Integer]
            [siblings : (Listof Geo)]
            [col-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
@@ -262,10 +264,12 @@
                (define nrows : Nonnegative-Fixnum (+ maybe-nrows (if (= extra-ncols 0) 0 1)))
                (and (> nrows 0) (index? nrows)
                     (create-geometry-table geo:table id base-op sibs-op
-                                           #:desc desc #:border bdr #:background bg #:margin margin #:padding padding
+                                           #:desc desc #:open-sides open-sides
+                                           #:border bdr #:background bg #:margin margin #:padding padding
                                            (geo-siblings->table siblings (* nrows ncols) the-void-layer)
                                            ncols nrows col-anchors row-anchors col-gaps row-gaps))))
         (create-geometry-table geo:table id base-op sibs-op
+                               #:desc desc #:open-sides open-sides
                                #:border bdr #:background bg #:margin margin #:padding padding
                                (geo-siblings->table (list the-void-geo) 1 the-void-layer)
                                1 1 col-anchors row-anchors col-gaps row-gaps))))
@@ -279,6 +283,7 @@
            #:background [bg : Maybe-Fill-Paint #false]
            #:margin [margin : (Option Geo-Insets-Datum) #false]
            #:padding [padding : (Option Geo-Insets-Datum) #false]
+           #:open-sides [open-sides : (Option Geo-Open-Sides) #false]
            [siblings : (Listof (Listof (Option Geo)))]
            [col-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
            [row-anchors : (Geo-Config-Argof Geo-Pin-Anchor) null]
@@ -289,11 +294,13 @@
     
     (if (and (> ncols 0) (> nrows 0))
         (create-geometry-table geo:table id base-op sibs-op
-                               #:desc desc #:border bdr #:background bg #:margin margin #:padding padding
+                               #:desc desc #:open-sides open-sides
+                               #:border bdr #:background bg #:margin margin #:padding padding
                                (geo-siblings*->table siblings ncols the-void-layer)
                                ncols nrows col-anchors row-anchors col-gaps row-gaps)
         (create-geometry-table geo:table id base-op sibs-op
-                               #:desc desc #:border bdr #:background bg #:margin margin #:padding padding
+                               #:desc desc #:open-sides open-sides
+                               #:border bdr #:background bg #:margin margin #:padding padding
                                (geo-siblings*->table (list (list the-void-geo)) 1 the-void-layer)
                                1 1 col-anchors row-anchors col-gaps row-gaps))))
 

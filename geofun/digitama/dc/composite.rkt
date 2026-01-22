@@ -14,13 +14,14 @@
 (require "../composite.rkt")
 
 (require "../geometry/ink.rkt")
-(require "../geometry/insets.rkt")
+(require "../geometry/sides.rkt")
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")
 
-(require "../unsafe/composite.rkt")
 (require "../unsafe/frame.rkt")
+(require "../unsafe/composite.rkt")
+(require "../unsafe/dc/border.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -42,6 +43,7 @@
     [(_ Geo name base-op:expr sibs-op:expr
         (~alt (~optional (~seq #:outline alt-outline) #:defaults ([alt-outline #'#false]))
               (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
+              (~optional (~seq #:open-sides open-sides) #:defaults ([open-sides #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border border) #:defaults ([border #'#false]))
@@ -53,19 +55,21 @@
          (let* ([layers layers0]
                 [outline (or alt-outline (geo-group-outline layers))]
                 [id (or name (gensym 'geo-prefix))])
-           (if (or margin inset border bgsource)
+           (if (or margin inset border bgsource open-sides)
                (Geo geo-convert
-                    (geo-draw-framed-group! border bgsource) (geo-group-frame-extent margin inset layers border) outline
-                    id base-op sibs-op desc layers argl ...)
+                    (geo-draw-framed-group! border bgsource open-sides)
+                    (geo-group-frame-extent margin inset layers border)
+                    outline id base-op sibs-op desc layers argl ...)
                (Geo geo-convert
-                    geo-draw-group! (geo-group-extent layers) outline
-                    id base-op sibs-op desc layers argl ...)))))]))
+                    geo-draw-group! (geo-group-extent layers)
+                    outline id base-op sibs-op desc layers argl ...)))))]))
 
 (define-syntax (create-geometry-table stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
         (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
               (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
+              (~optional (~seq #:open-sides open-sides) #:defaults ([open-sides #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
               (~optional (~seq #:padding inset) #:defaults ([inset #'#false]))
               (~optional (~seq #:border border) #:defaults ([border #'#false]))
@@ -76,7 +80,7 @@
        (syntax/loc stx
          (let-values ([(layers size anchors gaps) (geo-table-metrics table ncols nrows col-anchors row-anchors col-gaps row-gaps)])
            (create-geometry-group Geo name base-op sibs-op
-                                  #:outline outline #:desc desc
+                                  #:outline outline #:desc desc #:open-sides open-sides
                                   #:margin margin #:padding inset #:border border #:background bgsource
                                   layers size anchors gaps argl ...))))]))
 
@@ -146,20 +150,21 @@
 (define make-geo:group : (case-> [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group -> Geo:Group]
                                  [(Option Symbol) (Option Symbol) (Option Symbol) (Option String) Geo-Layer-Group
                                                   (Option Geo-Insets-Datum) (Option Geo-Insets-Datum)
-                                                  Maybe-Stroke-Paint Maybe-Fill-Paint
+                                                  Maybe-Stroke-Paint Maybe-Fill-Paint (Option (U Geo-Open-Sides Geo-Border-Open-Sides))
                                                   -> Geo:Group])
   (case-lambda
     [(id base-op sibs-op desc layers)
      (create-geometry-object geo:group
                              #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)]
                              base-op sibs-op desc layers)]
-    [(id base-op sibs-op desc layers margin inset border background)
-     (if (or margin inset border background)
+    [(id base-op sibs-op desc layers margin inset border background open-sides)
+     (if (or margin inset border background open-sides)
 
-         (let ([geo-frame-extent (geo-group-frame-extent margin inset layers border)])
-           (create-geometry-object geo:group
-                                   #:with [id (geo-draw-framed-group! border background) geo-frame-extent geo-zero-pads]
-                                   base-op sibs-op desc layers))
+         (create-geometry-object geo:group
+                                 #:with [id (geo-draw-framed-group! border background open-sides)
+                                            (geo-group-frame-extent margin inset layers border)
+                                            geo-zero-pads]
+                                 base-op sibs-op desc layers)
 
          (make-geo:group id base-op sibs-op desc layers))]))
 
@@ -205,8 +210,8 @@
                      (geo-operator->integer* (geo:group-sibs-operator self))
                      (geo:group-selves self)))))
 
-(define geo-draw-framed-group! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-bdr alt-bg]
+(define geo-draw-framed-group! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option (U Geo-Open-Sides Geo-Border-Open-Sides)) Geo-Surface-Draw!)
+  (lambda [alt-bdr alt-bg open-sides]
     (lambda [self cr x0 y0 width height]
       (with-asserts ([self geo:group?])
         (define-values (W H ink) (geo-extent self))
@@ -219,7 +224,10 @@
                                   (geo-operator->integer* (geo:group-sibs-operator self))
                                   (geo:group-selves self) (real-part origin) (imag-part origin)
                                   (real-part border) (imag-part border) (geo-ink-width ink) (geo-ink-height ink)
-                                  (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg))))))))
+                                  (geo-select-border-paint alt-bdr) (geo-select-background-source alt-bg)
+                                  (if (geo-open-sides? open-sides)
+                                      (geo-open-sides->border-sides open-sides (geo-ink-width ink) (geo-ink-height ink))
+                                      open-sides))))))))
 
 (define geo-group-extent : (-> Geo-Layer-Group Geo-Calculate-Extent)
   (lambda [layers]

@@ -13,7 +13,7 @@
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-actor-stickman : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)

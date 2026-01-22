@@ -8,7 +8,10 @@
 (require "../paint.rkt")
 (require "../convert.rkt")
 
+(require "../geometry/sides.rkt")
+
 (require "../unsafe/dc/shape.rkt")
+(require "../unsafe/dc/border.rkt")
 (require "../unsafe/typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -38,7 +41,7 @@
    [vline-pos% : Nonnegative-Flonum]
    [hline-span : Nonnegative-Flonum]
    [hline-pos% : Nonnegative-Flonum]
-   [open-sides : (List Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum Geo-Open-Side-Datum)])
+   [open-sides : Geo-Border-Open-Sides])
   #:type-name Geo:Open-Rectangle
   #:transparent)
 
@@ -126,19 +129,15 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:open-sides [open-sides : (Listof Geo-Side-Choice) null]
+           #:open-sides [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides) null]
            #:hline-span [hspan : Length+% (&% 100)]
            #:hline-pos% [hpos : Real 0.5]
            #:vline-span [vspan : Length+% (&% 100)]
            #:vline-pos% [vpos : Real 0.5]
            [width : Real-Length] [height : Length+% (&% 61.8)]] : Geo:Open-Rectangle
     (define-values (flwidth flheight) (~extent width height))
-    (define hls-span (~clamp (~dimension hspan flwidth) 0.0 flwidth))
+    (define hls-span (~clamp  (~dimension hspan flwidth) 0.0 flwidth))
     (define vls-span (~clamp (~dimension vspan flheight) 0.0 flheight))
-    (define open-t? (and (memq 't open-sides) #true))
-    (define open-r? (and (memq 'r open-sides) #true))
-    (define open-b? (and (memq 'b open-sides) #true))
-    (define open-l? (and (memq 'l open-sides) #true))
     
     (create-geometry-object geo:open-rectangle
                             #:with [id (geo-draw-open-rectangle stroke line-stroke pattern)
@@ -149,52 +148,12 @@
                             (for/list ([h (in-list hlines)]) (~placement h flheight))
                             vls-span (~clamp vpos 0.0 1.0)
                             hls-span (~clamp hpos 0.0 1.0)
-                            (list (if (memq 't open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
-                                  (if (memq 'r open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
-                                  (if (memq 'b open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
-                                  (if (memq 'l open-sides) (cons 1.0 0.0) (cons 0.0 0.0))))))
-
-(define geo-open-rectangle*
-  (lambda [#:id [id : (Option Symbol) #false]
-           #:stroke [stroke : Maybe-Stroke-Paint (void)]
-           #:line-stroke [line-stroke : Maybe-Stroke-Paint (void)]
-           #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:vlines [vlines : (Listof Length+%) null]
-           #:hlines [hlines : (Listof Length+%) null]
-           #:top-open-span [tspan : Length+% 0.0]
-           #:top-open-pos% [tpos : Real 0.5]
-           #:right-open-span [rspan : Length+% 0.0]
-           #:right-open-pos% [rpos : Real 0.5]
-           #:bottom-open-span [bspan : Length+% 0.0]
-           #:bottom-open-pos% [bpos : Real 0.5]
-           #:left-open-span [lspan : Length+% 0.0]
-           #:left-open-pos% [lpos : Real 0.5]
-           #:hline-span [hspan : Length+% (&% 100)]
-           #:hline-pos% [hpos : Real 0.5]
-           #:vline-span [vspan : Length+% (&% 100)]
-           #:vline-pos% [vpos : Real 0.5]
-           [width : Real-Length] [height : Length+% (&% 61.8)]] : Geo:Open-Rectangle
-    (define-values (flwidth flheight) (~extent width height))
-    (define hls-span (~clamp (~dimension hspan flwidth) 0.0 flwidth))
-    (define top-span (~clamp (~dimension tspan flwidth) 0.0 flwidth))
-    (define bot-span (~clamp (~dimension bspan flwidth) 0.0 flwidth))
-    (define vls-span (~clamp (~dimension vspan flheight) 0.0 flheight))
-    (define rgt-span (~clamp (~dimension rspan flheight) 0.0 flheight))
-    (define lft-span (~clamp (~dimension lspan flheight) 0.0 flheight))
-    
-    (create-geometry-object geo:open-rectangle
-                            #:with [id (geo-draw-open-rectangle stroke line-stroke pattern)
-                                       (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
-                            flwidth flheight
-                            (for/list ([v (in-list vlines)]) (~placement v flwidth))
-                            (for/list ([h (in-list hlines)]) (~placement h flheight))
-                            vls-span (~clamp vpos 0.0 1.0)
-                            hls-span (~clamp hpos 0.0 1.0)
-                            (list (cons top-span (~clamp tpos 0.0 1.0))
-                                  (cons rgt-span (~clamp rpos 0.0 1.0))
-                                  (cons bot-span (~clamp bpos 0.0 1.0))
-                                  (cons lft-span (~clamp lpos 0.0 1.0))))))
+                            (if (list? open-sides)
+                                (list (if (memq 't open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
+                                      (if (memq 'r open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
+                                      (if (memq 'b open-sides) (cons 1.0 0.0) (cons 0.0 0.0))
+                                      (if (memq 'l open-sides) (cons 1.0 0.0) (cons 0.0 0.0)))
+                                (geo-open-sides->border-sides open-sides flwidth flheight)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-square
@@ -244,7 +203,7 @@
            #:fill [pattern : Maybe-Fill-Paint (void)]
            #:vlines [vlines : (Listof Length+%) null]
            #:hlines [hlines : (Listof Length+%) null]
-           #:open-sides [open-sides : (Listof Geo-Side-Choice) null]
+           #:open-sides [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides) null]
            #:hline-span [hspan : Length+% (&% 100)]
            #:hline-pos% [hpos : Real 0.5]
            #:vline-span [vspan : Length+% (&% 100)]
@@ -255,36 +214,6 @@
                         #:hline-span hspan #:hline-pos% hpos
                         #:vline-span vspan #:vline-pos% vpos
                         size size)))
-
-(define geo-open-square*
-  (lambda [#:id [id : (Option Symbol) #false]
-           #:stroke [stroke : Maybe-Stroke-Paint (void)]
-           #:line-stroke [line-stroke : Maybe-Stroke-Paint (void)]
-           #:fill [pattern : Maybe-Fill-Paint (void)]
-           #:vlines [vlines : (Listof Length+%) null]
-           #:hlines [hlines : (Listof Length+%) null]
-           #:top-open-span [tspan : Length+% (&% 100)]
-           #:top-open-pos% [tpos : Real 0.5]
-           #:right-open-span [rspan : Length+% (&% 100)]
-           #:right-open-pos% [rpos : Real 0.5]
-           #:bottom-open-span [bspan : Length+% (&% 100)]
-           #:bottom-open-pos% [bpos : Real 0.5]
-           #:left-open-span [lspan : Length+% (&% 100)]
-           #:left-open-pos% [lpos : Real 0.5]
-           #:hline-span [hspan : Length+% (&% 100)]
-           #:hline-pos% [hpos : Real 0.5]
-           #:vline-span [vspan : Length+% (&% 100)]
-           #:vline-pos% [vpos : Real 0.5]
-           [size : Real-Length]] : Geo:Open-Rectangle
-    (geo-open-rectangle* #:id id #:stroke stroke #:line-stroke line-stroke #:fill pattern
-                         #:vlines vlines #:hlines hlines
-                         #:top-open-span tspan #:top-open-pos% tpos
-                         #:right-open-span rspan #:right-open-pos% rpos
-                         #:bottom-open-span bspan #:bottom-open-pos% bpos
-                         #:left-open-span lspan #:left-open-pos% lpos
-                         #:hline-span hspan #:hline-pos% hpos
-                         #:vline-span vspan #:vline-pos% vpos
-                         size size)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-rectangle : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

@@ -12,7 +12,7 @@
 
 (require "digitama/dc/resize.rkt")
 (require "digitama/geometry/ink.rkt")
-(require "digitama/geometry/insets.rkt")
+(require "digitama/geometry/sides.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-section : (case-> [Geo Complex Complex -> Geo]

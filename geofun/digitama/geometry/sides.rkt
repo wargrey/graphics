@@ -4,6 +4,9 @@
 
 (require digimon/sequence)
 (require digimon/measure)
+(require digimon/struct)
+
+(require "../unsafe/dc/border.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Insets-Datum (U Nonnegative-Real (Listof Nonnegative-Real) (Immutable-Vectorof Nonnegative-Real) Geo-Standard-Insets))
@@ -26,6 +29,30 @@
     [(v h) (geo-insets*->insets (vector-immutable v h v h) 100.0)]
     [(t h b) (geo-insets*->insets (vector-immutable t h b h) 100.0)]
     [(t r b l) (geo-insets*->insets (vector-immutable t r b l) 100.0)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-struct geo-open-sides : Geo-Open-Sides
+  ([top-span : Length+% (&% 100.0)]
+   [top-pos% : Real 0.5]
+   [right-span : Length+% (&% 100.0)]
+   [right-pos% : Real 0.5]
+   [bottom-span : Length+% (&% 100.0)]
+   [bottom-pos% : Real 0.5]
+   [left-span : Length+% (&% 100.0)]
+   [left-pos% : Real 0.5]))
+
+(define geo-open-sides->border-sides : (case-> [Geo-Open-Sides Nonnegative-Flonum Nonnegative-Flonum -> Geo-Border-Open-Sides]
+                                               [(Option Geo-Open-Sides) Nonnegative-Flonum Nonnegative-Flonum -> (Option Geo-Border-Open-Sides)])
+  (lambda [self flwidth flheight]
+    (and self
+         (list (cons (~clamp (~dimension (geo-open-sides-top-span self) flwidth) 0.0 flwidth)
+                     (~clamp (geo-open-sides-top-pos% self) 0.0 1.0))
+               (cons (~clamp (~dimension (geo-open-sides-right-span self) flheight) 0.0 flheight)
+                     (~clamp (geo-open-sides-right-pos% self) 0.0 1.0))
+               (cons (~clamp (~dimension (geo-open-sides-bottom-span self) flwidth) 0.0 flwidth)
+                     (~clamp (geo-open-sides-bottom-pos% self) 0.0 1.0))
+               (cons (~clamp (~dimension (geo-open-sides-left-span self) flheight) 0.0 flheight)
+                     (~clamp (geo-open-sides-left-pos% self) 0.0 1.0))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-inset-values : (-> (Option Geo-Insets-Datum)

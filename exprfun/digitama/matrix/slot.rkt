@@ -7,7 +7,7 @@
 (require geofun/digitama/self)
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/resize)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 (require "../slot/style.rkt")
 (require "../slot/dc.rkt")

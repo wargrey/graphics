@@ -14,7 +14,8 @@
 (require/provide "richtext.rkt" "track.rkt" "constructor.rkt" "composite.rkt" "resize.rkt" "adapter.rkt")
 
 (require/provide "digitama/base.rkt" "digitama/self.rkt" "digitama/convert.rkt" "digitama/freeze.rkt")
-(require/provide "digitama/paint/self.rkt" "digitama/geometry/dot.rkt" "digitama/geometry/constants.rkt")
+(require/provide "digitama/paint/self.rkt" "digitama/geometry/dot.rkt" "digitama/geometry/sides.rkt")
+(require/provide "digitama/geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save

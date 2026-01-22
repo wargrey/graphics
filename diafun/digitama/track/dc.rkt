@@ -25,10 +25,11 @@
      (syntax/loc stx
        (let*-values ([(blocks tracks) realize]
                      [(stickers) (append tracks blocks)]
-                     [(border background margin padding) (geo-frame-values frame)])
+                     [(border background margin padding open-sides) (geo-frame-values frame)])
          (create-geometry-group Geo id #false #false
                                 #:border border #:background background
                                 #:margin margin #:padding padding
+                                #:open-sides open-sides
                                 (or (and (pair? stickers)
                                          (geo-layers-try-extend stickers 0.0 0.0))
                                     #;'#:deadcode (geo-own-layers self))

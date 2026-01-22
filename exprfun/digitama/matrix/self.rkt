@@ -4,7 +4,7 @@
 
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 (require geofun/digitama/dc/composite)
 

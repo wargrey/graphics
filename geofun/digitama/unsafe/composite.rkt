@@ -5,6 +5,7 @@
 (require "paint.rkt")
 (require "typed/cairo.rkt")
 (require "typed/more.rkt")
+(require "dc/border.rkt")
 
 (require "../self.rkt")
 (require "../layer/type.rkt")
@@ -35,16 +36,19 @@
 (define geo_framed_composite : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                    (Option Byte) (Option Byte) Geo-Layer-Group Flonum Flonum
                                    Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                                   (Option Pen) (Option Brush) Any)
-  (lambda [cr x0 y0 width height base-op sibs-op group dest-x dest-y border-x border-y border-width border-height border background]
+                                   (Option Pen) (Option Brush) (Option Geo-Border-Open-Sides) Any)
+  (lambda [cr x0 y0 width height base-op sibs-op group dest-x dest-y border-x border-y border-width border-height border background open-sides]
     (define geo-objects (glayer-group-layers group))
     (define-values (dest-width dest-height) (values (glayer-group-width group) (glayer-group-height group)))
     (define-values (dx dy) (values (+ x0 dest-x) (+ y0 dest-y)))
+    (define-values (bx by) (values (+ x0 border-x) (+ y0 border-y)))
     
     (cairo_save cr)
     (when (or base-op) (cairo_set_operator cr base-op))
-    (cairo_rectangle cr (+ x0 border-x) (+ y0 border-y) border-width border-height)
-    (cairo-render cr border background)
+    (cairo_rectangle cr bx by border-width border-height)
+
+    (cond [(not open-sides) (cairo-render cr border background)]
+          [(and background) (cairo-render-with-fill cr background)])
 
     (cairo_push_group cr)
     (when (or sibs-op) (cairo_set_operator cr sibs-op))
@@ -54,6 +58,9 @@
         (combine (cdr geos))))
     (cairo_pop_group_to_source cr)
     (cairo_paint cr)
+
+    (when (and open-sides)
+      (dc_border cr bx by border-width border-height border open-sides))
 
     (cairo_restore cr)))
 

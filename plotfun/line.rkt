@@ -146,7 +146,7 @@
 
     (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
-    (define-values (border background margin padding) (geo-frame-values frame))
+    (define-values (border background margin padding open-sides) (geo-frame-values frame))
 
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
@@ -154,6 +154,7 @@
           (create-geometry-group plot:line id #false #false
                                  #:border border #:background background
                                  #:margin margin #:padding padding
+                                 #:open-sides open-sides
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
@@ -161,6 +162,7 @@
         (create-geometry-group plot:line id #false #false
                                #:border border #:background background
                                #:margin margin #:padding padding
+                               #:open-sides open-sides
                                (geo-layers-merge (cons the-main-axis-layer layers))
                                flc-origin actual-tick-values
                                dot->pos))))
@@ -262,7 +264,7 @@
     
     (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
-    (define-values (border background margin padding) (geo-frame-values frame))
+    (define-values (border background margin padding open-sides) (geo-frame-values frame))
     
     (if (or translated-layers)
         (let* ([delta-origin (+ flc-origin (geo-layer-position (car (glayer-group-layers translated-layers))))]
@@ -270,6 +272,7 @@
           (create-geometry-group plot:line id #false #false
                                  #:border border #:background background
                                  #:margin margin #:padding padding
+                                 #:open-sides open-sides
                                  translated-layers delta-origin actual-tick-values
                                  (case-lambda
                                    [(x y) (dot->pos x)]
@@ -277,6 +280,7 @@
         (create-geometry-group plot:line id #false #false
                                #:border border #:background background
                                #:margin margin #:padding padding
+                               #:open-sides open-sides
                                (geo-layers-merge (cons the-main-axis-layer layers))
                                flc-origin actual-tick-values
                                dot->pos))))

@@ -6,7 +6,7 @@
 (require "digitama/unsafe/adjust.rkt")
 
 (require geofun/digitama/resize)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 (require geofun/digitama/unsafe/typed/c)
 
 (require digimon/measure)

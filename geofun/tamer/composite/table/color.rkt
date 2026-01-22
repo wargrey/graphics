@@ -9,6 +9,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define label-font (desc-font #:family 'monospace #:size 'large))
+(define border-pen (desc-border #:width 4.0 #:color 'RoyalBlue #:opacity 0.5))
+(define open-sides (make-geo-open-sides #:top-span (&% 90) #:right-span (&% 90)
+                                        #:bottom-span (&% 90) #:left-span (&% 90)))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define named-color-list : (->* () ((-> Symbol Symbol Boolean)) Geo)
@@ -25,12 +28,13 @@
 
 (define xterm-color-list : (->* () (Color) Geo)
   (lambda [[bgcolor 'black]]
-    (geo-frame #:background bgcolor #:padding 4.0
-               (geo-table 16
-                          (for/list : (Listof Geo) ([xidx (in-range 256)])
-                               (geo-text #:color (xterm (assert xidx byte?))
-                                         (number->string xidx) label-font))
-                          'cc 'cc 8.0 8.0))))
+    (geo-table #:border border-pen #:open-sides open-sides
+               #:background bgcolor #:padding 8.0 #:margin 8.0
+               16
+               (for/list : (Listof Geo) ([xidx (in-range 256)])
+                 (geo-text #:color (xterm (assert xidx byte?))
+                           (number->string xidx) label-font))
+               'cc 'cc 8.0 8.0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (name->row [name : Symbol]) : (List Geo Geo Geo)

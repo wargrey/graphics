@@ -75,7 +75,7 @@
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:frame [frame : Geo-Frame-Datum #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
-    (define-values (border background margin padding) (geo-frame-values frame))
+    (define-values (border background margin padding open-sides) (geo-frame-values frame))
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
     (define-values (xview0 yview0)
       (plot-visualizer-ranges visualizers
@@ -325,6 +325,7 @@
         (create-geometry-group plot:cartesian id #false #false
                                #:border border #:background background
                                #:margin margin #:padding padding
+                               #:open-sides open-sides
                                translated-layers delta-origin
                                (map plot-tick-value visible-xticks)
                                (map plot-tick-value visible-yticks)
@@ -339,6 +340,7 @@
         (create-geometry-group plot:cartesian id #false #false
                                #:border border #:background background
                                #:margin margin #:padding padding
+                               #:open-sides open-sides
                                (geo-own-layers zero) delta-origin null null
                                origin-dot->pos))))
   

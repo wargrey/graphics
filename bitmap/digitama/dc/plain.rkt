@@ -9,7 +9,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/paint/pattern)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 (require geofun/digitama/unsafe/frame)
 (require geofun/digitama/unsafe/dc/plain)
 

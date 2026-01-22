@@ -18,7 +18,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/track/anchor)
-(require geofun/digitama/geometry/insets)
+(require geofun/digitama/geometry/sides)
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
