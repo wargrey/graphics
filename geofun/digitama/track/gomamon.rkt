@@ -102,6 +102,8 @@
     [(_ move1 move2 #:+> [start end clockwise-args ...] #:-> [c-start c-end counterclockwise-args ...])
      (with-syntax ([turn-1-2! (format-id #'move1 "gomamon-turn-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
                    [turn-2-1! (format-id #'move2 "gomamon-turn-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+                   [turn-1-2*! (format-id #'move1 "gomamon-turn-~a-~a*!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [turn-2-1*! (format-id #'move2 "gomamon-turn-~a-~a*!" (syntax->datum #'move2) (syntax->datum #'move1))]
                    [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
                    [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))]
                    [rcstart (datum->syntax #'c-start (degrees->radians (syntax->datum #'c-start)))]
@@ -113,14 +115,24 @@
                 
                 (define (turn-2-1! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (geo-track-turn goma (gomamon-txradius goma) (gomamon-tyradius goma)
-                                  counterclockwise-args ... rcstart rcend anchor #false #false)))))]
+                                  counterclockwise-args ... rcstart rcend anchor #false #false))
+
+                (define (turn-1-2*! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false] #:scale [s : Nonnegative-Real 2.0]) : Void
+                  (let ([fls (real->double-flonum s)])
+                    (geo-track-turn goma (* fls (gomamon-txradius goma)) (* fls (gomamon-tyradius goma))
+                                    clockwise-args ... rstart rend anchor #true #false)))
+                
+                (define (turn-2-1*! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false] #:scale [s : Nonnegative-Real 2.0]) : Void
+                  (let ([fls (real->double-flonum s)])
+                    (geo-track-turn goma (* fls (gomamon-txradius goma)) (* fls (gomamon-tyradius goma))
+                                    counterclockwise-args ... rcstart rcend anchor #false #false))))))]
     [(_ move clockwise? [start end args ...] guard)
-     (with-syntax* ([u-turn-move! (format-id #'move "gomamon-turn-~a!" (syntax->datum #'move))]
+     (with-syntax* ([U-turn-move! (format-id #'move "gomamon-turn-~a!" (syntax->datum #'move))]
                     [rstart (datum->syntax #'start (degrees->radians (syntax->datum #'start)))]
                     [rend (datum->syntax #'end (degrees->radians (syntax->datum #'end)))])
        (syntax/loc stx
-         (begin (define (u-turn-move! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-track-turn goma (gomamon-uxradius goma) (gomamon-uyradius goma)
+         (begin (define (U-turn-move! [goma : Gomamon] [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-track-turn goma (gomamon-txradius goma) (gomamon-tyradius goma)
                                   args ... rstart rend anchor clockwise? guard)))))]
     [(_ move #:+> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #true  args guard))]
     [(_ move #:-> args #:boundary-guard guard) (syntax/loc stx (define-gomamon-turn-move! move #false args guard))]))
@@ -130,9 +142,7 @@
   ([xstepsize : Nonnegative-Flonum]
    [ystepsize : Nonnegative-Flonum]
    [txradius : Nonnegative-Flonum]
-   [tyradius : Nonnegative-Flonum]
-   [uxradius : Nonnegative-Flonum]
-   [uyradius : Nonnegative-Flonum])
+   [tyradius : Nonnegative-Flonum])
   #:type-name Gomamon)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -296,8 +306,8 @@
           (imag-part (geo-trail-ref (geo:track-trail self) ystep))))]
     [(self xstep ystep xsgn ysgn clearance-sgn)
      (+ (geo-track-target-position self xstep ystep xsgn ysgn)
-        (make-rectangular (* (gomamon-uxradius self) xsgn clearance-sgn)
-                          (* (gomamon-uyradius self) ysgn clearance-sgn)))]
+        (make-rectangular (* (gomamon-txradius self) xsgn clearance-sgn)
+                          (* (gomamon-tyradius self) ysgn clearance-sgn)))]
     [(self target)
      (cond [(not (complex? target)) (geo-trail-ref (geo:track-trail self) target)]
            [(gomamon? self)

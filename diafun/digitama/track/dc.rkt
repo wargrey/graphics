@@ -48,11 +48,12 @@
   (lambda [id grid-width grid-height turn-scale home-position home-anchor 100%]
     (define xstep-size (~dimension grid-width 100%))
     (define ystep-size (~dimension grid-height xstep-size))
-    (define scale (make-rectangular turn-scale (* turn-scale (/ xstep-size ystep-size))))
+    (define radius% (make-rectangular turn-scale (* turn-scale (/ xstep-size ystep-size))))
     
     (make-gomamon
-     #:id id #:at home-position #:anchor home-anchor
-     #:T-scale scale #:U-scale scale
+     #:id id
+     #:at home-position #:anchor home-anchor
+     #:turn-radius% radius%
      xstep-size ystep-size)))
 
 (define #:forall (S M) dia-register-home-name : (-> Geo-Anchor-Name (Option String) (Option (Dia-Block-Describer S M))

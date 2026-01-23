@@ -27,7 +27,7 @@
              [gomamon-move-downwards! gomamon-move-downward!]
              [gomamon-move-leftwards! gomamon-move-leftward!])
 
-  (rename-out [gomamon-jump-upwards! gomamon-jump-upward!]
+ (rename-out [gomamon-jump-upwards! gomamon-jump-upward!]
              [gomamon-jump-rightwards! gomamon-jump-rightward!]
              [gomamon-jump-downwards! gomamon-jump-downward!]
              [gomamon-jump-leftwards! gomamon-jump-leftward!])
@@ -84,11 +84,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-gomamon : (->* (Real-Length)
-                            (Length+% #:T-scale Geo-Print-Datum #:U-scale Geo-Print-Datum
+                            (Length+% #:turn-radius% Geo-Print-Datum
                                       #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
                                       #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                             Gomamon)
-  (lambda [#:T-scale [t-scale +nan.0] #:U-scale [u-scale +nan.0]
+  (lambda [#:turn-radius% [t-radius% +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
            xstepsize0 [ystepsize (&% 100.0)]]
@@ -101,15 +101,14 @@
     
     (define loc : Float-Complex (~point2d home))
     (define home-pos : Float-Complex (make-rectangular (* (real-part loc) xstep) (* (imag-part loc) ystep)))
-    (define-values (tsx tsy) (geo-track-turn-scales t-scale 0.50))
-    (define-values (usx usy) (geo-track-turn-scales u-scale 0.25))
+    (define-values (tsx tsy) (geo-track-turn-scales t-radius% 0.25))
     
     (create-geometry-object gomamon
                             #:with [name (geo-draw-track! stroke fill) geo-track-extent (geo-shape-outline stroke)]
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)
-                            xstep ystep (* tsx xstep) (* tsy ystep) (* usx xstep) (* usy ystep))))
+                            xstep ystep (* tsx xstep) (* tsy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-gomamon-line-move! left            #:-> -1.0)

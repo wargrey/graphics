@@ -13,6 +13,7 @@
   
   [#:tree (move-down 1 '-=)
    [=> (L-step -3+i)
+       (turn-left-down)
        (move-down 1.0 '>>:|Enter digimon| "cd C:\\opt\\digimon")
        (move-down 1.2 '>>:|Update digimon| "git pull")
        (move-down 1.2 '>>:|Build digimon| "raco wisemon -d")
@@ -22,12 +23,14 @@
        (move-down 1 'Exit$)]
    
    [=> (L-step -1+i)
+       (turn-left-down)
        (move-down 1.0 '>>:|Enter graphics| "cd C:\\opt\\graphics")
        (move-down 1.2 '>>:|Update graphics| "git pull")
        (move-down 1.2 '>>:|Build graphics| "raco wisemon -d")
        (move-down '.=-)]
    
    [=> (L-step +1+i)
+       (turn-right-down)
        (move-down 1.0 '>>:|Enter JrPLT| "cd C:\\opt\\JrPLT")
        (move-down 1.2 '>>:|Update JrPLT| "git pull")
        (move-down '.=-)
