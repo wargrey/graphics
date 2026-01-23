@@ -37,7 +37,8 @@
   (move-left 1.5 '/plteen.fun "[auth]")
   (move-down '>>:|Update digimon|)
   (move-left 1 #false "git pull")
-  (move-left 4)
+  (move-leftwards '>>:|Update digimon|)
+  (turn-up-left-down)
   
   (jump-up '-=)
 

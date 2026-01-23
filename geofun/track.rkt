@@ -22,6 +22,16 @@
              [gomamon-jump-down-left! gomamon-jump-left-down!]
              [gomamon-jump-left-up! gomamon-jump-up-left!])
 
+ (rename-out [gomamon-move-upwards! gomamon-move-upward!]
+             [gomamon-move-rightwards! gomamon-move-rightward!]
+             [gomamon-move-downwards! gomamon-move-downward!]
+             [gomamon-move-leftwards! gomamon-move-leftward!])
+
+  (rename-out [gomamon-jump-upwards! gomamon-jump-upward!]
+             [gomamon-jump-rightwards! gomamon-jump-rightward!]
+             [gomamon-jump-downwards! gomamon-jump-downward!]
+             [gomamon-jump-leftwards! gomamon-jump-leftward!])
+ 
  (rename-out [geo-track-close gomamon-close!]
              [geo-track-zone gomamon-zone!]
              [geo-track-lane gomamon-lane!]

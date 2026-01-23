@@ -10,7 +10,7 @@
 (define weird (geo-solid 'DodgerBlue 128))
 (define text (geo-text "Adapter"))
 (define database (geo-database #:stroke 'RoyalBlue #:fill 'Azure width height bradius))
-(define bucket (geo-bucket #:stroke 'RoyalBlue #:fill 'Azure width height bradius (&% 8)))
+(define bucket (geo-bucket #:stroke 'RoyalBlue #:fill 'Azure width height bradius))
 (define-values (hfit% dbvfit% bktvfit%) (values 1.0 (- 1.0 (/ (* bradius 3.0) height)) (- 1.0 (/ (* bradius 2.0) height))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

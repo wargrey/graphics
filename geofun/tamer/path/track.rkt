@@ -9,7 +9,7 @@
 
   [#:seq
    [(move-down 2 '#:r) #:=> (move-down)]
-   [(move-left 1 '#:l) #:=> (move-left)]]
+   [(move-left 1 '#:l) #:=> (move-leftward)]]
   
   (move-up 1 'E)
   
@@ -48,11 +48,19 @@
   (turn-left-up-right)
   (close)
   
-  (jump-down-right 2)
+  (jump-up-pass 'E)
   (turn-up-left-down)
   (turn-left-down-right)
   (turn-down-right-up)
   (turn-right-up-left)
+  (close)
+
+  (jump-down-pass 'E)
+  (jump-leftward 0.5)
+  (move-left-down 0.5 0.5)
+  (move-right-down 0.5 0.5)
+  (move-up-right 0.5 0.5)
+  (move-up-left 0.5 0.5)
   (close))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

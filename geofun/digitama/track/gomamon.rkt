@@ -36,26 +36,66 @@
                   (geo-track-M goma xstep ystep xsgn ysgn anchor)))))]
     [(_ move #:-> xsgn)
      (with-syntax ([move! (format-id #'move "gomamon-move-~a!" (syntax->datum #'move))]
-                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))])
+                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))]
+                   [move-towards! (format-id #'move "gomamon-move-~awards!" (syntax->datum #'move))]
+                   [move-pass! (format-id #'move "gomamon-move-~a-pass!" (syntax->datum #'move))]
+                   [jump-towards! (format-id #'move "gomamon-jump-~awards!" (syntax->datum #'move))]
+                   [jump-pass! (format-id #'move "gomamon-jump-~a-pass!" (syntax->datum #'move))])
        (syntax/loc stx
          (begin (define (move! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
                   (geo-track-L goma step 0.0 xsgn 0.0 anchor info))
+
+                (define (move-towards! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                       [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-track-approach-L goma step 0.0 xsgn 0.0 anchor -1.0 info))
+
+                (define (move-pass! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                    [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-track-approach-L goma step 0.0 xsgn 0.0 anchor +1.0 info))
                 
                 (define (jump! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-track-M goma step 0.0 xsgn 0.0 anchor)))))]
+                  (geo-track-M goma step 0.0 xsgn 0.0 anchor))
+
+                (define (jump-towards! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                       [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-track-approach-M goma step 0.0 xsgn 0.0 anchor -1.0))
+
+                (define (jump-pass! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                    [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-track-approach-M goma step 0.0 xsgn 0.0 anchor +1.0)))))]
     [(_ move #:!> ysgn)
      (with-syntax ([move! (format-id #'move "gomamon-move-~a!" (syntax->datum #'move))]
-                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))])
+                   [move-towards! (format-id #'move "gomamon-move-~awards!" (syntax->datum #'move))]
+                   [move-pass! (format-id #'move "gomamon-move-~a-pass!" (syntax->datum #'move))]
+                   [jump! (format-id #'move "gomamon-jump-~a!" (syntax->datum #'move))]
+                   [jump-towards! (format-id #'move "gomamon-jump-~awards!" (syntax->datum #'move))]
+                   [jump-pass! (format-id #'move "gomamon-jump-~a-pass!" (syntax->datum #'move))])
        (syntax/loc stx
          (begin (define (move! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
                   (geo-track-L goma 0.0 step 0.0 ysgn anchor info))
-                
+
+                (define (move-towards! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                       [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-track-approach-L goma 0.0 step 0.0 ysgn anchor -1.0 info))
+
+                (define (move-pass! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                    [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (geo-track-approach-L goma 0.0 step 0.0 ysgn anchor +1.0 info))
+
                 (define (jump! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
                                [anchor : (Option Geo-Anchor-Name) #false]) : Void
-                  (geo-track-M goma 0.0 step 0.0 ysgn anchor)))))]))
+                  (geo-track-M goma 0.0 step 0.0 ysgn anchor))
+
+                (define (jump-towards! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                       [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-track-approach-M goma 0.0 step 0.0 ysgn anchor -1.0))
+
+                (define (jump-pass! [goma : Gomamon] [step : Geo-Step-Datum 1.0]
+                                    [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (geo-track-approach-M goma 0.0 step 0.0 ysgn anchor +1.0)))))]))
 
 (define-syntax (define-gomamon-turn-move! stx)
   (syntax-case stx []
@@ -146,33 +186,33 @@
        (geo-trail-try-set! (geo:track-trail self) pos-anchor pos))
      
      (geo-track-jump-to self pos)]
-    [(self target anchor offset)
+    [(self target anchor offset) ; used by the `radial back`
      (let ([pos (geo-track-target-position self target offset)])
        (geo-trail-try-set! (geo:track-trail self) anchor pos)
        (geo-track-jump-to self pos))]
-    [(self pos)
-     (set-geo:track-origin! self pos)
-     (set-geo:track-here! self pos)
-     (set-geo:track-footprints! self (cons (gpp:point #\M pos) (geo:track-footprints self)))]))
+    [(self abs-pos) ; used by the `radial move` and `geo-back-jump-to`
+     (set-geo:track-origin! self abs-pos)
+     (set-geo:track-here! self abs-pos)
+     (set-geo:track-footprints! self (cons (gpp:point #\M abs-pos) (geo:track-footprints self)))]))
 
 (define geo-track-connect-to : (case-> [Geo:Track (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Float-Complex -> Void]
                                        [Geo:Track (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any -> Void]
                                        [Geo:Track Float-Complex Any -> Void])
   (case-lambda
     [(self target pos-anchor info) (geo-track-connect-to self target pos-anchor info 0.0+0.0i)]
-    [(self target pos-anchor info offset)
+    [(self target pos-anchor info offset) ; used by the `radial move`
      (let ([pos (geo-track-target-position self target offset)])
        (when (complex? target)
          (geo-trail-try-set! (geo:track-trail self) pos-anchor pos))
        (geo-track-connect-to self pos info))]
-    [(self pos info)
+    [(self abs-pos info) ; used by the `radial back` and `geo-track-connect-to`
      (unless (not info)
        (hash-set! (geo:track-foot-infos self)
-                  (cons (geo:track-here self) pos)
+                  (cons (geo:track-here self) abs-pos)
                   (geo-track-info info)))
        
-     (set-geo:track-here! self pos)
-     (set-geo:track-footprints! self (cons (gpp:point #\L pos) (geo:track-footprints self)))]))
+     (set-geo:track-here! self abs-pos)
+     (set-geo:track-footprints! self (cons (gpp:point #\L abs-pos) (geo:track-footprints self)))]))
 
 (define geo-track-linear-bezier : (-> Geo:Track Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]
@@ -230,13 +270,21 @@
   (lambda [self xstep ystep xsgn ysgn anchor info]
     (geo-track-do-move self (geo-track-target-position self xstep ystep xsgn ysgn) #\L anchor info #false)))
 
+(define geo-track-approach-M : (-> Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Flonum Void)
+  (lambda [self xstep ystep xsgn ysgn anchor clearance-sgn]
+    (geo-track-do-move self (geo-track-target-position self xstep ystep xsgn ysgn clearance-sgn) #\M anchor #false #true)))
+
+(define geo-track-approach-L : (-> Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Flonum Any Void)
+  (lambda [self xstep ystep xsgn ysgn anchor clearance-sgn info]
+    (geo-track-do-move self (geo-track-target-position self xstep ystep xsgn ysgn clearance-sgn) #\L anchor info #false)))
+
 (define geo-track-target-position : (case-> [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum -> Float-Complex]
+                                            [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum Flonum -> Float-Complex]
                                             [Geo:Track (U Geo-Anchor-Name Complex) Float-Complex -> Float-Complex]
                                             [Geo:Track (U Geo-Anchor-Name Complex) -> Float-Complex])
   (case-lambda
     [(self xstep ystep xsgn ysgn)
      (make-rectangular
-     
       (if (real? xstep)
           (+ (real-part (geo:track-here self))
              (* (gomamon-xstepsize self) (real->double-flonum xstep) xsgn))
@@ -246,6 +294,10 @@
           (+ (imag-part (geo:track-here self))
              (* (gomamon-ystepsize self) (real->double-flonum ystep) ysgn))
           (imag-part (geo-trail-ref (geo:track-trail self) ystep))))]
+    [(self xstep ystep xsgn ysgn clearance-sgn)
+     (+ (geo-track-target-position self xstep ystep xsgn ysgn)
+        (make-rectangular (* (gomamon-uxradius self) xsgn clearance-sgn)
+                          (* (gomamon-uyradius self) ysgn clearance-sgn)))]
     [(self target)
      (cond [(not (complex? target)) (geo-trail-ref (geo:track-trail self) target)]
            [(gomamon? self)
