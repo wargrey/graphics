@@ -105,9 +105,13 @@
     
     (create-geometry-object gomamon
                             #:with [name (geo-draw-track! stroke fill) geo-track-extent (geo-shape-outline stroke)]
+                            ; track fields
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)
+                            null
+                            
+                            ; gomamon fields
                             xstep ystep (* tsx xstep) (* tsy ystep))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

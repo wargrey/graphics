@@ -6,6 +6,7 @@
 
 (require "../paint.rkt")
 (require "../typed/cairo.rkt")
+(require "../typed/more.rkt")
 
 (require "../../geometry/constants.rkt")
 
@@ -17,7 +18,7 @@
     (cairo-render cr stroke #false)))
 
 (define dc_ellipse : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) Any)
-  (lambda [cr x0 y0 flwidth flheight stroke background diameters]
+  (lambda [cr x0 y0 flwidth flheight stroke fill diameters]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
 
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
@@ -31,10 +32,56 @@
         (cairo-add-line cr x y (- 0.0 x) (- 0.0 y))
         (draw-d (cdr as))))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
+
+(define dc_ring : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                      (Option Pen) (Option Brush) Nonnegative-Flonum
+                      Any)
+  (lambda [cr x0 y0 flwidth flheight stroke fill inner%]
+    (define-values (oaradius obradius) (values (* flwidth 0.5) (* flheight 0.5)))
+    (define-values (iaradius ibradius) (values (* oaradius inner%) (* obradius inner%)))
+    
+    (cairo_translate cr (+ x0 oaradius) (+ y0 obradius))
+
+    (cairo-positive-arc cr oaradius obradius 0.0 2pi)
+    (cairo_new_sub_path cr)
+    (cairo-negative-arc cr iaradius ibradius -2pi 0.0)
+    (cairo-render/evenodd cr stroke fill)))
+
+(define dc_bullseye : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                          (Option Pen) (Option Brush) (Option Pen) (Option Brush)
+                          (Pairof Nonnegative-Flonum (Listof Nonnegative-Flonum))
+                          Any)
+  (lambda [cr x0 y0 flwidth flheight stroke fill eye-stroke eye-fill rings%]
+    (define-values (oaradius obradius) (values (* flwidth 0.5) (* flheight 0.5)))
+    (define-values (iaradius ibradius) (values (* oaradius (car rings%)) (* obradius (car rings%))))
+    
+    (cairo_translate cr (+ x0 oaradius) (+ y0 obradius))
+
+    (cairo-positive-arc cr oaradius obradius 0.0 2pi)
+    (cairo_new_sub_path cr)
+    (cairo-negative-arc cr iaradius ibradius -2pi 0.0)
+    (cairo-render/evenodd cr #false fill)
+
+    (cairo_new_path cr)
+    (cairo-positive-arc cr iaradius ibradius 0.0 2pi)
+    (cairo-render cr eye-stroke eye-fill)
+
+    (cairo_new_path cr)
+    (cairo-positive-arc cr oaradius obradius 0.0 2pi)
+    
+    (let draw-r ([rs (cdr rings%)])
+      (when (pair? rs)
+        (define-values (r% rest) (values (car rs) (cdr rs)))
+
+        (cairo_new_sub_path cr)
+        (cairo-positive-arc cr (* oaradius r%) (* obradius r%) 0.0 2pi)
+        (draw-r rest)))
+
+    (cairo-render cr stroke)))
 
 (define dc_arc : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum (Option Pen) (Option Brush) Boolean Any)
-  (lambda [cr x0 y0 flwidth flheight rstart rend stroke background sector?]
+  (lambda [cr x0 y0 flwidth flheight rstart rend stroke fill sector?]
     (define-values (aradius bradius) (values (* flwidth 0.5) (* flheight 0.5)))
     
     (cairo_translate cr (+ x0 aradius) (+ y0 bradius))
@@ -44,10 +91,10 @@
       (cairo_line_to cr 0.0 0.0)
       (cairo_close_path cr))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 (define dc_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum) Any)
-  (lambda [cr x0 y0 flwidth flheight stroke background vlines hlines]
+  (lambda [cr x0 y0 flwidth flheight stroke fill vlines hlines]
     (cairo_rectangle cr x0 y0 flwidth flheight)
     
     (let draw-vl ([vls vlines])
@@ -62,12 +109,12 @@
         (cairo-add-line cr x0 y (+ x0 flwidth) y)
         (draw-hl (cdr hls))))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 (define dc_regular_polygon : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                  Positive-Index Positive-Index Flonum (Option Pen) (Option Brush)
                                  Any)
-  (lambda [cr x0 y0 width height n k rotation stroke background]
+  (lambda [cr x0 y0 width height n k rotation stroke fill]
     (define-values (aradius bradius) (values (* width 0.5) (* height 0.5)))
     (define fln (exact->inexact n))
     (define delta
@@ -85,13 +132,13 @@
         (draw-polygon (+ flidx 1.0) (+ theta delta))))
     
     (cairo_close_path cr)
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_convex_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                           Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
                                           (List Boolean Boolean Boolean Boolean) Any)
-  (lambda [cr x0 y0 flwidth flheight flradius stroke background vlines hlines corners]
+  (lambda [cr x0 y0 flwidth flheight flradius stroke fill vlines hlines corners]
     (define-values (rlt? rrt? rlb? rrb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define-values (xlset ytset) (values (+ x0 flradius) (+ y0 flradius)))
@@ -140,12 +187,12 @@
         
         (draw-hl (cdr hls))))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 (define dc_concave_rounded_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                            Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
                                            (List Boolean Boolean Boolean Boolean) Any)
-  (lambda [cr x0 y0 flwidth flheight flradius stroke background vlines hlines corners]
+  (lambda [cr x0 y0 flwidth flheight flradius stroke fill vlines hlines corners]
     (define-values (rlt? rrt? rlb? rrb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define-values (xlset ytset) (values (+ x0 flradius) (+ y0 flradius)))
@@ -194,12 +241,12 @@
         
         (draw-hl (cdr hls))))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 (define dc_chamfered_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                      Nonnegative-Flonum Nonnegative-Flonum (Option Pen) (Option Brush) (Listof Flonum) (Listof Flonum)
                                      (List Boolean Boolean Boolean Boolean) Any)
-  (lambda [cr x0 y0 flwidth flheight flxcsize flycsize stroke background vlines hlines corners]
+  (lambda [cr x0 y0 flwidth flheight flxcsize flycsize stroke fill vlines hlines corners]
     (define-values (clt? crt? clb? crb?) (values (car corners) (cadr corners) (caddr corners) (cadddr corners)))
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define-values (xlset ytset) (values (+ x0 flxcsize) (+ y0 flycsize)))
@@ -248,7 +295,7 @@
         
         (draw-hl (cdr hls))))
     
-    (cairo-render cr stroke background)))
+    (cairo-render cr stroke fill)))
 
 (define dc_open_rectangle : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                                 (Option Pen) (Option Pen) (Option Brush)
@@ -256,7 +303,7 @@
                                 (Listof Flonum) Nonnegative-Flonum Nonnegative-Flonum
                                 Geo-Border-Open-Sides
                                 Any)
-  (lambda [cr x0 y0 flwidth flheight stroke line-stroke background vlines vspan vpos% hlines hspan hpos% open-sides]
+  (lambda [cr x0 y0 flwidth flheight stroke line-stroke fill vlines vspan vpos% hlines hspan hpos% open-sides]
     (define-values (xr yb) (values (+ x0 flwidth) (+ y0 flheight)))
     (define xlset (+ x0 (* (-  flwidth hspan) hpos%)))
     (define ytset (+ y0 (* (- flheight vspan) vpos%)))
@@ -264,8 +311,8 @@
     
     (cairo_rectangle cr x0 y0 flwidth flheight)
     
-    (when (and background)
-      (cairo-render-with-fill cr background))
+    (when (and fill)
+      (cairo-render-with-fill cr fill))
 
     (when (and line-stroke (or (pair? vlines) (pair? hlines)))
       (cairo_new_path cr)

@@ -17,6 +17,12 @@
   #:type-name Geo:Circle
   #:transparent)
 
+(struct geo:ring geo
+  ([oradius : Nonnegative-Flonum]
+   [iradius : Nonnegative-Flonum])
+  #:type-name Geo:Ring
+  #:transparent)
+
 (struct geo:ellipse geo
   ([a : Nonnegative-Flonum]
    [b : Nonnegative-Flonum]
@@ -40,6 +46,12 @@
   #:type-name Geo:Arc
   #:transparent)
 
+(struct geo:bullseye geo
+  ([radius : Nonnegative-Flonum]
+   [rings% : (Listof Nonnegative-Flonum)])
+  #:type-name Geo:Bullseye
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-circle
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
@@ -55,6 +67,20 @@
                                        (geo-shape-outline stroke)]
                             r (for/list : (Listof Flonum) ([d (in-list diameters)])
                                 (real->double-flonum d)))))
+
+(define geo-ring
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:id [id : (Option Symbol) #false]
+           [radius : Real-Length]
+           [inner-radius : Length+% (&% 61.8)]] : Geo:Ring
+    (define-values (R r) (~extent radius inner-radius))
+    
+    (create-geometry-object geo:ring
+                            #:with [id (geo-draw-ring stroke pattern)
+                                       (geo-shape-extent (* 2.0 R) 0.0 0.0)
+                                       (geo-shape-outline stroke)]
+                            R r)))
 
 (define geo-ellipse
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
@@ -105,18 +131,72 @@
                                        (geo-shape-outline stroke)]
                             ar br (~rad start unit) (~rad end unit))))
 
+(define geo-bullseye*
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:eye-stroke [eye-stroke : Maybe-Stroke-Paint (void)]
+           #:eye-fill [eye-pattern : Maybe-Fill-Paint (void)]
+           [radius : Real-Length] [rings : (Listof Length+%)]] : Geo:Bullseye
+    (define R : Nonnegative-Flonum (~dimension radius))
+    
+    (create-geometry-object geo:bullseye
+                            #:with [id (geo-draw-bullseye stroke pattern eye-stroke eye-pattern)
+                                       (geo-shape-extent (* 2.0 R) 0.0 0.0)
+                                       (geo-shape-outline stroke)]
+                            R
+                            (sort (for/list : (Listof Nonnegative-Flonum) ([r (in-list rings)])
+                                    (abs (/ (~placement r R) R)))
+                                  <))))
+
+(define geo-bullseye
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [pattern : Maybe-Fill-Paint (void)]
+           #:eye-stroke [eye-stroke : Maybe-Stroke-Paint (void)]
+           #:eye-fill [eye-pattern : Maybe-Fill-Paint (void)]
+           [radius : Real-Length] . [rings : Length+% *]] : Geo:Bullseye
+    (geo-bullseye* #:id id #:stroke stroke #:fill pattern
+                   #:eye-stroke eye-stroke #:eye-fill eye-pattern
+                   radius rings)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-ellipse : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]
     (λ [self cr x0 y0 width height]
-      (cond [(geo:ellipse? self)
-             (dc_ellipse cr x0 y0 width height
-                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                         (geo:ellipse-diameters self))]
-            [(geo:circle? self)
-             (dc_ellipse cr x0 y0 width height
-                         (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill)
-                         (geo:circle-diameters self))]))))
+      (define pen (geo-select-stroke-paint alt-stroke))
+      (define brush (geo-select-fill-source alt-fill))
+        
+      (cond [(geo:ellipse? self) (dc_ellipse cr x0 y0 width height pen brush (geo:ellipse-diameters self))]
+            [(geo:circle? self)  (dc_ellipse cr x0 y0 width height pen brush (geo:circle-diameters self))]))))
+
+(define geo-draw-ring : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:ring? self)
+        (define pen (geo-select-stroke-paint alt-stroke))
+        (define brush (geo-select-fill-source alt-fill))
+        (define R (geo:ring-oradius self))
+        (define r (geo:ring-iradius self))
+
+        (if (>= r R)
+            (dc_ellipse cr x0 y0 width height pen brush null)
+            (dc_ring cr x0 y0 width height pen brush (abs (/ r R))))))))
+
+(define geo-draw-bullseye : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill eye-stroke eye-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:bullseye? self)
+        (define pen (geo-select-stroke-paint alt-stroke))
+        (define brush (geo-select-fill-source alt-fill))
+        (define rings (geo:bullseye-rings% self))
+
+        (if (pair? rings)
+            (dc_bullseye cr x0 y0 width height pen brush
+                         (if (void? eye-stroke) pen (geo-select-stroke-paint eye-stroke))
+                         (if (void? eye-fill) brush (geo-select-fill-source eye-fill))
+                         rings)
+            (dc_ellipse cr x0 y0 width height pen brush null))))))
 
 (define geo-draw-arc : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke]

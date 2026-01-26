@@ -4,7 +4,8 @@
 
 (require "../self.rkt")
 (require "../paint.rkt")
-(require "../unsafe/dc/path.rkt")
+(require "../layer/type.rkt")
+(require "../richtext/self.rkt")
 
 (require "../track/self.rkt")
 (require "../track/trail.rkt")
@@ -15,15 +16,28 @@
 (require "../geometry/bbox.rkt")
 (require "../geometry/footprint.rkt")
 
+(require "../unsafe/dc/path.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Print-Datum Point2D)
 (define-type Geo-Track-Infobase (HashTable (Pairof Float-Complex Float-Complex) Geo:Track:Info))
 
 (struct geo:track:zone
-  ([bbox : Geo-BBox]
-   [name : Geo-Anchor-Name]
+  ([grid-pos : Float-Complex]
+   [grid-span : Float-Complex]
+   [desc : Geo-Rich-Text]
    [type : Symbol])
   #:type-name Geo:Track:Zone
+  #:transparent)
+
+(struct geo:track:zone:fixed geo:track:zone
+  ()
+  #:type-name Geo:Track:Zone:Fixed
+  #:transparent)
+
+(struct geo:track:zone:flex geo:track:zone
+  ([anchor : Geo-Pin-Anchor])
+  #:type-name Geo:Track:Zone:Flex
   #:transparent)
 
 (struct geo:track geo
@@ -32,7 +46,8 @@
    [origin : Float-Complex]
    [here : Float-Complex]
    [footprints : Geo-Path-Prints]
-   [foot-infos : Geo-Track-Infobase])
+   [foot-infos : Geo-Track-Infobase]
+   [zones : (Listof Geo:Track:Zone)])
   #:type-name Geo:Track
   #:transparent
   #:mutable)
