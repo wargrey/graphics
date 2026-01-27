@@ -35,10 +35,10 @@
                                                     (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
                                                     Geo-Track-Infobase Nonnegative-Flonum (Option Nonnegative-Flonum)
                                                     (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
-  (lambda [master track-factory free-factory block-factory block-desc infobase block-scale opacity]
-    (define gpath : Geo-Trail (geo:track-trail master))
+  (lambda [self track-factory free-factory block-factory block-desc infobase block-scale opacity]
+    (define gpath : Geo-Trail (geo:track-trail self))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
-    (define-values (Width Height) (geo-flsize master))
+    (define-values (Width Height) (geo-flsize self))
 
     (define track-identifier (dia-track-factory-identifier track-factory))
     (define track-backstyle ((dia-track-factory-λbackstop-style track-factory)))
@@ -62,7 +62,7 @@
                 [prints : Geo-Path-Prints null]
                 [target : (Option (GLayerof Dia:Block)) #false]
                 [last-pt : (Option Float-Complex) #false]
-                [stnirp : Geo-Path-Prints (geo:track-footprints master)])
+                [stnirp : Geo-Path-Prints (geo:track-footprints self)])
       (if (pair? stnirp)
 
           (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])

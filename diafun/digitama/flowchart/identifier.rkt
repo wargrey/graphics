@@ -42,34 +42,29 @@
              track-style))))
 
 (define default-flow-block-identify : (Dia-Block-Identifier Flow-Block-Style Flow-Block-Metadata)
-  (lambda [anchor]
+  (lambda [anchor text size]
     (if (keyword? anchor)
 
-        (let ([text (geo-anchor->string anchor)])
-          (cond [(or (string-ci=? text "home") (string-ci=? text "start") (string-ci=? text "begin"))
-                 (flow-block-info anchor text default-flow-start-style)]
-                [(or (string-ci=? text "end") (string-ci=? text "done") (string-ci=? text "terminate") (string-ci=? text "exit") (string-ci=? text "return"))
-                 (flow-block-info anchor text default-flow-stop-style)]
-                [else (let ([size (string-length text)])
-                        (and (> size 0)
-                             (diaflow-block-text-identify anchor text size)))]))
+        (cond [(or (string-ci=? text "home") (string-ci=? text "start") (string-ci=? text "begin")
+                   #;(string-ci=? text "initial") #;| the initialization node is an alias to the preparation node |)
+               (flow-block-info anchor text default-flow-start-style)]
+              [(or (string-ci=? text "end") (string-ci=? text "done") (string-ci=? text "terminate") (string-ci=? text "exit") (string-ci=? text "return"))
+               (flow-block-info anchor text default-flow-stop-style)]
+              [else (flow-block-text-identify anchor text size)])
 
-        (let* ([text (geo-anchor->string anchor)]
-               [size (string-length text)])
-          (and (> size 0)
-               (diaflow-block-text-identify anchor text size))))))
+        (flow-block-text-identify anchor text size))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define diaflow-block-text-identify : (-> Geo-Anchor-Name String Positive-Index (Option (Dia-Block-Info Flow-Block-Style Flow-Block-Metadata)))
+(define flow-block-text-identify : (-> Geo-Anchor-Name String Positive-Index (Option (Dia-Block-Info Flow-Block-Style Flow-Block-Metadata)))
   (lambda [anchor text size]
     (define-values (idx$ idx$2) (values (- size 1) (- size 2)))
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
 
     ; check '^' before '?' for flowcharts of predicate functions
-    (cond [(eq? ch0 #\^) (flow-block-info anchor (substring text 1 size) default-flow-start-style 'Start)]
+    (cond [(eq? ch0 #\^) (flow-block-info anchor (substring text 1 size) default-flow-start-style)]
           [(eq? ch$ #\?) (flow-block-info anchor text default-flow-decision-style)]
           [(eq? ch$ #\!) (flow-block-info anchor text default-flow-preparation-style)]
-          [(eq? ch$ #\$) (flow-block-info anchor (substring text 0 idx$) default-flow-stop-style 'Stop)]
+          [(eq? ch$ #\$) (flow-block-info anchor (substring text 0 idx$) default-flow-stop-style)]
           [(eq? ch0 #\:) (flow-block-info anchor (substring text 1 size) default-flow-operation-style)]
           [(eq? ch0 #\λ)
            (cond [(eq? ch$ #\~) (flow-block-info anchor (substring text 1 idx$) default-flow-collation-style)]
@@ -100,10 +95,8 @@
                       (flow-block-info anchor (substring text 2 idx$2) default-flow-process-style 'Alternate)
                       (flow-block-info anchor (substring text 2 size)  default-flow-process-style 'Alternate))]
                  [else #false])]
-          [(eq? ch0 #\=)
-           (cond [(eq? ch$ #\*) (flow-block-info anchor (substring text 1 idx$) default-flow-junction-style)]
-                 [(eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-merge-style)]
-                 [else #false])]
+          [(eq? ch0 #\+) (and (eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-junction-style))]
+          [(eq? ch0 #\=) (and (eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-merge-style))]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
                (flow-block-info anchor (substring text 1 idx$) default-flow-inspection-style 'sink)
@@ -125,7 +118,6 @@
                  [(string-prefix? text "/proc/")
                   (flow-block-info anchor (substring text 6 size) default-flow-storage-style 'Memory)]
                  [else (flow-block-info anchor (substring text 1 size) default-flow-storage-style)])]
-          [(eq? ch0 #\.) #false]
           [(eq? ch0 #\\) (flow-block-info anchor (substring text 1 size) default-flow-process-style)]
           [else (flow-block-info anchor text default-flow-process-style)])))
 

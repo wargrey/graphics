@@ -17,7 +17,7 @@
   (U (Immutable-HashTable Geo-Anchor-Name Geo-Maybe-Rich-Text)
      (-> Geo-Anchor-Name String (Dia-Block-Style-Spec Style) Metadata Geo-Maybe-Rich-Text)))
 
-(define-type (Dia-Block-Identifier Style Metadata) (-> Geo-Anchor-Name (Option (Dia-Block-Info Style Metadata))))
+(define-type (Dia-Block-Identifier Style Metadata) (-> Geo-Anchor-Name String Positive-Index (Option (Dia-Block-Info Style Metadata))))
 (define-type (Dia-Block-Typesetter Style) (-> Symbol Geo-Rich-Text (Dia-Block-Style-Spec Style) (Option Geo)))
 
 (define-type (Dia-Block-Builder Style Metadata)

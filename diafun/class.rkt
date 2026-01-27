@@ -61,7 +61,8 @@
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
-           [self : Geo:Track]] : Dia:Class
+           [master : Dia-Track-Datum]] : Dia:Class
+    (define self (if (geo:track? master) master (dia:track-self master)))
     (parameterize ([default-cls-relationship-identifier class-type]
                    [current-master-track self])
       (create-dia-track dia:class id self
@@ -80,7 +81,8 @@
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
-           [self : Geo:Track]] : Dia:Class
+           [master : Dia-Track-Datum]] : Dia:Class
+    (define self (if (geo:track? master) master (dia:track-self master)))
     (parameterize ([default-cls-relationship-identifier class-type]
                    [current-master-track self])
       (create-dia-track dia:class id self

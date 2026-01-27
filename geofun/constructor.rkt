@@ -52,7 +52,7 @@
 (provide geo-regular-polygon geo-star-polygon geo:regular-polygon? Geo:Regular-Polygon)
 (provide geo-polygon geo:polygon? Geo:Polygon)
 (provide geo-polyline geo:polyline? Geo:Polyline)
-(provide geo-parallelogram geo-rhombus geo-trapezium geo-keyboard geo-house geo-star geo-hexagon-tile)
+(provide geo-parallelogram geo-rhombus geo-trapezium geo-star geo-hexagon-tile)
 
 (provide geo-file geo:file? Geo:File)
 (provide geo-document geo:document? Geo:Document)

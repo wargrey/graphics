@@ -60,7 +60,8 @@
            #:block-desc [block-desc : (Option Flow-Block-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
-           [self : Geo:Track]] : Dia:FlowChart
+           [master : Dia-Track-Datum]] : Dia:FlowChart
+    (define self (if (geo:track? master) master (dia:track-self master)))
     (parameterize ([current-master-track self])
       (create-dia-track dia:flowchart id self
                         #:frame frame
@@ -80,7 +81,8 @@
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
-           [self : Geo:Track]] : Dia:FlowChart
+           [master : Dia-Track-Datum]] : Dia:FlowChart
+    (define self (if (geo:track? master) master (dia:track-self master)))
     (parameterize ([current-master-track self])
       (create-dia-track dia:flowchart id self
                         #:frame frame

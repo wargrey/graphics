@@ -10,30 +10,35 @@
    #:frame 'White
    #:opacity 0.32] #:-
   (move-down 1 ':|Run PowerShell|)
+  (move-down 1 '.-=)
   
   [#:tree (move-down 1 '-=)
-   [=> (L-step -3+i)
+   [=> (move-left 3)
        (turn-left-down)
        (move-down 1.0 '>>:|Enter digimon| "cd C:\\opt\\digimon")
        (move-down 1.2 '>>:|Update digimon| "git pull")
        (move-down 1.2 '>>:|Build digimon| "raco wisemon -d")
        (move-down)
-       (move-right '#:home '.=-)
-       (move-down 0.5 '=-)
+       (turn-down-right)
+       (move-right '#:home '=-)
        (move-down 1 'Exit$)]
    
-   [=> (L-step -1+i)
+   [=> (move-left)
        (turn-left-down)
        (move-down 1.0 '>>:|Enter graphics| "cd C:\\opt\\graphics")
        (move-down 1.2 '>>:|Update graphics| "git pull")
        (move-down 1.2 '>>:|Build graphics| "raco wisemon -d")
-       (move-down '.=-)]
+       (move-down)
+       (turn-down-right)
+       (move-to '=-)]
    
-   [=> (L-step +1+i)
+   [=> (move-right)
        (turn-right-down)
        (move-down 1.0 '>>:|Enter JrPLT| "cd C:\\opt\\JrPLT")
        (move-down 1.2 '>>:|Update JrPLT| "git pull")
-       (move-down '.=-)
+       (move-downwards '=-)
+       (turn-down-left)
+       (move-to '=-)
        (move-left '#:home)]]
   
   (jump-to 7.0 '/db/student.db)
@@ -43,7 +48,7 @@
   (move-leftwards '>>:|Update digimon|)
   (turn-up-left-down)
   
-  (jump-up '-=)
+  (jump-up '.-=)
 
   [#:seq
    [(jump-left '>>:|Update JrPLT| (string->keyword "/doc/C:\\opt\\JrPLT/"))       => (move-down 1 #false "cd")]

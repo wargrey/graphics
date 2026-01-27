@@ -19,6 +19,17 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define dia-sort-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex))
+  (lambda [width height]
+     (define w/2 : Nonnegative-Flonum (* width 0.5))
+     (define h/2 : Nonnegative-Flonum (* height 0.5))
+     
+     (list (make-rectangular 0.0 h/2)
+           (make-rectangular w/2 0.0) (make-rectangular width h/2)
+           (make-rectangular w/2 height) (make-rectangular 0.0 h/2)
+           (make-rectangular width h/2))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-flow-storage : (->* (Real-Length Length+%)
                                 (Length+% #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
                                 Dia:Flow:Storage)

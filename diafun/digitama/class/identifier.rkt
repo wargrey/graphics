@@ -17,20 +17,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-cls-block-identify : (Dia-Block-Identifier Cls-Block-Style Cls-Block-Metadata)
-  (lambda [anchor]
-    (define text (geo-anchor->string anchor))
-    (define size (string-length text))
-    
-    (and (> size 0)
-         (not (eq? (string-ref text 0) #\.))
-         (if (symbol? anchor)
-             (let* ([tail (regexp-match #px"(.+)#(\\w+)$" text)]
-                    [cname (and tail (cadr tail))]
-                    [tag (and tail (caddr tail))])
-               (if (and cname tag)
-                   (cls-tagged-class-identify anchor cname (string->symbol tag))
-                   (cls-named-class-identify anchor text)))
-             (cls-interface-style-construct anchor text)))))
+  (lambda [anchor text size]
+    (if (symbol? anchor)
+        (let* ([tail (regexp-match #px"(.+)#(\\w+)$" text)]
+               [cname (and tail (cadr tail))]
+               [tag (and tail (caddr tail))])
+          (if (and cname tag)
+              (cls-tagged-class-identify anchor cname (string->symbol tag))
+              (cls-named-class-identify anchor text)))
+        (cls-interface-style-construct anchor text))))
 
 (define default-cls-track-identify : (Dia-Track-Identifier Cls-Track-Style)
   (lambda [source target labels extra-info]

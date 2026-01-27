@@ -6,18 +6,8 @@
 
 (require "../polygon.rkt")
 (require "../../paint/self.rkt")
-(require "../../geometry/polygon/pentagon.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-house : (->* (Real-Length Length+%)
-                         (Real #:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
-                         Geo:Polygon)
-  (lambda [width height [t 0.618] #:id [id #false] #:stroke [outline (void)] #:fill [pattern (void)]]
-    (define-values (flwidth flheight) (~extent width height))
-    
-    (geo-polygon #:id (or id (gensym 'geo:polygon:pentagon:)) #:stroke outline #:fill pattern #:window +nan.0+nan.0i
-                 (geo-house-vertices flwidth flheight (real->double-flonum t)))))
-
 (define geo-star
   (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)]
            #:fill [pattern : Maybe-Fill-Paint (void)]

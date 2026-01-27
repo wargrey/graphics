@@ -6,6 +6,7 @@
 
 (require "../block/dc.rkt")
 (require "../block/style.rkt")
+(require "../block/polygon.rkt")
 (require "../block/interface.rkt")
 
 (require "../block/dc/node.rkt")
@@ -21,7 +22,6 @@
 
 (require geofun/digitama/geometry/polygon/triangle)
 (require geofun/digitama/geometry/polygon/quadrilateral)
-(require geofun/digitama/geometry/polygon/pentagon)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) flow-block-process : (Dia-Block-Create S (Option Symbol))
@@ -66,7 +66,7 @@
     (if (eq? subtype 'user)
         (let ([ratio 0.80])
           (dia-block-polygon block-key caption style direction
-                             (geo-keyboard-vertices width height ratio)
+                             (dia-keyboard-vertices width height ratio)
                              1.0 ratio 0.0 1.0
                              'Input subtype))
         (dia-block-parallelogram block-key caption style width height direction 'Input subtype))))
@@ -86,25 +86,25 @@
     (dia-block-circle block-key caption style width height direction 'Connector (or subtype 'Inspection))))
 
 (define #:forall (S) flow-block-reference : (Dia-Block-Create S (Option Symbol))
-  (lambda [block-key caption style ignored-width height direction subtype]
+  (lambda [block-key caption style width height direction subtype]
     (define ratio : Nonnegative-Flonum 0.618)
     (define width (* height 0.618 1.618))
     
     (dia-block-polygon block-key caption style direction
-                       (geo-house-vertices width height (- ratio))
+                       (dia-house-vertices width height (- ratio))
                        1.00 ratio 0.0 0.0
                        'Connector (or subtype 'Reference))))
 
 (define #:forall (S) flow-block-selection : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
-    (dia-symbol-circle block-key (list 0.0 pi/2)
-                       style width height direction
+    (dia-symbol-circle block-key style width height direction
+                       (list 0.0 pi/2)
                        'Selection subtype)))
 
 (define #:forall (S) flow-block-junction : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
-    (dia-symbol-circle block-key (list pi/4 3pi/4) style
-                       width height direction
+    (dia-symbol-circle block-key style width height direction
+                       (list pi/4 3pi/4)
                        'Junction subtype)))
 
 (define #:forall (S) flow-block-manual-operation : (Dia-Block-Create S (Option Symbol))
@@ -134,22 +134,21 @@
 
 (define #:forall (S) flow-block-collation : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
+    (define width (* height 1.2))
     (dia-block-polygon block-key caption style direction
-                       (geo-poor-hourglass-vertices (* height 1.618) height) 0.5 0.375 0.25 0.0
+                       (dia-hourglass-vertices width height) 1.0 0.375 0.0 0.0
                        'Collate subtype)))
 
 (define #:forall (S) flow-block-sort : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
-    (define width (* height 1.618))
+    (define width (* height 1.2))
     (define h/2 : Nonnegative-Flonum (* height 0.5))
     
     (create-dia-block #:block dia:block:polygon
                       #:id block-key #:tag 'Sort subtype
                       #:intersect dia-polygon-intersect
-                      #:fit-region 0.5 0.375 0.25 0.125
-                      #:with style (geo-vc-append #:id (dia-block-shape-id block-key)
-                                                  (dia-polygon-shape #false style (geo-isosceles-triangle-vertices/apex@top width h/2))
-                                                  (dia-polygon-shape #false style (geo-isosceles-triangle-vertices/apex@bot width h/2)))
+                      #:fit-region 1.0 0.375 0.0 0.125
+                      #:with style (dia-polygon-shape block-key style (dia-sort-vertices width height))
                       caption (geo-rhombus-vertices width height))))
 
 (define #:forall (S) flow-block-storage : (Dia-Block-Create S (Option Symbol))

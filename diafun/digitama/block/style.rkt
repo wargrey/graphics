@@ -132,9 +132,9 @@
     (define Width  (dia-block-backstop-style-width  (dia-block-style-spec-backstop style)))
     (define Height (dia-block-backstop-style-height (dia-block-style-spec-backstop style)))
     (define s (dia-block-style-spec-scale style))
-    
-    (values (* (if (or  maybe-width) (~dimension  maybe-width  Width)  Width) s)
-            (* (if (or maybe-height) (~dimension maybe-height Height) Height) s))))
+
+    (values (* s (if (not  maybe-width)  Width (~dimension  maybe-width  Width)))
+            (* s (if (not maybe-height) Height (~dimension maybe-height Height))))))
 
 (define #:forall (S) dia-block-resolve-width : (-> (Dia-Block-Style-Spec S) Nonnegative-Flonum)
   (lambda [style]

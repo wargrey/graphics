@@ -30,8 +30,8 @@
      [(flow-delay-style?) (flow-block-delay id caption style width height direction subtype)]
      [(flow-operation-style?) (flow-block-manual-operation id caption style width height direction subtype)]
      
-     [(flow-start-style?) (flow-block-terminal id caption style width height direction subtype)]
-     [(flow-stop-style?) (flow-block-terminal id caption style width height direction subtype)]
+     [(flow-start-style?) (flow-block-terminal id caption style width height direction 'Start)]
+     [(flow-stop-style?) (flow-block-terminal id caption style width height direction 'Stop)]
      [(flow-inspection-style?) (flow-block-inspection id caption style width height direction subtype)]
      [(flow-reference-style?) (flow-block-reference id caption style width height direction subtype)]
      

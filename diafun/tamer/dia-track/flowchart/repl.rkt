@@ -29,11 +29,11 @@
    [=> (move-right 1 #false "Pressed Up/Down")
        (move-down 1 Select)
        (move-down 1)
-       (move-left 1 '=expr-)]
+       (move-left 1 '+expr-)]
    
    [=> (move-left 1.0 #false "Input Expression")
        (move-down 1 Read)
-       (L-step '=expr-)
+       (L-step '+expr-)
        (move-down 1 Update)
        (move-down 1 'λEvaluate)
 
@@ -82,7 +82,7 @@
   (jump-to 7 Page1)
   (move-down 1 '|Report Error|)
 
-  [#:tree (move-down 1 '#:-.+)
+  [#:tree (move-down 1 '#:-.=)
    [=> (move-down 3 '=continue- (<span> '([strikethrough . true]) "Ignored"))]
    [=> (move-right 1)
        (move-down 1 '--|Awkward and Check|--)

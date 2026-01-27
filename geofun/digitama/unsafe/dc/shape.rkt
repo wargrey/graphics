@@ -5,9 +5,11 @@
 (require "border.rkt")
 
 (require "../paint.rkt")
+
 (require "../typed/cairo.rkt")
 (require "../typed/more.rkt")
 
+(require "../../paint/self.rkt")
 (require "../../geometry/constants.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -50,17 +52,18 @@
 
 (define dc_bullseye : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                           (Option Pen) (Option Brush) (Option Pen) (Option Brush)
-                          (Pairof Nonnegative-Flonum (Listof Nonnegative-Flonum))
+                          Nonnegative-Flonum (Listof Nonnegative-Flonum)
                           Any)
-  (lambda [cr x0 y0 flwidth flheight stroke fill eye-stroke eye-fill rings%]
+  (lambda [cr x0 y0 flwidth flheight stroke fill eye-stroke eye-fill r% rings%]
     (define-values (oaradius obradius) (values (* flwidth 0.5) (* flheight 0.5)))
-    (define-values (iaradius ibradius) (values (* oaradius (car rings%)) (* obradius (car rings%))))
+    (define-values (iaradius ibradius) (values (* oaradius r%) (* obradius r%)))
+    (define eye-ring-width (pen-maybe-width eye-stroke))
     
     (cairo_translate cr (+ x0 oaradius) (+ y0 obradius))
 
     (cairo-positive-arc cr oaradius obradius 0.0 2pi)
     (cairo_new_sub_path cr)
-    (cairo-negative-arc cr iaradius ibradius -2pi 0.0)
+    (cairo-negative-arc cr (max (- iaradius eye-ring-width) 0.0) (max (- ibradius eye-ring-width) 0.0) -2pi 0.0)
     (cairo-render/evenodd cr #false fill)
 
     (cairo_new_path cr)
@@ -70,7 +73,7 @@
     (cairo_new_path cr)
     (cairo-positive-arc cr oaradius obradius 0.0 2pi)
     
-    (let draw-r ([rs (cdr rings%)])
+    (let draw-r ([rs rings%])
       (when (pair? rs)
         (define-values (r% rest) (values (car rs) (cdr rs)))
 

@@ -105,7 +105,7 @@
     (cairo_move_to cr x0 ty)
     (cairo_line_to cr x0 by)
     (cairo-negative-arc cr cx by aradius bradius pi 0.0)
-    (cairo_line_to cr rx bradius)
+    (cairo_line_to cr rx ty)
     (cairo-negative-arc cr cx ty aradius bradius 0.0 pi)
     (cairo_close_path cr)
 

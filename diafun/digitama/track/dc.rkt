@@ -36,8 +36,10 @@
                                 self argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Dia-Track-Datum (U Geo:Track Dia:Track))
+
 (struct dia:track geo:group
-  ([skeleton : Geo:Track])
+  ([self : Geo:Track])
   #:type-name Dia:Track
   #:transparent)
 

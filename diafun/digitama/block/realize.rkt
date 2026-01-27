@@ -23,27 +23,27 @@
                                                 Geo-Anchor-Name (Option Flonum) Nonnegative-Flonum (Option Nonnegative-Flonum) 
                                                 (Option Dia:Block))
   (lambda [block-identifier make-block make-caption block-desc backstop-style anchor direction scale opacity]
-    (define blk-info (block-identifier anchor))
-    
-    (and blk-info
-         (let-values ([(text metadata style) (values (car blk-info) (cadr blk-info) (caddr blk-info))])
-           (and style
-                (let ([style-spec ((inst make-dia-block-style-spec S) #:custom style #:backstop backstop-style #:scale scale #:opacity opacity)])
-                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-block-resolve-font style-spec) unit))])
-                    (define-values (width height) (dia-block-resolve-size style-spec))
+    (define text : String (geo-anchor->string anchor))
+    (define size : Index (string-length text))
 
-                    (define maybe-caption : Geo-Maybe-Rich-Text
-                      (cond [(not block-desc) (void)]
-                            [(hash? block-desc) (hash-ref block-desc anchor void)]
-                            [else (block-desc anchor text style-spec metadata)]))
-
-                    (define block : Dia-Maybe-Block
-                      (let ([caption-text (if (void? maybe-caption) text maybe-caption)]
-                            [id (geo-anchor->symbol anchor)])
-                        (make-block id (and maybe-caption (make-caption id caption-text style-spec))
-                                    style-spec width height direction metadata)))
+    (and (> size 0)
+         (not (eq? (string-ref text 0) #\.))
+         (let ([blk-info (block-identifier anchor text size)])
+           (and blk-info
+                (let-values ([(text metadata style) (values (car blk-info) (cadr blk-info) (caddr blk-info))])
+                  (and style
+                       (let ([style-spec ((inst make-dia-block-style-spec S) #:custom style #:backstop backstop-style #:scale scale #:opacity opacity)])
+                         (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-block-resolve-font style-spec) unit))])
+                           (define-values (width height) (dia-block-resolve-size style-spec))
                            
-                    (and (dia:block? block) block))))))))
+                           (let* ([maybe-caption (cond [(not block-desc) (void)]
+                                                       [(hash? block-desc) (hash-ref block-desc anchor void)]
+                                                       [else (block-desc anchor text style-spec metadata)])]
+                                  [caption-text (if (void? maybe-caption) text maybe-caption)]
+                                  [id (geo-anchor->symbol anchor)]
+                                  [caption (and maybe-caption (make-caption id caption-text style-spec))]
+                                  [block (make-block id caption style-spec width height direction metadata)])
+                             (and (dia:block? block) block)))))))))))
 
 (define #:forall (S M) dia-block-layer-realize : (-> (Dia-Block-Identifier S M) (Dia-Block-Builder S M)
                                                      (Dia-Block-Typesetter S) (Option (Dia-Block-Describer S M)) Dia-Block-Backstop-Style

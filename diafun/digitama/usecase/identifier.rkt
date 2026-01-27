@@ -13,15 +13,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uc-block-identify : (Dia-Block-Identifier UC-Block-Style UC-Block-Metadata)
-  (lambda [anchor]
-    (define text (geo-anchor->string anchor))
-    (define size (string-length text))
-    
-    (and (> size 0)
-         (not (eq? (string-ref text 0) #\.))
-         (if (symbol? anchor)
-             (uc-block-info anchor text default-uc-case-style)
-             (uc-block-info anchor text default-uc-actor-style)))))
+  (lambda [anchor text size]
+    (if (symbol? anchor)
+        (uc-block-info anchor text default-uc-case-style)
+        (uc-block-info anchor text default-uc-actor-style))))
 
 (define default-uc-track-identify : (Dia-Track-Identifier UC-Track-Style)
   (lambda [source target labels extra-info]

@@ -48,18 +48,6 @@
            (+ O (make-polar w/2 (+ normalized.rad pi)))
            (+ O (make-polar h/2 (+ normalized.rad 3pi/2))))]))
 
-(define geo-keyboard-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
-  (lambda [width height left/right]
-    (if (<= left/right 1.0)
-        (let* ([left (* height left/right)]
-               [off (- height left)])
-          (list (make-rectangular 0.0 off) (make-rectangular width 0.0)
-                (make-rectangular width height) (make-rectangular 0.0 height)))
-        (let* ([right (/ height left/right)]
-               [off (- height right)])
-          (list 0.0+0.0i (make-rectangular width off)
-                (make-rectangular width height) (make-rectangular 0.0 height))))))
-
 (define geo-isosceles-trapezium-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
   (lambda [width height upper/lower]
     (if (<= upper/lower 1.0)
@@ -71,8 +59,3 @@
                [off (* (- width lower) 0.5)])
           (list 0.0+0.0i (make-rectangular width 0.0)
                 (make-rectangular (+ off lower) height) (make-rectangular off height))))))
-
-(define geo-poor-hourglass-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum Quadrilateral-Vertices)
-  (lambda [width height]
-    (list 0.0+0.0i (make-rectangular width 0.0)
-          (make-rectangular 0.0 height) (make-rectangular width height))))
