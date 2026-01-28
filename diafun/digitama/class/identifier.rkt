@@ -13,7 +13,7 @@
 (require "../track/interface.rkt")
 
 (require "style.rkt")
-(require "relationship.rkt")
+(require "parameter.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-cls-block-identify : (Dia-Block-Identifier Cls-Block-Style Cls-Block-Metadata)
@@ -41,11 +41,9 @@
          [(association) (cls-track-adjust source target labels default-cls~association~style)]
          [(bidirection) (cls-track-adjust source target labels default-cls~bidirection~style)]
          [(dependency)  (cls-track-adjust  source target labels  default-cls~dependency~style)]
-         [else (let ([stype (dia:block-type source)]
-                     [ttype (dia:block-type target)])
-                 (if (and (eq? stype 'Class) (eq? ttype 'Interface))
-                     (cls-track-adjust source target labels default-cls~realization~style)
-                     (cls-track-adjust source target labels default-cls~generalization~style)))])])))
+         [(and (dia:block-typeof? source cls-class-style?) (dia:block*-typeof? target cls-interface-style?))
+          (cls-track-adjust source target labels default-cls~realization~style)]
+         [else (cls-track-adjust source target labels default-cls~generalization~style)])])))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cls-tagged-class-identify : (-> Symbol String Symbol (Option (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata)))

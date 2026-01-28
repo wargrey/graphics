@@ -34,6 +34,7 @@
    [typesetter : (Option (Dia-Block-Typesetter Cls-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder Cls-Block-Style Cls-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder Cls-Block-Style Cls-Block-Metadata) default-cls-block-fallback-build]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style Cls-Block-Style)) #false]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-cls-block-backstop-style])
   #:transparent)
 
@@ -41,5 +42,6 @@
   ([identifier : (Dia-Track-Identifier Cls-Track-Style) default-cls-track-identify]
    [annotator : (Option (Dia-Track-Annotator Cls-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Cls-Track-Style)) #false]
+   [λroot-style : (Option (Dia-Track-Link-Root-Style Cls-Track-Style)) #false]
    [λbackstop-style : (-> Dia-Track-Backstop-Style) make-cls-track-backstop-style])
   #:transparent)

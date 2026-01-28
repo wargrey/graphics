@@ -20,11 +20,8 @@
 
 (define default-uc-track-identify : (Dia-Track-Identifier UC-Track-Style)
   (lambda [source target labels extra-info]
-    (define stype : Symbol (dia:block-type source))
-    (define ttype : (Option Symbol) (and target (dia:block-type target)))
-
-    (cond [(not (eq? stype ttype)) (uc-track-adjust source target labels default-uc~association~style)]
-          [(eq? stype 'Actor) (uc-track-adjust source target labels default-uc~generalization~style)]
+    (cond [(dia:block-diff-type? source target) (uc-track-adjust source target labels default-uc~association~style)]
+          [(dia:block-typeof? source uc-actor-style?) (uc-track-adjust source target labels default-uc~generalization~style)]
           [(geo-path-match-any-label? labels #px"(?i:(<<|«)?include(»|>>)?)") (uc-track-adjust source target labels default-uc~include~style)]
           [(geo-path-match-any-label? labels #px"(?i:(<<|«)?extend(»|>>)?)") (uc-track-adjust source target labels default-uc~extend~style)]
           [else (uc-track-adjust source target labels default-uc~generalization~style)])))

@@ -10,7 +10,7 @@
 (require "../unsafe/dc/text-layout.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Geo-Rich-Text (U Geo String Complex Rich-Datum<%> Geo-Markup-Datum))
+(define-type Geo-Rich-Text (U String Complex Rich-Datum<%> Geo-Markup-Datum))
 (define-type Geo-Option-Rich-Text (Option Geo-Rich-Text))
 (define-type Geo-Maybe-Rich-Text (U Void Geo-Option-Rich-Text))
 
@@ -30,8 +30,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-rich-text? : (-> Any Boolean : Geo-Rich-Text)
   (lambda [v]
-    (or (geo? v)
-        (string? v)
+    (or (string? v)
         (complex? v)
         (rich-datum<%>? v)
         (geo-markup-datum? v))))

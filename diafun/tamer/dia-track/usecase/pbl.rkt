@@ -22,8 +22,8 @@
 (define-use-case-diagram! role.dia #:start '#:Engineer
   #:parameterize ([default-uc-block-theme-adjuster pbl-colorize])
   [#:frame 'White
-   #:block-desc #hasheq((#:Engineer . "Software\nEngineer")
-                        (#:Researcher . "Curriculum Designer")
+   #:start-name "Software\nEngineer"
+   #:block-desc #hasheq((#:Researcher . "Curriculum Designer")
                         (#:Teacher . "Instructor")
                         (#:Student . "Student")
                         (arch . "设计教学引擎")

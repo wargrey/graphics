@@ -19,16 +19,14 @@
 (require geofun/digitama/path/tip/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Free-Track-Endpoint (U Geo-Anchor-Name Float-Complex))
+(define-type Dia-Track-Endpoint (U Geo-Anchor-Name Float-Complex))
 
 (define-type (Dia-Track-Theme-Adjuster* S Src Tgt) (-> (Dia-Track-Style S) Src Tgt (Listof Geo-Path-Label-Datum) (U (Dia-Track-Style S) False Void)))
 (define-type (Dia-Track-Theme-Adjuster S) (Dia-Track-Theme-Adjuster* S Geo (Option Geo)))
 
-(define-type Dia-Track-Font-Style (U Font Font:Tweak))
-
 (define-struct dia-track-style : Dia-Track-Style
   #:forall ([phantom-type : T])
-  ([font : (Option Dia-Track-Font-Style)]
+  ([font : (Option Font+Tweak)]
    [font-paint : Option-Fill-Paint]
    [width : (Option Length+%)]
    [color : (U Color Void False)]
@@ -55,70 +53,104 @@
 (define-struct #:forall (S) dia-track-style-spec : Dia-Track-Style-Spec
   ([custom : (Dia-Track-Style S)]
    [backstop : Dia-Track-Backstop-Style]
+   [root : (Option (Dia-Track-Style S)) #false]
    [scale : (Option Nonnegative-Flonum) #false]
    [opacity : (Option Nonnegative-Flonum) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-track-resolve-line-paint : (-> (Dia-Track-Style-Spec S) Pen)
   (lambda [self]
-    (define c (dia-track-style-color (dia-track-style-spec-custom self)))
-    (define d+o (dia-track-style-dash (dia-track-style-spec-custom self)))
-    (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
+    (define rt (dia-track-style-spec-root self))
+    (define me (dia-track-style-spec-custom self))
     
-    (define width (dia-track-style-width (dia-track-style-spec-custom self)))
-    (define backstop (dia-track-backstop-style-line-paint (dia-track-style-spec-backstop self)))
-    (define scale (dia-track-style-spec-scale self))
-    (define opacity (dia-track-style-spec-opacity self))
+    (define d+o (or (dia-track-style-dash me) (and rt (dia-track-style-dash rt))))
+    (define-values (dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false)))
 
-    (desc-stroke* #:width width #:dash dash #:offset offset
-                  #:color (and (not (void? c)) c)
-                  #:opacity (and opacity (< opacity 1.0) opacity)
-                  #:scale (and (rational? scale) (not (= scale 1.0)) scale)
-                  (stroke-paint->source backstop))))
+    (define c : Maybe-Color
+      (let ([c (dia-track-style-color me)])
+        (cond [(void? c) (if rt (dia-track-style-color rt) (void))]
+              [else c])))
+    
+    (desc-stroke* #:width (or (dia-track-style-width me) (and rt (dia-track-style-width rt)))
+                  #:dash dash #:offset offset
+                  #:color (if (void? c) #false c)
+                  #:opacity (dia-track-style-spec-opacity self)
+                  #:scale (dia-track-style-spec-scale self)
+                  (stroke-paint->source
+                   (dia-track-backstop-style-line-paint
+                    (dia-track-style-spec-backstop self))))))
 
-(define #:forall (S) dia-track-resolve-source-tip : (-> (Dia-Track-Style-Spec S) Option-Geo-Tip)
+(define #:forall (S) dia-track-resolve-tips : (-> (Dia-Track-Style-Spec S) (Values Option-Geo-Tip Option-Geo-Tip))
   (lambda [self]
-    (define shape : Maybe-Geo-Tip (dia-track-style-source-tip (dia-track-style-spec-custom self)))
-    (if (void? shape) (dia-track-backstop-style-source-tip (dia-track-style-spec-backstop self)) shape)))
+    (define rt (dia-track-style-spec-root self))
+    (define bs (dia-track-style-spec-backstop self))
+    (define me (dia-track-style-spec-custom self))
+    
+    (define src : Maybe-Geo-Tip
+      (let ([tip (dia-track-style-source-tip me)])
+        (cond [(void? tip) (if rt (dia-track-style-source-tip rt) (void))]
+              [else tip])))
+    
+    (define tgt : Maybe-Geo-Tip
+      (let ([tip (dia-track-style-target-tip me)])
+        (cond [(void? tip) (if rt (dia-track-style-target-tip rt) (void))]
+              [else tip])))
 
-(define #:forall (S) dia-track-resolve-target-tip : (-> (Dia-Track-Style-Spec S) Option-Geo-Tip)
-  (lambda [self]
-    (define shape : Maybe-Geo-Tip (dia-track-style-target-tip (dia-track-style-spec-custom self)))
-    (if (void? shape) (dia-track-backstop-style-target-tip (dia-track-style-spec-backstop self)) shape)))
+    (values (if (void? src) (dia-track-backstop-style-source-tip bs) src)
+            (if (void? tgt) (dia-track-backstop-style-target-tip bs) tgt))))
 
 (define #:forall (S) dia-track-resolve-font : (-> (Dia-Track-Style-Spec S) Font)
   (lambda [self]
-    (define s (dia-track-style-spec-custom self))
-    (define f (dia-track-style-font s))
+    (define bsf : Font (let ([b (dia-track-style-spec-backstop self)]) (dia-track-backstop-style-font b)))
+    (define rtf : (Option Font+Tweak) (let ([rt (dia-track-style-spec-root self)]) (and rt (dia-track-style-font rt))))
+    (define myf : (Option Font+Tweak) (dia-track-style-font (dia-track-style-spec-custom self)))
 
-    (cond [(font? f) f]
-          [(not f) (dia-track-backstop-style-font (dia-track-style-spec-backstop self))]
-          [else (desc-font* #:tweak f
-                            (dia-track-backstop-style-font (dia-track-style-spec-backstop self)))])))
+    (cond [(not myf)
+           (cond [(not rtf) bsf]
+                 [(font? rtf) rtf]
+                 [else (desc-font* bsf #:tweak rtf)])]
+          [(font? myf) myf]
+          [(not rtf) (desc-font* bsf #:tweak myf)]
+          [(font? rtf) (desc-font* rtf #:tweak myf)]
+          [else (desc-font* #:tweak rtf
+                            #:family (font:tweak-family myf)
+                            #:size (font:tweak-size myf)
+                            #:style (font:tweak-style myf)
+                            #:weight (font:tweak-weight myf)
+                            bsf)])))
 
 (define #:forall (S) dia-track-resolve-font-paint : (-> (Dia-Track-Style-Spec S) Brush)
   (lambda [self]
     (desc-brush #:opacity (dia-track-style-spec-opacity self)
                 (fill-paint->source (or (dia-track-style-font-paint (dia-track-style-spec-custom self))
+                                        (let ([rt (dia-track-style-spec-root self)])
+                                          (and rt (dia-track-style-font-paint rt)))
                                         (dia-track-backstop-style-font-paint (dia-track-style-spec-backstop self)))))))
 
-(define #:forall (S) dia-track-resolve-label-rotate? : (-> (Dia-Track-Style-Spec S) Boolean)
+(define #:forall (S) dia-track-resolve-label-placement : (-> (Dia-Track-Style-Spec S) (Values Boolean Boolean (Option Flonum)))
   (lambda [self]
-    (define b : (U Boolean Void) (dia-track-style-label-rotate? (dia-track-style-spec-custom self)))
-    (if (void? b) (dia-track-backstop-style-label-rotate? (dia-track-style-spec-backstop self)) b)))
+    (define rt (dia-track-style-spec-root self))
+    (define bs (dia-track-style-spec-backstop self))
+    (define me (dia-track-style-spec-custom self))
+    
+    (define r? : (U Boolean Void)
+      (let ([? (dia-track-style-label-rotate? me)])
+        (if (void? ?) (if rt (dia-track-style-label-rotate? rt) (void)) ?)))
 
-(define #:forall (S) dia-track-resolve-label-inline? : (-> (Dia-Track-Style-Spec S) Boolean)
-  (lambda [self]
-    (define b : (U Boolean Void) (dia-track-style-label-inline? (dia-track-style-spec-custom self)))
-    (if (void? b) (dia-track-backstop-style-label-inline? (dia-track-style-spec-backstop self)) b)))
+    (define i? : (U Boolean Void)
+      (let ([? (dia-track-style-label-inline? me)])
+        (if (void? ?) (if rt (dia-track-style-label-inline? rt) (void)) ?)))
 
-(define #:forall (S) dia-track-resolve-label-distance : (-> (Dia-Track-Style-Spec S) (Option Flonum))
-  (lambda [self]
-    (define fl : (U Flonum Void) (dia-track-style-label-distance (dia-track-style-spec-custom self)))
-    (if (void? fl) (dia-track-backstop-style-label-distance (dia-track-style-spec-backstop self)) fl)))
+    (define d : (U Flonum Void)
+      (let ([d (dia-track-style-label-distance me)])
+        (if (void? d) (if rt (dia-track-style-label-distance rt) (void)) d)))
+    
+    (values (if (void? r?) (dia-track-backstop-style-label-rotate? bs) r?)
+            (if (void? i?) (dia-track-backstop-style-label-inline? bs) i?)
+            (if (void? d) (dia-track-backstop-style-label-distance bs) d))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-track-id-merge : (-> (Option Dia-Free-Track-Endpoint) (Option Dia-Free-Track-Endpoint) Boolean (Option Symbol))
+(define #:forall (S) dia-track-id-merge : (-> (Option Dia-Track-Endpoint) (Option Dia-Track-Endpoint) Boolean (Option Symbol))
   (lambda [source-id target-id directed?]
     (define src-id : (Option String) (and source-id (if (complex? source-id) #false (geo-anchor->string source-id))))
     (define tgt-id : (Option String) (and target-id (if (complex? target-id) #false (geo-anchor->string target-id))))

@@ -29,6 +29,9 @@
 (define default-flow-track-theme-adjuster : (Parameterof (Option Flow-Track-Theme-Adjuster)) (make-parameter #false))
 (define default-flow-block-theme-adjuster : (Parameterof (Option Flow-Block-Theme-Adjuster)) (make-parameter #false))
 
+(define default-flow-start-keyword-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(begin|start|home))$"))
+(define default-flow-stop-keyword-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(end|done|return|exit|terminate))$"))
+
 (define default-flow-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(t(rue)?)|(?i:y(es)?)|(?i:do))$"))
 (define default-flow-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(f(alse)?)|(?i:n(o)?))$"))
 (define default-flow-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"(^(?i:(for|each|while|next)))|((?i:loop)$)"))
@@ -53,7 +56,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'ForestGreen]
@@ -64,7 +67,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkSlateGray]
@@ -76,7 +79,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding (&% 4)]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DeepSkyBlue]
@@ -88,7 +91,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding (&% 2)]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DeepSkyBlue]
@@ -99,7 +102,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'LightSeaGreen]
@@ -110,7 +113,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkOrchid]
@@ -121,7 +124,7 @@
   ([width : Dia-Block-Option-Size  (&% 85)]
    [height : Dia-Block-Option-Size (&% 85)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Crimson]
@@ -133,7 +136,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'RoyalBlue]
@@ -145,7 +148,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Teal]
@@ -157,7 +160,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Maroon]
@@ -168,7 +171,7 @@
   ([width : Dia-Block-Option-Size  #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Peru]
@@ -181,7 +184,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'IndianRed]
@@ -193,7 +196,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Orange]
@@ -205,7 +208,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkOrange]
@@ -217,7 +220,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Orange]
@@ -231,7 +234,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'GoldenRod]
@@ -244,7 +247,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Sienna]
@@ -255,7 +258,7 @@
   ([width : Dia-Block-Option-Size  (&% 61.8)]
    [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]
@@ -266,7 +269,7 @@
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 161.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'SeaGreen]
@@ -289,7 +292,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct flow~line~style : Flow~Line~Style #:-> flow-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color (void)]
@@ -301,7 +304,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct flow~decision~style : Flow~Decision~Style #:-> flow-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DarkSlateGray]
@@ -312,8 +315,20 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Flonum) (void)]))
 
+(define-phantom-struct flow~parallel~style : Flow~Parallel~Style #:-> flow-track-style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color 'DarkSlateBlue]
+   [dash : (Option Stroke-Dash+Offset) #false]
+   [source-tip : Maybe-Geo-Tip (void)]
+   [target-tip : Maybe-Geo-Tip (void)]
+   [label-rotate? : (U Boolean Void) #true]
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Flonum) (void)]))
+
 (define-phantom-struct flow~success~style : Flow~Success~Style #:-> flow~decision~style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumSeaGreen]
@@ -325,7 +340,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct flow~failure~style : Flow~Failure~Style #:-> flow~decision~style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DarkGoldenrod]
@@ -337,7 +352,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct flow~loop~style : Flow~Loop~Style #:-> flow-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'SteelBlue]
@@ -349,7 +364,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct flow~storage~style : Flow~Storage~Style #:-> flow-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint 'DodgerBlue]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DodgerBlue]

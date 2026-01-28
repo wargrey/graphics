@@ -50,14 +50,13 @@
 (define-type Dia-Block-Option-Size (Option Length+%))
 (define-type Dia-Block-Padding Geo-Insets-Datum+%)
 (define-type Dia-Block-Option-Padding (Option Dia-Block-Padding))
-(define-type Dia-Block-Font-Style (U Font Font:Tweak))
 
 (define-struct dia-block-style : Dia-Block-Style
   #:forall ([phantom-type : T])
   ([width : Dia-Block-Option-Size]
    [height : Dia-Block-Option-Size]
    [padding : Dia-Block-Option-Padding]
-   [font : (Option Dia-Block-Font-Style)]
+   [font : (Option Font+Tweak)]
    [font-paint : Option-Fill-Paint]
    [stroke-width : (Option Length+%)]
    [stroke-color : Maybe-Color]
@@ -79,7 +78,8 @@
 (define-struct #:forall (S) dia-block-style-spec : Dia-Block-Style-Spec
   ([custom : (Dia-Block-Style S)]
    [backstop : Dia-Block-Backstop-Style]
-   [scale : Nonnegative-Flonum 1.0]
+   [root : (Option (Dia-Block-Style S)) #false]
+   [scale : (Option Nonnegative-Flonum) #false]
    [opacity : (Option Nonnegative-Flonum) #false])
   #:transparent)
 
@@ -115,34 +115,46 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-resolve-font : (-> (Dia-Block-Style-Spec S) Font)
   (lambda [self]
-    (define s (dia-block-style-spec-custom self))
-    (define b (dia-block-style-spec-backstop self))
-    (define f (dia-block-style-font s))
+    (define bsf : Font (let ([b (dia-block-style-spec-backstop self)]) (dia-block-backstop-style-font b)))
+    (define rtf : (Option Font+Tweak) (let ([rt (dia-block-style-spec-root self)]) (and rt (dia-block-style-font rt))))
+    (define myf : (Option Font+Tweak) (dia-block-style-font (dia-block-style-spec-custom self)))
 
-    (cond [(font? f) f]
-          [(or f) (desc-font* (dia-block-backstop-style-font b) #:tweak f)]
-          [else (dia-block-backstop-style-font b)])))
+    (cond [(not myf)
+           (cond [(not rtf) bsf]
+                 [(font? rtf) rtf]
+                 [else (desc-font* bsf #:tweak rtf)])]
+          [(font? myf) myf]
+          [(not rtf) (desc-font* bsf #:tweak myf)]
+          [(font? rtf) (desc-font* rtf #:tweak myf)]
+          [else (desc-font* #:tweak rtf
+                            #:family (font:tweak-family myf)
+                            #:size (font:tweak-size myf)
+                            #:style (font:tweak-style myf)
+                            #:weight (font:tweak-weight myf)
+                            bsf)])))
 
 (define #:forall (S) dia-block-resolve-size : (->* ((Dia-Block-Style-Spec S))
                                                    (#:width Dia-Block-Option-Size #:height Dia-Block-Option-Size)
                                                    (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [style #:width [alt-width #false] #:height [alt-height #false]]
-    (define maybe-width  (or alt-width  (dia-block-style-width  (dia-block-style-spec-custom style))))
-    (define maybe-height (or alt-height (dia-block-style-height (dia-block-style-spec-custom style))))
+    (define rt (dia-block-style-spec-root style))
+    (define maybe-width  (or alt-width  (dia-block-style-width  (dia-block-style-spec-custom style)) (and rt (dia-block-style-width  rt))))
+    (define maybe-height (or alt-height (dia-block-style-height (dia-block-style-spec-custom style)) (and rt (dia-block-style-height rt))))
     (define Width  (dia-block-backstop-style-width  (dia-block-style-spec-backstop style)))
     (define Height (dia-block-backstop-style-height (dia-block-style-spec-backstop style)))
-    (define s (dia-block-style-spec-scale style))
+    (define scale (or (dia-block-style-spec-scale style) 1.0))
 
-    (values (* s (if (not  maybe-width)  Width (~dimension  maybe-width  Width)))
-            (* s (if (not maybe-height) Height (~dimension maybe-height Height))))))
+    (values (* scale (if (not  maybe-width)  Width (~dimension  maybe-width  Width)))
+            (* scale (if (not maybe-height) Height (~dimension maybe-height Height))))))
 
 (define #:forall (S) dia-block-resolve-width : (-> (Dia-Block-Style-Spec S) Nonnegative-Flonum)
   (lambda [style]
-    (define maybe-width  (dia-block-style-width  (dia-block-style-spec-custom style)))
-    (define Width  (dia-block-backstop-style-width  (dia-block-style-spec-backstop style)))
+    (define rt (dia-block-style-spec-root style))
+    (define maybe-width (or (dia-block-style-width  (dia-block-style-spec-custom style)) (and rt (dia-block-style-width  rt))))
+    (define Width  (dia-block-backstop-style-width (dia-block-style-spec-backstop style)))
     
     (* (if (or maybe-width) (~dimension maybe-width Width) Width)
-       (dia-block-style-spec-scale style))))
+       (or (dia-block-style-spec-scale style) 1.0))))
 
 (define #:forall (S) dia-block-resolve-padding : (->* ((Dia-Block-Style-Spec S))
                                                       (#:padding Dia-Block-Option-Padding)
@@ -150,46 +162,61 @@
   (lambda [style #:padding [alt-padding #false]]
     (geo-insets-scale (geo-insets*->insets (or alt-padding
                                                (dia-block-style-padding (dia-block-style-spec-custom style))
+                                               (let ([rt (dia-block-style-spec-root style)])
+                                                 (and rt (dia-block-style-padding rt)))
                                                (dia-block-backstop-style-padding (dia-block-style-spec-backstop style)))
                                            (dia-block-resolve-width style))
-                      (dia-block-style-spec-scale style))))
+                      (or (dia-block-style-spec-scale style) 1.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-resolve-stroke-width : (-> (Dia-Block-Style-Spec S) Nonnegative-Flonum)
   (lambda [self]
-    (define backstop (dia-block-backstop-style-stroke-paint (dia-block-style-spec-backstop self)))
-    (define width (dia-block-style-stroke-width (dia-block-style-spec-custom self)))
-    
-    (let ([paint (stroke-paint->source backstop)])
+    (define width
+      (or (dia-block-style-stroke-width (dia-block-style-spec-custom self))
+          (let ([rt (dia-block-style-spec-root self)])
+            (and rt (dia-block-style-stroke-width rt)))))
+
+    (let ([paint (stroke-paint->source (dia-block-backstop-style-stroke-paint (dia-block-style-spec-backstop self)))])
       (cond [(not width) (pen-width paint)]
             [else (~dimension width (pen-width paint))]))))
 
 (define #:forall (S) dia-block-resolve-stroke-paint : (-> (Dia-Block-Style-Spec S) (Option Pen))
   (lambda [self]
-    (let ([c (dia-block-style-stroke-color (dia-block-style-spec-custom self))])
-      (and c (let*-values ([(d+o) (dia-block-style-stroke-dash (dia-block-style-spec-custom self))]
-                           [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))]
-                           [(opacity) (dia-block-style-spec-opacity self)])
-               (desc-stroke* #:dash dash #:offset offset #:color (and (not (void? c)) c)
-                             #:opacity (and opacity (< opacity 1.0) opacity)
-                             ; yes, don't scale stroke width by default
-                             #:width (dia-block-style-stroke-width (dia-block-style-spec-custom self))
-                             (stroke-paint->source (dia-block-backstop-style-stroke-paint (dia-block-style-spec-backstop self)))))))))
+    (define rt (dia-block-style-spec-root self))
+    (define me (dia-block-style-spec-custom self))
+    
+    (define c : Maybe-Color
+      (let ([c (dia-block-style-stroke-color me)])
+        (cond [(void? c) (if rt (dia-block-style-stroke-color rt) (void))]
+              [else c])))
+
+    (and c (let*-values ([(d+o) (or (dia-block-style-stroke-dash me) (and rt (dia-block-style-stroke-dash rt)))]
+                         [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
+             (desc-stroke* ; yes, don't scale stroke width by default
+                           #:width (or (dia-block-style-stroke-width me) (and rt (dia-block-style-stroke-width rt)))
+                           #:dash dash #:offset offset #:color (if (void? c) #false c)
+                           #:opacity (dia-block-style-spec-opacity self)
+                           (stroke-paint->source
+                            (dia-block-backstop-style-stroke-paint
+                             (dia-block-style-spec-backstop self))))))))
 
 (define #:forall (S) dia-block-resolve-fill-paint : (-> (Dia-Block-Style-Spec S) (Option Brush))
   (lambda [self]
-    (let ([paint (dia-block-style-fill-paint (dia-block-style-spec-custom self))]
-          [opacity (dia-block-style-spec-opacity self)])                
-      (try-desc-brush* #:opacity (and opacity (< opacity 1.0) opacity)
-                       (fill-paint->source* (cond [(not (void? paint)) paint]
-                                                  [else (dia-block-backstop-style-fill-paint (dia-block-style-spec-backstop self))]))))))
+    (define paint : Maybe-Fill-Paint
+      (let ([p (dia-block-style-fill-paint (dia-block-style-spec-custom self))])
+        (cond [(void? p) (let ([rt (dia-block-style-spec-root self)]) (if rt (dia-block-style-fill-paint rt) (void)))]
+              [else p])))
+    
+    (try-desc-brush* #:opacity (dia-block-style-spec-opacity self)
+                     (fill-paint->source* (cond [(void? paint) (dia-block-backstop-style-fill-paint (dia-block-style-spec-backstop self))]
+                                                [else paint])))))
 
 (define #:forall (S) dia-block-resolve-font-paint : (-> (Dia-Block-Style-Spec S) Brush)
   (lambda [self]
-    (define opacity (dia-block-style-spec-opacity self))
-    
-    (desc-brush* #:opacity (and opacity (< opacity 1.0) opacity)
+    (desc-brush* #:opacity (dia-block-style-spec-opacity self)
                  (fill-paint->source (or (dia-block-style-font-paint (dia-block-style-spec-custom self))
+                                         (let ([rt (dia-block-style-spec-root self)])
+                                           (and rt (dia-block-style-font-paint rt)))
                                          (dia-block-backstop-style-font-paint (dia-block-style-spec-backstop self)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

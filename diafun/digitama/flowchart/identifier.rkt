@@ -16,19 +16,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-flow-track-identify : (Dia-Track-Identifier Flow-Track-Style)
   (lambda [source target labels extra-info]
-    (define stype : Symbol (dia:block-type source))
-    (define ttype : (Option Symbol) (and target (dia:block-type target)))
-    
     (define track-style : (Option (Dia-Track-Style Flow-Track-Style))
-      (cond [(eq? stype 'Decision)
+      (cond [(dia:block-typeof? source flow-decision-style?)
              (cond [(geo-path-match-any-label? labels (default-flow-success-decision-regexp))
                     (flow-track-adjust source target labels default-flow~success~style)]
                    [(geo-path-match-any-label? labels (default-flow-failure-decision-regexp))
                     (flow-track-adjust source target labels default-flow~failure~style)]
                    [else (flow-track-adjust source target labels default-flow~decision~style)])]
-            [(eq? stype 'Selection)
+            [(dia:block-typeof? source flow-selection-style?)
              (flow-track-adjust source target labels default-flow~decision~style)]
-            [(or (eq? stype 'Storage) (eq? ttype 'Storage))
+            [(dia:block-typeof? source flow-extract-style?)
+             (flow-track-adjust source target labels default-flow~parallel~style)]
+            [(or (dia:block-typeof? source flow-storage-style?) (dia:block*-typeof? source flow-storage-style?))
              (if (pair? labels)
                  (flow-track-adjust source target labels default-flow~storage~style)
                  (flow-track-adjust source target labels default-flow~line~style))]
@@ -37,7 +36,8 @@
             [else (flow-track-adjust source target labels default-flow~line~style)]))
 
     (and track-style
-         (if (or (eq? stype 'Alternate) (eq? ttype 'Alternate))
+         (if (or (dia:block-has-tag? source 'Alternate)
+                 (dia:block*-has-tag? target 'Alternate))
              (dia-track-swap-dash-style track-style 'long-dash)
              track-style))))
 
@@ -45,11 +45,9 @@
   (lambda [anchor text size]
     (if (keyword? anchor)
 
-        (cond [(or (string-ci=? text "home") (string-ci=? text "start") (string-ci=? text "begin")
-                   #;(string-ci=? text "initial") #;| the initialization node is an alias to the preparation node |)
-               (flow-block-info anchor text default-flow-start-style)]
-              [(or (string-ci=? text "end") (string-ci=? text "done") (string-ci=? text "terminate") (string-ci=? text "exit") (string-ci=? text "return"))
-               (flow-block-info anchor text default-flow-stop-style)]
+        (cond [(eq? anchor '#:home) (flow-block-info anchor text default-flow-start-style)]
+              [(regexp-match? (default-flow-start-keyword-regexp) text) (flow-block-info anchor text default-flow-start-style)]
+              [(regexp-match? (default-flow-stop-keyword-regexp) text) (flow-block-info anchor text default-flow-stop-style)]
               [else (flow-block-text-identify anchor text size)])
 
         (flow-block-text-identify anchor text size))))

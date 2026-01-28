@@ -16,12 +16,10 @@
 (require geofun/digitama/geometry/sides)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-actor-stickman : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
-                                                       Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                                                       Symbol)
+(define #:forall (S) dia-actor-stickman : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S) Nonnegative-Flonum Nonnegative-Flonum)
                                                (Any)
                                                Dia:Block)
-  (lambda [id caption style width height direction type [etags #false]]
+  (lambda [id caption style width height [tags #false]]
     (define head-color (dia-block-resolve-fill-paint style))
     (define body-color (if (color? head-color) (rgb-transform-scale head-color 0.75) head-color))
     (define padding (dia-block-resolve-padding style))
@@ -39,20 +37,20 @@
     (define caption-width (if (or caption) (geo-width caption) 0.0))
 
     (cond [(not caption)
-           (create-dia-block #:id id #:tag type etags #:with style stickman #false)]
+           (create-dia-block #:id id tags #:with style stickman #false)]
           [(<= caption-width width)
-           (create-dia-block #:id id #:tag type etags
+           (create-dia-block #:id id tags
                              #:intersect (if (< stickman-width caption-width)
                                              (dia-apothem-intersect (abs (/ stickman-width caption-width 2.0)) 0.5)
                                              dia-default-intersect)
-                             #:with-group (geo-vc-append #:desc (dia-block-desc-from-caption caption)
-                                                         #:gapsize (geo-standard-insets-top padding)
-                                                         stickman caption))]
+                             #:with-group style (geo-vc-append #:desc (dia-block-desc-from-caption caption)
+                                                               #:gapsize (geo-standard-insets-top padding)
+                                                               stickman caption))]
           [else ; just in case someone employs a quirk width
-           (create-dia-block #:id id #:tag type etags
+           (create-dia-block #:id id tags
                              #:intersect (if (< stickman-width width)
                                              (dia-apothem-intersect (abs (/ stickman-width width 2.0)) 0.5)
                                              dia-default-intersect)
-                             #:with-group (geo-vc-append #:desc (dia-block-desc-from-caption caption)
-                                                         #:gapsize (geo-standard-insets-top padding)
-                                                         stickman (geo-scale caption (/ width caption-width))))])))
+                             #:with-group style (geo-vc-append #:desc (dia-block-desc-from-caption caption)
+                                                               #:gapsize (geo-standard-insets-top padding)
+                                                               stickman (geo-scale caption (/ width caption-width))))])))

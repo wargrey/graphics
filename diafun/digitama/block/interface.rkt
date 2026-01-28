@@ -28,6 +28,10 @@
          False ; user says: it should be denied
          Dia:Block)))
 
+(define-type (Dia-Block-Link-Root-Style Style)
+  (-> (Dia-Block-Style Style)
+      (Option (Dia-Block-Style Style))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (Style Metadata) dia-block-reference-size : (-> (Dia-Block-Factory Style Metadata) (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self]
@@ -51,5 +55,6 @@
    [typesetter : (Option (Dia-Block-Typesetter Style))]
    [builder : (Option (Dia-Block-Builder Style Metadata))]
    [fallback-builder : (Dia-Block-Builder Style Metadata)]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style Style))]
    [λbackstop-style : (-> Dia-Block-Backstop-Style)])
   #:transparent)

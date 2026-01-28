@@ -47,7 +47,7 @@
   ([width : Dia-Block-Option-Size (&% 80)] ; ignored by its shape, but used to limit the length of its caption 
    [height : Dia-Block-Option-Size (&% 200)]
    [padding : Dia-Block-Option-Padding #false] ; the top padding would be used as the gapsize of its caption
-   [font : (Option Dia-Block-Font-Style) dia-preset-header-font-tweak]
+   [font : (Option Font+Tweak) dia-preset-header-font-tweak]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) 1.0]
    [stroke-color : Maybe-Color #false]
@@ -58,7 +58,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color (void)]
@@ -81,7 +81,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct uc~association~style : UC~Association~Style #:-> uc-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DarkGray]
@@ -93,7 +93,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct uc~include~style : UC~Include~Style #:-> uc-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumAquamarine]
@@ -105,7 +105,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct uc~extend~style : UC~Extend~Style #:-> uc-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'CornflowerBlue]
@@ -117,7 +117,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct uc~generalization~style : UC~Generalization~Style #:-> uc-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumPurple]

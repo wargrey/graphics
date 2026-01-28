@@ -10,7 +10,6 @@
 (require geofun/font)
 (require geofun/paint)
 
-(require geofun/digitama/richtext/self)
 (require geofun/digitama/path/tip/self)
 (require geofun/digitama/path/tip/arrow)
 
@@ -22,8 +21,9 @@
 (struct act-track-style () #:type-name Act-Track-Style)
 (struct act-block-style () #:type-name Act-Block-Style)
 
-(struct act-action-step-style act-block-style () #:type-name Act-Action-Step-Style)
+(struct act-executable-node-style act-block-style () #:type-name Act-Executable-Node-Style)
 (struct act-control-node-style act-block-style () #:type-name Act-Control-Node-Style)
+(struct act-object-node-style act-block-style () #:type-name Act-Object-Node-Style)
 
 (define-type Act-Block-Metadata (Option Symbol))
 (define-type Act-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster Act-Track-Style))
@@ -31,10 +31,6 @@
 
 (define default-act-track-theme-adjuster : (Parameterof (Option Act-Track-Theme-Adjuster)) (make-parameter #false))
 (define default-act-block-theme-adjuster : (Parameterof (Option Act-Block-Theme-Adjuster)) (make-parameter #false))
-
-(define default-act-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(t(rue)?)|(?i:y(es)?)|(?i:do))$"))
-(define default-act-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(f(alse)?)|(?i:n(o)?))$"))
-(define default-act-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"(^(?i:(for|each|while|next)))|((?i:loop)$)"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,7 +51,7 @@
   ([width : Dia-Block-Option-Size #false] ; useless, fixed by its shape
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
@@ -66,7 +62,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkSlateGray]
@@ -77,7 +73,7 @@
   ([width : Dia-Block-Option-Size  #false]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DarkSlateGray]
@@ -87,9 +83,9 @@
 ;;; the decision node works much more like a merge node, rather than the decision node in flowchart
 (define-phantom-struct act-decision-style : Act-Decision-Style #:-> act-control-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  +nan.0]
-   [height : Dia-Block-Option-Size (&% 85)]
+   [height : Dia-Block-Option-Size (&% 75)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Crimson]
@@ -98,9 +94,9 @@
 
 (define-phantom-struct act-merge-style : Act-Merge-Style #:-> act-control-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  +nan.0]
-   [height : Dia-Block-Option-Size (&% 85)]
+   [height : Dia-Block-Option-Size (&% 75)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Maroon]
@@ -108,46 +104,57 @@
    [fill-paint : Maybe-Fill-Paint (void)]))
 
 (define-phantom-struct act-fork-style : Act-Fork-Style #:-> act-control-node-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  #false]
+  ([width : Dia-Block-Option-Size  (&% 200)]
    [height : Dia-Block-Option-Size (&% 20)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'DarkOrange]
+   [stroke-color : Maybe-Color 'Sienna]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MistyRose]))
+   [fill-paint : Maybe-Fill-Paint 'Sienna]))
 
 (define-phantom-struct act-join-style : Act-Join-Style #:-> act-control-node-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  #false]
+  ([width : Dia-Block-Option-Size  (&% 200)]
    [height : Dia-Block-Option-Size (&% 20)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Orange]
+   [stroke-color : Maybe-Color 'Chocolate]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+   [fill-paint : Maybe-Fill-Paint 'Chocolate]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://www.uml-diagrams.org/activity-diagrams-actions.html
-(define-phantom-struct act-action-style : Act-Action-Style #:-> act-action-step-style #:for dia-block-style
+(define-phantom-struct act-action-style : Act-Action-Style #:-> act-executable-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'RoyalBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
+(define-phantom-struct act-signal-style : Act-Reference-Style #:-> act-executable-node-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  +nan.0]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding (&% 2)]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'DeepSkyBlue]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
+
 ; one time event, two typical usages
-(define-phantom-struct act-time-event-style : Act-Delay-Style #:-> act-block-style #:for dia-block-style
+(define-phantom-struct act-time-event-style : Act-Delay-Style #:-> act-executable-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 120)]
    [padding : Dia-Block-Option-Padding (&% 2.5)]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Peru]
@@ -156,79 +163,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://www.uml-diagrams.org/activity-diagrams-objects.html
-#;(define-phantom-struct act-reference-style : Act-Reference-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  +nan.0]
-   [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding (&% 2)]
-   [font : (Option Dia-Block-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'DeepSkyBlue]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LightCyan]))
-
-#;(define-phantom-struct act-input-style : Act-Input-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size #false]
-   [height : Dia-Block-Option-Size #false]
+(define-phantom-struct act-object-style : Act-Object-Style #:-> act-object-node-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 80)]
+   [height : Dia-Block-Option-Size (&% 80)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'LightSeaGreen]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MintCream]))
-
-#;(define-phantom-struct act-output-style : Act-Output-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size #false]
-   [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'DarkOrchid]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-; Manual-Operation -> Operation
-#;(define-phantom-struct act-operation-style : Act-Operation-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size #false]
-   [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Teal]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-; Initialization -> Preparation
-#;(define-phantom-struct act-preparation-style : Act-Preparation-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size #false]
-   [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Maroon]
-   [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
-
-#;(define-phantom-struct act-storage-style : Act-Storage-Style #:-> act-block-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (&% 61.8)]
-   [height : Dia-Block-Option-Size (&% 161.8)]
-   [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
-#;(define-phantom-struct act-database-style : Act-Database-Style #:-> act-storage-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  #false] ; useless, fixed by its shape
-   [height : Dia-Block-Option-Size (&% 161.8)]
+(define-phantom-struct act-central-buffer-style : Act-Central-Buffer-Style #:-> act-object-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 200)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'SeaGreen]
@@ -241,7 +191,7 @@
   ([width : Dia-Block-Option-Size  #false]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding (&% 4)]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'DeepSkyBlue]
@@ -258,13 +208,25 @@
    [line-paint : Stroke-Paint dia-preset-track-stroke]
    [source-tip : Option-Geo-Tip #false]
    [target-tip : Option-Geo-Tip default-arrow-tip]
-   [label-rotate? : Boolean #false]
-   [label-inline? : Boolean #true]
+   [label-rotate? : Boolean #true]
+   [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-phantom-struct act~line~style : Act~Line~Style #:-> act-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+(define-phantom-struct act~control~flow~style : Act~Control~Flow~Style #:-> act-track-style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [width : (Option Length+%) #false]
+   [color : Maybe-Color (void)]
+   [dash : (Option Stroke-Dash+Offset) 'long-dash]
+   [source-tip : Maybe-Geo-Tip (void)]
+   [target-tip : Maybe-Geo-Tip (void)]
+   [label-rotate? : (U Boolean Void) (void)]
+   [label-inline? : (U Boolean Void) (void)]
+   [label-distance : (U Void Flonum) (void)]))
+
+(define-phantom-struct act~object~flow~style : Act~Object~Flow~Style #:-> act-track-style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color (void)]
@@ -275,62 +237,38 @@
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-phantom-struct act~decision~style : Act~Decision~Style #:-> act-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+(define-phantom-struct act~decision~style : Act~Decision~Style #:-> act~control~flow~style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DarkSlateGray]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]
+   [label-rotate? : (U Boolean Void) (void)]
+   [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-phantom-struct act~success~style : Act~Success~Style #:-> act~decision~style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+(define-phantom-struct act~parallel~style : Act~Parallel~Style #:-> act~control~flow~style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
-   [color : Maybe-Color 'MediumSeaGreen]
+   [color : Maybe-Color 'DarkSlateBlue]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) #false]
+   [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-phantom-struct act~failure~style : Act~Failure~Style #:-> act~decision~style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Length+%) #false]
-   [color : Maybe-Color 'DarkGoldenrod]
-   [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
-
-(define-phantom-struct act~loop~style : Act~Loop~Style #:-> act-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Length+%) #false]
-   [color : Maybe-Color 'SteelBlue]
-   [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
-
-(define-phantom-struct act~storage~style : Act~Storage~Style #:-> act-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+(define-phantom-struct act~storage~style : Act~Storage~Style #:-> act~object~flow~style #:for dia-track-style
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint 'DodgerBlue]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DodgerBlue]
    [dash : (Option Stroke-Dash+Offset) 'dot]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) #true]
-   [label-inline? : (U Boolean Void) #false]
+   [label-rotate? : (U Boolean Void) (void)]
+   [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))

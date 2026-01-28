@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (rename-out [Dia-Track-Annotator Dia-Free-Track-Annotator]))
 
 (require digimon/struct)
 
@@ -31,15 +30,9 @@
   (-> Index Geo-Path-Label-Datum Nonnegative-Flonum (Dia-Track-Style-Spec S)
       (U Geo:Path:Label (Listof Geo:Path:Label) Void False)))
 
-(define-type (Dia-Free-Track-Adjuster S)
+(define-type (Dia-Track-Link-Root-Style S)
   (-> (Dia-Track-Style S)
-      Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Geo-Path-Clean-Prints*
-      (Listof Geo-Path-Label-Datum) (Listof Geo-Track-Info-Datum)
-      (U (Dia-Track-Style S) False Void)))
-
-(define-type (Dia-Free-Track-Builder S)
-  (-> Dia-Free-Track-Endpoint Dia-Free-Track-Endpoint Geo-Path-Clean-Prints* (Dia-Track-Style-Spec S)
-      (U Geo-Path Void False)))
+      (Option (Dia-Track-Style S))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; All diagram modules should provide their own factories, via `define-struct #:specialized`
@@ -47,5 +40,6 @@
   ([identifier : (Dia-Track-Identifier S)]
    [annotator : (Option (Dia-Track-Annotator S))]
    [builder : (Option (Dia-Track-Builder S))]
+   [λroot-style : (Option (Dia-Track-Link-Root-Style S))]
    [λbackstop-style : (-> Dia-Track-Backstop-Style)])
   #:transparent)

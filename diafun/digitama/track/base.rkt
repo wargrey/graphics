@@ -1,10 +1,10 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out geofun/track geofun/digitama/path/tips))
-(provide (all-from-out "../base.rkt"))
 
-(require geofun/track)
-(require geofun/digitama/path/tips)
+(require geofun/digitama/misc)
 
-(require "../base.rkt")
+(require/provide geofun/track)
+(require/provide geofun/digitama/path/tips)
+
+(require/provide "../base.rkt")

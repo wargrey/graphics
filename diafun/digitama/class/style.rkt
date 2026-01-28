@@ -51,7 +51,7 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
@@ -62,95 +62,95 @@
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Goldenrod]))
 
-(define-phantom-struct cls-abstract-style : Cls-Abstract-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-abstract-style : Cls-Abstract-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) (make-font:tweak #:style 'italic)]
+   [font : (Option Font+Tweak) (make-font:tweak #:style 'italic)]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
-(define-phantom-struct cls-enumeration-style : Cls-Enumeration-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-enumeration-style : Cls-Enumeration-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DarkSalmon]))
 
-(define-phantom-struct cls-type-style : Cls-Type-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-type-style : Cls-Type-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DodgerBlue]))
 
-(define-phantom-struct cls-lambda-style : Cls-Lambda-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-lambda-style : Cls-Lambda-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'RoyalBlue]))
 
-(define-phantom-struct cls-datum-style : Cls-Datum-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-datum-style : Cls-Datum-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Aquamarine]))
 
-(define-phantom-struct cls-structure-style : Cls-Structure-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-structure-style : Cls-Structure-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
-(define-phantom-struct cls-behavior-style : Cls-Behavior-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-behavior-style : Cls-Behavior-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'DarkGoldenrod]))
 
-(define-phantom-struct cls-unrecognized-style : Cls-Unrecognized-Style #:-> cls-block-style #:for dia-block-style
+(define-phantom-struct cls-unrecognized-style : Cls-Unrecognized-Style #:-> cls-class-style #:for dia-block-style
   ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size #false]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Dia-Block-Font-Style) #false]
+   [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color #false]
@@ -173,7 +173,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct cls~generalization~style : Cls~Generalization~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumPurple]
@@ -185,7 +185,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~realization~style : Cls~Realization~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumPurple]
@@ -197,7 +197,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~composition~style : Cls~Composition~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumAquamarine]
@@ -209,7 +209,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~aggregation~style : Cls~Aggregation~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'Turquoise]
@@ -221,7 +221,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~association~style : Cls~Association~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DimGray]
@@ -233,7 +233,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~bidirection~style : Cls~Bidirection~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DimGray]
@@ -245,7 +245,7 @@
    [label-distance : (U Void Flonum) (void)]))
 
 (define-phantom-struct cls~dependency~style : Cls~Dependency~Style #:-> cls-track-style #:for dia-track-style
-  ([font : (Option Dia-Track-Font-Style) #false]
+  ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DimGray]

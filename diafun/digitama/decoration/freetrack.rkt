@@ -9,8 +9,10 @@
 
 (require geofun/digitama/path/tip/self)
 
-(require "style.rkt")
 (require "interface.rkt")
+
+(require "../track/style.rkt")
+(require "../track/interface.rkt")
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

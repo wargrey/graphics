@@ -5,7 +5,6 @@
 (require digimon/measure)
 
 (require "../block/dc.rkt")
-(require "../block/style.rkt")
 (require "../block/polygon.rkt")
 (require "../block/interface.rkt")
 
@@ -14,49 +13,34 @@
 
 (require "shape.rkt")
 
-(require geofun/composite)
-
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/gadget)
 (require geofun/digitama/dc/dingbat)
 
-(require geofun/digitama/geometry/polygon/triangle)
 (require geofun/digitama/geometry/polygon/quadrilateral)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) flow-block-process : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (cond [(eq? subtype 'Predefined) (flow-block-prefab block-key caption style width height direction subtype)]
-          [(eq? subtype 'Alternate)  (flow-block-alternate block-key caption style width height direction subtype)]
-          [else (dia-block-rectangle block-key caption style width height direction 'Process subtype)])))
+          [(eq? subtype 'Alternate)  (dia-block-rectangle/cr:4th block-key caption style width height direction subtype)]
+          [else (dia-block-rectangle block-key caption style width height direction subtype)])))
 
 (define #:forall (S) flow-block-prefab : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (define width% : Nonnegative-Flonum 0.84)
     (define vline : Flonum (* (- 1.0 width%) 0.5 width))
     
-    (create-dia-block #:id block-key #:tag 'Process subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region width% 1.0
                       #:create-with style [geo-rectangle #:vlines (list vline (- vline)) width height]
                       caption)))
-
-(define #:forall (S) flow-block-alternate : (Dia-Block-Create S (Option Symbol))
-  (lambda [block-key caption style width height direction subtype]
-    (dia-block-rectangle/cr:4th block-key caption style width height direction 'Alternate subtype)))
-
-(define #:forall (S) flow-block-decision : (Dia-Block-Create S (Option Symbol))
-  (lambda [block-key caption style width height direction subtype]
-    (dia-block-diamond block-key caption style width height direction 'Decision subtype)))
-
-(define #:forall (S) flow-block-preparation : (Dia-Block-Create S (Option Symbol))
-  (lambda [block-key caption style width height direction subtype]
-    (dia-block-hexagon block-key caption style width height direction 'Preparation subtype)))
 
 (define #:forall (S) flow-block-terminal : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (define r : Nonnegative-Flonum (* height 0.5))
     
-    (create-dia-block #:id block-key #:tag 'Terminal subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region (max (/ (- width r) width) 0.0) 1.00
                       #:create-with style [geo-stadium (- width (* r 2.0)) r]
                       caption)))
@@ -68,22 +52,18 @@
           (dia-block-polygon block-key caption style direction
                              (dia-keyboard-vertices width height ratio)
                              1.0 ratio 0.0 1.0
-                             'Input subtype))
-        (dia-block-parallelogram block-key caption style width height direction 'Input subtype))))
+                             subtype))
+        (dia-block-parallelogram block-key caption style width height direction subtype))))
 
 (define #:forall (S) flow-block-output : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (if (eq? subtype 'user)
         (let-values ([(ogive barrel r) (values (* width 0.384) (* width 0.618) (* height 0.5))])
-          (create-dia-block #:id block-key #:tag 'Output subtype
+          (create-dia-block #:id block-key subtype
                             #:fit-region 0.75 1.00 1.0 0.0
                             #:create-with style [geo-bullet ogive r barrel]
                             caption))
-        (dia-block-parallelogram block-key caption style width height direction 'Output subtype))))
-
-(define #:forall (S) flow-block-inspection : (Dia-Block-Create S (Option Symbol))
-  (lambda [block-key caption style width height direction subtype]
-    (dia-block-circle block-key caption style width height direction 'Connector (or subtype 'Inspection))))
+        (dia-block-parallelogram block-key caption style width height direction subtype))))
 
 (define #:forall (S) flow-block-reference : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
@@ -93,40 +73,35 @@
     (dia-block-polygon block-key caption style direction
                        (dia-house-vertices width height (- ratio))
                        1.00 ratio 0.0 0.0
-                       'Connector (or subtype 'Reference))))
+                       (or subtype 'Reference))))
 
 (define #:forall (S) flow-block-selection : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
-    (dia-symbol-circle block-key style width height direction
-                       (list 0.0 pi/2)
-                       'Selection subtype)))
+    (dia-symbol-circle block-key style width height (list 0.0 pi/2) subtype)))
 
 (define #:forall (S) flow-block-junction : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
-    (dia-symbol-circle block-key style width height direction
-                       (list pi/4 3pi/4)
-                       'Junction subtype)))
+    (dia-symbol-circle block-key style width height (list pi/4 3pi/4) subtype)))
 
 (define #:forall (S) flow-block-manual-operation : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (dia-block-symmetric-polygon block-key caption style direction
                                  (geo-isosceles-trapezium-vertices width height (abs (/ 4.0 3.0)))
-                                 0.81 1.00
-                                 'Operation subtype)))
+                                 0.81 1.00 subtype)))
 
 (define #:forall (S) flow-block-extract : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
-    (dia-symbol-regular-triangle block-key style height direction 'apex@top 'Extract subtype)))
+    (dia-symbol-regular-triangle block-key style height direction 'apex@top subtype)))
 
 (define #:forall (S) flow-block-merge : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
-    (dia-symbol-regular-triangle block-key style height direction 'apex@bot 'Merge subtype)))
+    (dia-symbol-regular-triangle block-key style height direction 'apex@bot subtype)))
 
 (define #:forall (S) flow-block-delay : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (define r : Nonnegative-Flonum (* height 0.5))
     
-    (create-dia-block #:id block-key #:tag 'Delay subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region (- 1.0 (/ r width)) 1.00 0.5 0.5
                       #:create-with style [geo-rounded-rectangle #:exclude-corners '(lt lb)
                                                                  width height (&% 50)]
@@ -137,15 +112,14 @@
     (define width (* height 1.2))
     (dia-block-polygon block-key caption style direction
                        (dia-hourglass-vertices width height) 1.0 0.375 0.0 0.0
-                       'Collate subtype)))
+                       subtype)))
 
 (define #:forall (S) flow-block-sort : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
     (define width (* height 1.2))
     (define h/2 : Nonnegative-Flonum (* height 0.5))
     
-    (create-dia-block #:block dia:block:polygon
-                      #:id block-key #:tag 'Sort subtype
+    (create-dia-block #:block dia:block:polygon #:id block-key subtype
                       #:intersect dia-polygon-intersect
                       #:fit-region 1.0 0.375 0.0 0.125
                       #:with style (dia-polygon-shape block-key style (dia-sort-vertices width height))
@@ -159,7 +133,7 @@
           [(eq? subtype 'Database) (flow-block-database block-key caption style width height direction subtype)]
           [else (let* ([aradius (* height 0.5 0.384)]
                        [ar% (/ aradius width)])
-                  (create-dia-block #:id block-key #:tag 'Storage subtype
+                  (create-dia-block #:id block-key subtype
                                     #:fit-region (- 1.0 ar% ar%) 1.0 0.25 0.0
                                     #:create-with style [dia-flow-storage width height aradius]
                                     caption))])))
@@ -171,7 +145,7 @@
     (define left% : Flonum (/ caption-pos width))
     (define top% : Flonum (/ caption-pos height))
     
-    (create-dia-block #:id block-key #:tag 'Storage subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region (- 1.0 left%) (- 1.0 top%) 1.0 1.0
                       #:create-with style [geo-rectangle #:vlines (list caption-pos) #:hlines (list caption-pos) width height]
                       caption)))
@@ -179,7 +153,7 @@
 (define #:forall (S) flow-block-document : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]
     (define hratio : Nonnegative-Flonum 0.85)
-    (create-dia-block #:id block-key #:tag 'Storage subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region 1.0 hratio 0.0 0.0
                       #:create-with style [geo-document width height (&: (* (- 1.0 hratio) 0.5))]
                       caption)))
@@ -192,7 +166,7 @@
     (define offset% : Flonum (/ ngap width))
     (define wave% : Nonnegative-Flonum 0.25)
     
-    (create-dia-block #:id block-key #:tag 'Storage subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region (- 1.00 offset%) (- 1.00 wave% offset%) 0.0 0.0
                       #:create-with style [geo-document #:gapsize gapsize #:extra-n extra-n width height (&: (* wave% 0.5))]
                       caption)))
@@ -205,7 +179,7 @@
     (define caption-pos : Flonum (/ (+ (* bradius 2.0) (* gapsize (exact->inexact extra-n))) height))
     (define width (* height 1.618))
     
-    (create-dia-block #:id block-key #:tag 'Storage subtype
+    (create-dia-block #:id block-key subtype
                       #:fit-region 1.0 (- 1.0 caption-pos) 0.0 1.0
                       #:create-with style [geo-database #:extra-n extra-n #:gapsize gapsize width height bradius]
                       caption)))

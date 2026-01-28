@@ -2,27 +2,25 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/track/base.rkt"))
-(provide (all-from-out "digitama/track/freestyle.rkt"))
+(provide (all-from-out "digitama/decoration/base.rkt"))
 (provide (all-from-out "digitama/class/self.rkt"))
 (provide (all-from-out "digitama/class/style.rkt"))
-(provide (all-from-out "digitama/class/relationship.rkt"))
-
-(require geofun/digitama/dc/track)
+(provide (all-from-out "digitama/class/parameter.rkt"))
 
 (require "digitama/track/dc.rkt")
 (require "digitama/track/base.rkt")
 (require "digitama/track/realize.rkt")
-(require "digitama/track/freestyle.rkt")
 (require "digitama/track/interface.rkt")
 
 (require "digitama/block/dc.rkt")
 (require "digitama/block/realize.rkt")
 (require "digitama/block/interface.rkt")
 
+(require "digitama/decoration/base.rkt")
+
 (require "digitama/class/self.rkt")
 (require "digitama/class/style.rkt")
-(require "digitama/class/identifier.rkt")
-(require "digitama/class/relationship.rkt")
+(require "digitama/class/parameter.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -58,19 +56,19 @@
            #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
            #:track-factory [track-factory : Cls-Track-Factory (default-cls-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Class
     (define self (if (geo:track? master) master (dia:track-self master)))
-    (parameterize ([default-cls-relationship-identifier class-type]
-                   [current-master-track self])
+
+    (parameterize ([default-cls-relationship-identifier class-type])
       (create-dia-track dia:class id self
                         #:frame frame
                         (dia-track-realize self track-factory free-factory block-factory #false
-                                           (geo:track-foot-infos self)
-                                           (real->double-flonum scale)
-                                           (and opacity (real->double-flonum opacity)))))))
+                                           note-factory note-desc scale opacity #false)))))
 
 (define #:forall (TS BS BM) dia-track-class*
   (lambda [#:id [id : (Option Symbol) #false]
@@ -78,49 +76,37 @@
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Class
     (define self (if (geo:track? master) master (dia:track-self master)))
-    (parameterize ([default-cls-relationship-identifier class-type]
-                   [current-master-track self])
+
+    (parameterize ([default-cls-relationship-identifier class-type])
       (create-dia-track dia:class id self
                         #:frame frame
                         (dia-track-realize self track-factory free-factory block-factory #false
-                                           (geo:track-foot-infos self)
-                                           (real->double-flonum scale)
-                                           (and opacity (real->double-flonum opacity)))))))           
+                                           note-factory note-desc scale opacity #false)))))           
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-class-block
   (lambda [#:id [id : (Option Symbol) #false]
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
-           #:factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
+           #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
-    (parameterize ([current-master-track #false])
-      (dia-block-realize block-factory #false
-                         (cond [(symbol? caption) caption]
-                               [(keyword? caption) caption]
-                               [(string? caption) (string->symbol caption)]
-                               [else (string->symbol (format "~a" caption))])
-                         direction
-                         (real->double-flonum scale)
-                         (and opacity (real->double-flonum opacity))))))
+    (dia-block-realize block-factory #false note-factory note-desc caption direction scale opacity)))
 
 (define #:forall (S M) dia-class-block*
   (lambda [#:id [id : (Option Symbol) #false]
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
-           #:factory [block-factory : (Dia-Block-Factory S M)]
+           #:block-factory [block-factory : (Dia-Block-Factory S M)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
-    (parameterize ([current-master-track #false])
-      (dia-block-realize block-factory #false
-                         (cond [(symbol? caption) caption]
-                               [(keyword? caption) caption]
-                               [(string? caption) (string->symbol caption)]
-                               [else (string->symbol (format "~a" caption))])
-                         direction
-                         (real->double-flonum scale)
-                         (and opacity (real->double-flonum opacity))))))
+    (dia-block-realize block-factory #false note-factory note-desc caption direction scale opacity)))

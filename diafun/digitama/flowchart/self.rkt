@@ -8,6 +8,8 @@
 (require "../track/interface.rkt")
 (require "../block/interface.rkt")
 
+(require "../block/dc/node.rkt")
+
 (require "style.rkt")
 (require "block.rkt")
 (require "identifier.rkt")
@@ -19,30 +21,30 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) default-flow-block-fallback-build : (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata)
-  (lambda [id caption style width height direction subtype]
+  (lambda [key caption style width height direction subtype]
     (dia-block-case
      style
-     [(flow-preparation-style?) (flow-block-preparation id caption style width height direction subtype)]
-     [(flow-input-style?) (flow-block-input id caption style width height direction subtype)]
-     [(flow-output-style?) (flow-block-output id caption style width height direction subtype)]
-     [(flow-process-style?) (flow-block-process id caption style width height direction subtype)]
-     [(flow-decision-style?) (flow-block-decision id caption style width height direction subtype)]
-     [(flow-delay-style?) (flow-block-delay id caption style width height direction subtype)]
-     [(flow-operation-style?) (flow-block-manual-operation id caption style width height direction subtype)]
+     [(flow-input-style?) (flow-block-input key caption style width height direction subtype)]
+     [(flow-output-style?) (flow-block-output key caption style width height direction subtype)]
+     [(flow-process-style?) (flow-block-process key caption style width height direction subtype)]
+     [(flow-decision-style?) (dia-block-diamond key caption style width height direction subtype)]
+     [(flow-delay-style?) (flow-block-delay key caption style width height direction subtype)]
+     [(flow-operation-style?) (flow-block-manual-operation key caption style width height direction subtype)]
      
-     [(flow-start-style?) (flow-block-terminal id caption style width height direction 'Start)]
-     [(flow-stop-style?) (flow-block-terminal id caption style width height direction 'Stop)]
-     [(flow-inspection-style?) (flow-block-inspection id caption style width height direction subtype)]
-     [(flow-reference-style?) (flow-block-reference id caption style width height direction subtype)]
+     [(flow-start-style?) (flow-block-terminal key caption style width height direction subtype)]
+     [(flow-preparation-style?) (dia-block-hexagon key caption style width height direction subtype)]
+     [(flow-stop-style?) (flow-block-terminal key caption style width height direction subtype)]
+     [(flow-inspection-style?) (dia-block-circle key caption style width height subtype)]
+     [(flow-reference-style?) (flow-block-reference key caption style width height direction subtype)]
      
-     [(flow-selection-style?) (flow-block-selection id caption style width height direction subtype)]
-     [(flow-junction-style?) (flow-block-junction id caption style width height direction subtype)]
-     [(flow-extract-style?) (flow-block-extract id caption style width height direction subtype)]
-     [(flow-merge-style?) (flow-block-merge id caption style width height direction subtype)]
+     [(flow-selection-style?) (flow-block-selection key caption style width height direction subtype)]
+     [(flow-junction-style?) (flow-block-junction key caption style width height direction subtype)]
+     [(flow-extract-style?) (flow-block-extract key caption style width height direction subtype)]
+     [(flow-merge-style?) (flow-block-merge key caption style width height direction subtype)]
      
-     [(flow-storage-style?) (flow-block-storage id caption style width height direction subtype)]
-     [(flow-collation-style?) (flow-block-collation id caption style width height direction subtype)]
-     [(flow-sort-style?) (flow-block-sort id caption style width height direction subtype)])))
+     [(flow-storage-style?) (flow-block-storage key caption style width height direction subtype)]
+     [(flow-collation-style?) (flow-block-collation key caption style width height direction subtype)]
+     [(flow-sort-style?) (flow-block-sort key caption style width height direction subtype)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Flow-Block-Describer (Dia-Block-Describer Flow-Block-Style Flow-Block-Metadata))
@@ -52,6 +54,7 @@
    [typesetter : (Option (Dia-Block-Typesetter Flow-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata) default-flow-block-fallback-build]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style Flow-Block-Style)) #false]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-flow-block-backstop-style])
   #:transparent)
 
@@ -59,5 +62,6 @@
   ([identifier : (Dia-Track-Identifier Flow-Track-Style) default-flow-track-identify]
    [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
+   [λroot-style : (Option (Dia-Track-Link-Root-Style Flow-Track-Style)) #false]
    [λbackstop-style : (-> Dia-Track-Backstop-Style) make-flow-track-backstop-style])
   #:transparent)

@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
-(require digimon/measure)
 
 (require "../track/dc.rkt")
 (require "../track/interface.rkt")
@@ -25,8 +24,8 @@
   (lambda [id caption style width height direction property]
     (dia-block-case
      style
-     [(uc-case-style?)   (dia-block-ellipse id caption style width height direction 'Case  property)]
-     [(uc-actor-style?) (dia-actor-stickman id caption style width height direction 'Actor property)])))
+     [(uc-case-style?)   (dia-block-ellipse id caption style width height direction property)]
+     [(uc-actor-style?) (dia-actor-stickman id caption style width height property)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type UC-Block-Describer (Dia-Block-Describer UC-Block-Style UC-Block-Metadata))
@@ -36,6 +35,7 @@
    [typesetter : (Option (Dia-Block-Typesetter UC-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder UC-Block-Style UC-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder UC-Block-Style UC-Block-Metadata) default-uc-block-fallback-build]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style UC-Block-Style)) #false]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-uc-block-backstop-style])
   #:transparent)
 
@@ -43,5 +43,6 @@
   ([identifier : (Dia-Track-Identifier UC-Track-Style) default-uc-track-identify]
    [annotator : (Option (Dia-Track-Annotator UC-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder UC-Track-Style)) #false]
+   [λroot-style : (Option (Dia-Track-Link-Root-Style UC-Track-Style)) #false]
    [λbackstop-style : (-> Dia-Track-Backstop-Style) make-uc-track-backstop-style])
   #:transparent)

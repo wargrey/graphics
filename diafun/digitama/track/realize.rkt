@@ -9,11 +9,11 @@
 
 (require geofun/digitama/self)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/footprint)
 
 (require geofun/digitama/dc/track)
 (require geofun/digitama/dc/path)
-
 (require geofun/digitama/track/trail)
 (require geofun/digitama/track/anchor)
 
@@ -22,30 +22,42 @@
 (require "label.rkt")
 (require "backstop.rkt")
 (require "interface.rkt")
-(require "freestyle.rkt")
 
 (require "../block/dc.rkt")
+(require "../block/style.rkt")
 (require "../block/realize.rkt")
 (require "../block/interface.rkt")
 (require "../block/backstop.rkt")
+
+(require "../decoration/interface.rkt")
+(require "../decoration/backstop.rkt")
+(require "../decoration/note.rkt")
+(require "../decoration/freetrack.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
                                                     (Dia-Track-Factory TS) (Option Dia-Free-Track-Factory)
                                                     (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
-                                                    Geo-Track-Infobase Nonnegative-Flonum (Option Nonnegative-Flonum)
+                                                    (Option Dia-Note-Factory) (Option Dia-Note-Describer)
+                                                    Real (Option Nonnegative-Real) (Option Geo-Rich-Text)
                                                     (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
-  (lambda [self track-factory free-factory block-factory block-desc infobase block-scale opacity]
+  (lambda [self track-factory free-factory block-factory block-desc0 note-factory note-desc scale opacity0 home-name]
     (define gpath : Geo-Trail (geo:track-trail self))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
-    (define-values (Width Height) (geo-flsize self))
+    (define block-scale (and (> scale 0.0) (not (= scale 1.0)) (real->double-flonum scale)))
+    (define opacity (and opacity0 (< opacity0 1.0) (real->double-flonum opacity0)))
 
+    (define block-desc (dia-register-home-name gpath home-name block-desc0))
+    (define infobase (geo:track-foot-infos self))
+    
     (define track-identifier (dia-track-factory-identifier track-factory))
+    (define track-rootstyle (dia-track-factory-λroot-style track-factory))
     (define track-backstyle ((dia-track-factory-λbackstop-style track-factory)))
     (define track->path (dia-track-builder-compose (dia-track-factory-builder track-factory)))
     (define make-labels (dia-track-annotator-compose (dia-track-factory-annotator track-factory)))
 
     (define block-identifier (dia-block-factory-identifier block-factory))
+    (define block-rootstyle (dia-block-factory-λroot-style block-factory))
     (define block-backstyle ((dia-block-factory-λbackstop-style block-factory)))
     (define make-block (dia-block-builder-compose (dia-block-factory-builder block-factory) (dia-block-factory-fallback-builder block-factory)))
     (define make-caption (dia-block-typesetter-compose (dia-block-factory-typesetter block-factory)))
@@ -74,19 +86,22 @@
               (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
                     [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
                     [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-block (dia-block-layer-realize block-identifier make-block make-caption block-desc block-backstyle
-                                                                     anchor next-pt direction block-scale opacity)])
+                                 [new-block (dia-block-layer-realize block-identifier make-block make-caption block-rootstyle block-backstyle block-desc
+                                                                     note-factory note-desc anchor next-pt direction block-scale opacity)])
                             (values new-block (hash-set blocks anchor new-block)))]))
             
             (cond [(glayer? source)
                    (cond [(eq? (gpath:datum-cmd self) #\M)
-                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier make-labels track->path track-backstyle opacity)
+                          (stick (dia-track-cons source target prints++ tracks infobase
+                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
                                  blocks++ null #false next-pt rest)]
                          [(and target)
-                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier make-labels track->path track-backstyle opacity)
+                          (stick (dia-track-cons source target prints++ tracks infobase
+                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
                                  blocks++ (list self) source next-pt rest)]
                          [(pair? tracks)
-                          (stick (dia-track-cons source #false prints++ tracks infobase track-identifier make-labels track->path track-backstyle opacity)
+                          (stick (dia-track-cons source #false prints++ tracks infobase
+                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
                                  blocks++ (list self) source next-pt rest)]
                          [else (stick tracks blocks++ prints++ source next-pt rest)])]
                    
@@ -116,9 +131,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-track-cons : (-> (GLayerof Dia:Block) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
                                           (Dia-Track-Identifier S) (Dia-Track-Annotator S) (Dia-Track-Builder S)
-                                          Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+                                          (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
                                           (Listof (GLayerof Geo)))
-  (lambda [src-layer tgt-layer prints tracks infobase track-identify make-label make-path backstyle opacity]
+  (lambda [src-layer tgt-layer prints tracks infobase track-identify make-label make-path rootstyle backstyle opacity]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
 
     (or
@@ -129,14 +144,15 @@
                 [target (and tgt-layer (glayer-master tgt-layer))])
             (define retracks : Geo-Path-Clean-Prints*
               (if (null? (cddr ctracks))
-                  (dia-2-tracks-relocate-endpoints src-layer tgt-layer ctracks)
+                  (dia-two-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                   (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
             
             (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks retracks))
             (define style-self : (Option (Dia-Track-Style S)) (track-identify source target label-text extra-track-info))
             
             (and style-self
-                 (let ([style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:backstop backstyle #:opacity opacity)])
+                 (let* ([parent-style (and rootstyle (rootstyle style-self))]
+                        [style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:root parent-style #:backstop backstyle #:opacity opacity)])
                    (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
                      (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
                            [path (make-path source target retracks style-spec)])
@@ -175,3 +191,20 @@
                             (cons (geo-path-self-pin-layer (geo-path-attach-label path labels)) tracks))))))))
   
      tracks)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S M) dia-register-home-name : (-> Geo-Trail (Option Geo-Rich-Text) (Option (Dia-Block-Describer S M))
+                                                    (Option (Dia-Block-Describer S M)))
+  (lambda [self name block-desc]
+    (define home (geo-trail-home-anchor self))
+    
+    (cond [(not name) block-desc]
+          [(not block-desc) (make-immutable-hash (list (cons home name)))]
+          [(hash? block-desc)
+           (cond [(hash-has-key? block-desc home) block-desc]
+                 [else (hash-set block-desc home name)])]
+          [else (λ [[anchor : Geo-Anchor-Name] [text : String] [style : (Dia-Block-Style-Spec S)] [metadata : M]]
+                  (define maybe (block-desc anchor text style metadata))
+                  (cond [(not (eq? home anchor)) maybe]
+                        [(void? maybe) name]
+                        [else maybe]))])))

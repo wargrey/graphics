@@ -19,6 +19,9 @@
 (define-type Font-Size-Datum (U Symbol Length+%))
 (define-type Font-Weight-Datum (U Font-Weight Integer))
 
+(define-type Font+Tweak (U Font Font:Tweak))
+(define-type Option-Font+Tweak (Option Font+Tweak))
+
 (struct font
   ([face : String]
    [size : Nonnegative-Flonum]

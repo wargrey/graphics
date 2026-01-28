@@ -3,11 +3,11 @@
 (provide (all-defined-out))
 
 (require "../dc.rkt")
+(require "../style.rkt")
 
 (require geofun/digitama/layer/void)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-ghost-block : (->* (Symbol Symbol) (Any) Dia:Block)
-  (lambda [id type [etags #false]]
-    (create-dia-block #:id id #:tag type etags
-                      #:with-group the-void-group)))
+(define #:forall (S) dia-ghost-block : (->* (Symbol (Dia-Block-Style-Spec S)) (Any) Dia:Block)
+  (lambda [id style [tags #false]]
+    (create-dia-block #:id id tags #:with-group style the-void-group)))

@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
+(require geofun/digitama/richtext/self)
+
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
 
@@ -20,8 +22,7 @@
 (define-syntax (create-dia-block stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
-              (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
+              (~optional (~seq #:id name tags) #:defaults ([name #'#false] [tags #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
                          #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
@@ -36,15 +37,14 @@
                                 #:stroke (dia-block-resolve-stroke-paint style)
                                 #:fill (dia-block-resolve-fill-paint style)
                                 shape-argl ...)])
-         (create-dia-block #:block make-block #:id name
-                           #:tag type extra-tags #:intersect intersect
+         (create-dia-block #:block make-block #:id name tags
+                           #:intersect intersect
                            #:fit-region hfit% vfit% lft% top%
                            #:alignment sx% sy% tx% ty%
                            #:margin margin
                            #:with style shape block-argl ...)))]
     [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
-              (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
+              (~optional (~seq #:id name tags) #:defaults ([name #'#false] [tags #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect]))
               (~optional (~seq #:fit-region hfit% vfit% (~optional (~seq lft%:expr top%:expr)))
                          #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
@@ -61,14 +61,14 @@
                                                 lft% top% hfit% vfit%
                                                 sx% sy% (or tx% sx%) (or ty% sy%)
                                                 (dia-block-resolve-padding style #:padding margin))
-                              (dia-block-tags type extra-tags)
+                              (dia-block-style-type-object style)
+                              (dia-block-tags tags)
                               intersect extra-argl ...))]
     [(_ (~alt (~optional (~seq #:block make-block) #:defaults ([make-block #'dia:block]))
-              (~optional (~seq #:id name) #:defaults ([name #'#false]))
-              (~optional (~seq #:tag type extra-tags) #:defaults ([type #''untyped] [extra-tags #'#false]))
+              (~optional (~seq #:id name tags) #:defaults ([name #'#false] [tags #'#false]))
               (~optional (~seq #:intersect intersect) #:defaults ([intersect #'dia-default-intersect])))
         ...
-        #:with-group shape:expr extra-argl ...)
+        #:with-group style shape:expr extra-argl ...)
      (syntax/loc stx
        (let ([g shape])
          (with-asserts ([g geo:group?])
@@ -76,7 +76,8 @@
                                   #:outline (geo-outline g)
                                   #:desc (geo:group-desc g)
                                   (geo:group-selves g)
-                                  (dia-block-tags type extra-tags)
+                                  (dia-block-style-type-object style)
+                                  (dia-block-tags tags)
                                   intersect extra-argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,14 +86,10 @@
 (define-type Dia-Maybe-Block (U Void Dia-Option-Block))
 
 (struct dia:block geo:group
-  ([tags : (Pairof Symbol (Listof Symbol))]
+  ([phantom-type : Any]
+   [tags : (Listof Symbol)]
    [intersect : Dia-Block-Intersect])
   #:type-name Dia:Block
-  #:transparent)
-
-(struct dia:block:label dia:block
-  ([body : (Option String)])
-  #:type-name Dia:Block:Label
   #:transparent)
 
 (struct dia:block:polygon dia:block
@@ -111,10 +108,40 @@
   #:type-name Dia:Block:Ellipse
   #:transparent)
 
+(struct dia:block:note dia:block
+  ([body : Geo-Option-Rich-Text])
+  #:type-name Dia:Block:Note
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia:block-type : (-> Dia:Block Symbol)
-  (lambda [self]
-    (car (dia:block-tags self))))
+(define dia:block-same-type? : (-> Dia:Block (Option Dia:Block) Boolean)
+  (lambda [lgt rgt]
+    (and rgt
+         (eq? (object-name (dia:block-phantom-type lgt))
+              (object-name (dia:block-phantom-type rgt))))))
+
+(define dia:block-diff-type? : (-> Dia:Block (Option Dia:Block) Boolean)
+  (lambda [lgt rgt]
+    (if rgt
+        (not (eq? (object-name (dia:block-phantom-type lgt))
+                  (object-name (dia:block-phantom-type rgt))))
+        #true)))
+
+(define dia:block-typeof? : (-> Dia:Block (-> Any Boolean) Boolean)
+  (lambda [self phantom-type?]
+    (phantom-type? (dia:block-phantom-type self))))
+
+(define dia:block*-typeof? : (-> (Option Dia:Block) (-> Any Boolean) Boolean : #:+ Dia:Block)
+  (lambda [self phantom-type?]
+    (and self (phantom-type? (dia:block-phantom-type self)))))
+
+(define dia:block-has-tag? : (-> Dia:Block Symbol Boolean)
+  (lambda [self tag]
+    (and (memq tag (dia:block-tags self)) #true)))
+
+(define dia:block*-has-tag? : (-> (Option Dia:Block) Symbol Boolean : #:+ Dia:Block)
+  (lambda [self tag]
+    (and self (dia:block-has-tag? self tag))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-apothem-intersect : (-> Nonnegative-Flonum Nonnegative-Flonum Dia-Block-Intersect)
@@ -178,12 +205,12 @@
          ((dia:block-intersect g) A B node-pos nlayer))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-tags : (->* (Symbol) (Any) (Pairof Symbol (Listof Symbol)))
-  (lambda [type [extra-tags #false]]
-    (cond [(not extra-tags) (list type)]
-          [(symbol? extra-tags) (list type extra-tags)]
-          [(list? extra-tags) (cons type(filter symbol? extra-tags))]
-          [else (list type)])))
+(define dia-block-tags : (-> Any (Listof Symbol))
+  (lambda [maybe-tags]
+    (cond [(not maybe-tags) null]
+          [(symbol? maybe-tags) (list maybe-tags)]
+          [(list? maybe-tags) (filter symbol? maybe-tags)]
+          [else null])))
 
 (define dia-block-desc-from-caption : (-> (Option Geo) (Option String))
   (lambda [maybe-caption]
