@@ -25,11 +25,11 @@
   (jump-to 'Cosmos)
   (move-left-down 2 0.75 'LinkedPlaneInfo (gtmult 1 1 'composition))
   (move-down 1.75 '#:IPlaneInfo)
-  (move-to '#:IScreen #false (gtmult 1 1 'aggregation))
+  (move-to '#:IScreen (gtmult 1 1 'aggregation))
 
   (jump-to 'Cosmos)
   (move-down '#:IPlaneInfo 'Plane (gtmult 1 '0..n 'aggregation))
-  (move-to '#:IPlaneInfo #false "«use»")
+  (move-to '#:IPlaneInfo '#:use)
 
   (jump-to 'Plane)
   (move-down 2.5 'Matter (gtmult 1 '0..n 'composition))
@@ -37,17 +37,17 @@
   (move-left '#:IScreen #false (gtmult 1 #false))
   (move-up '#:IPlaneInfo 'Pasteboard (gtmult #false 1 'composition))
   (move-up '#:IScreen)
-  (jump-to 'Continent) (move-to '#:IPlaneInfo #false (gtmult 1 1 'composition))
-  (jump-to 'Continent) (move-to 'Plane #false (gtmult 1 1 'aggregation))
+  (jump-to 'Continent) (move-to '#:IPlaneInfo (gtmult 1 1 'composition))
+  (jump-to 'Continent) (move-to 'Plane (gtmult 1 1 'aggregation))
   (jump-to 'Continent) (move-to 'Matter)
   (move-right 2.5 '#:IMovable)
 
   (jump-to 'Plane)
   (move-right 2.5 'MatterInfo (gtmult 1 1 'composition))
   (move-down 1.5 '#:IMatterInfo)
-  (move-to 'Plane #false (gtmult 1 1 'aggregation))
+  (move-to 'Plane (gtmult 1 1 'aggregation))
   (jump-to 'Matter)
-  (move-to '#:IMatterInfo #false "«use»"))
+  (move-to '#:IMatterInfo '#:use))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

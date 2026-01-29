@@ -5,8 +5,8 @@
 (require diafun/usecase)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define inc : String "include")
-(define ext : String "extend")
+(define inc : Keyword '#:include)
+(define ext : Keyword '#:extend)
 (define title : String "JrPLT and PBL Practice")
 
 (define pbl-colorize : UC-Block-Theme-Adjuster
@@ -53,7 +53,7 @@
 
   (jump-to 'arch)
   (radial-move 2.5 -15 'api inc)
-  (move-to 'bdd #false inc)
+  (move-to 'bdd inc)
 
   (jump-to 'train)
   (radial-move 2 -15 'doc inc)
@@ -68,7 +68,7 @@
   [#:tree (jump-to -0.5+4i '#:Researcher)
    [=> (radial-move 2.0 25 'slide)
        (move-to 'study)
-       (move-to 'example #false inc)]
+       (move-to 'example inc)]
    [=> (move-to '#:Teacher)]]
 
   (jump-to 'study)
@@ -82,9 +82,9 @@
    [=> (move-to 'deploy)]]
   
   (jump-to 'ct)
-  (move-to 'fit #false ext)
+  (move-to 'fit ext)
   (jump-to 'ct)
-  (move-to 'dup #false ext)
+  (move-to 'dup ext)
   
   (jump-to 0.5-3.5i '.sys)
   (move-right 5 #false title)

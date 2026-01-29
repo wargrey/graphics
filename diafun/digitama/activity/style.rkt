@@ -164,10 +164,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://www.uml-diagrams.org/activity-diagrams-objects.html
 (define-phantom-struct act-object-style : Act-Object-Style #:-> act-object-node-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (&% 80)]
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
    [height : Dia-Block-Option-Size (&% 80)]
    [padding : Dia-Block-Option-Padding #false]
-   [font : (Option Font+Tweak) #false]
+   [font : (Option Font+Tweak) dia-preset-object-font-tweak]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]

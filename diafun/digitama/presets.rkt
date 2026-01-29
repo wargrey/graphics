@@ -8,7 +8,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-preset-track-label-font : Font (desc-font #:size 'normal #:family 'monospace))
-(define dia-preset-block-tag-font : Font (desc-font #:size 'normal #:weight 'bold #:family 'monospace))
+(define dia-preset-block-tag-font : Font (desc-font #:size 'normal #:family 'monospace))
 (define dia-preset-block-caption-font : Font (desc-font #:size 'xx-large))
 (define dia-preset-header-font : Font (desc-font #:size 'large #:weight 'bold))
 (define dia-preset-file-font : Font (desc-font #:family 'monospace #:size 'xx-large))
@@ -20,3 +20,4 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-preset-header-font-tweak : Font:Tweak (make-font:tweak #:size 'large #:weight 'bold))
+(define dia-preset-object-font-tweak : Font:Tweak (make-font:tweak #:size 'large))

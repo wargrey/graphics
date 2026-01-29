@@ -57,7 +57,7 @@
   
   (jump-to Create)
   (jump-right 2 '/doc/.history)
-  (move-to Create #false "load")
+  (move-to Create "load")
 
   ; Portion on the same page, located at Grid (4, 0)
   (jump-to 4 '@E.)
@@ -72,7 +72,7 @@
     =>
     (move-down-right 1 1 '|Exit with Error Status| "False")
     (move-down 1 Page2)]
-   [(move-to 'Exit$ #false "True")]]
+   [(move-to 'Exit$ "True")]]
 
   (jump-to Sync)
   (T-step '/doc/.history "save")

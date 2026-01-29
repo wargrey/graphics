@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require racket/keyword)
+
 (require "self.rkt")
 
 (require "../richtext/self.rkt")
@@ -31,6 +33,8 @@
   (lambda [v]
     (cond [(geo:track:info? v) v]
           [(geo-rich-text? v) (geo:track:info v (default-geo-track-label-base-position) #false null)]
+          [(symbol? v) (geo:track:info (format "[~a]" v) (default-geo-track-label-base-position) #false null)] ; UML guard
+          [(keyword? v) (geo:track:info (format "«~a»" (keyword->immutable-string v)) (default-geo-track-label-base-position) #false null)] ; UML stereotype
           [(list? v)
            (if (andmap geo-option-rich-text? v)
                (geo:track:info v (default-geo-track-label-base-position) #false null)

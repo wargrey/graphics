@@ -21,6 +21,8 @@
 (require "../layer/sticker.rkt")
 (require "../geometry/computation/line.rkt")
 
+(require "../unsafe/visual.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Path-Label-Text (Option Geo-Rich-Text))
 (define-type Geo-Path-Label-Datum (U Geo-Path-Label-Text (Pairof Geo-Rich-Text Geo-Rich-Text) (Listof Geo-Path-Label-Text)))
@@ -61,6 +63,7 @@
            #:reverse? [reverse? : Boolean #false]
            #:distance [distance : (Option Length+%) #false]
            #:rotate? [rotate? : Boolean #true]
+           #:single-datum-position [base-position : Flonum 0.5]
            [selves : Geo-Path-Label-Datum] [rng : (U Flonum (Pairof Flonum Flonum)) 0.25]
            [adjust : (Option Real) #false] [unit : Angle-Unit 'rad]] : (Listof Geo:Path:Label)
     (define-values (bgn end)
@@ -69,7 +72,7 @@
           (values rng (- 1.0 rng))))
 
     (define glabels : (Listof (Pairof Geo Flonum))
-      (cond [(geo-rich-text? selves) (list (cons (geo-path-label-realize selves #false font font-paint) 0.5))]
+      (cond [(geo-rich-text? selves) (list (cons (geo-path-label-realize selves #false font font-paint) base-position))]
             [(list? selves) ; single-item list also works as designed
              (let ([step (/ (- end bgn) (max 1 (sub1 (length selves))))])
                (for/list : (Listof (Pairof Geo Flonum)) ([lbl (in-list (if (not reverse?) selves (reverse selves)))]
@@ -150,6 +153,12 @@
                  (or (geo-rich-text-match? (car label) pattern)
                      (geo-rich-text-match? (cdr label) pattern)))]
             [(geo-rich-text? label) (geo-rich-text-match? label pattern)]
+            [else #false]))))
+
+(define geo-path-label-has-rich-datum? : (-> (Listof Geo-Path-Label-Datum) (-> Rich-Datum<%> Boolean) Boolean)
+  (lambda [labels vobj?]
+   (for/or : Boolean ([label (in-list labels)])
+      (cond [(rich-datum<%>? label) (vobj? label)]
             [else #false]))))
 
 (define geo-path-label-has-stereotype? : (-> (Listof Geo-Path-Label-Datum) Boolean)

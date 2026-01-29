@@ -228,6 +228,16 @@
   (lambda [anchor]
     (string->symbol (string-append "&" (geo-anchor->string anchor)))))
 
+(define dia-block-caption-split-for-stereotype : (-> String (Values String (Option Symbol)))
+  (lambda [text]
+    (define maybe (regexp-match #px"(.+)#(\\w+)$" text))
+
+    (cond [(not maybe) (values text #false)]
+          [else (values (or (cadr maybe) text)
+                        (let ([stype (caddr maybe)])
+                          (and (string? stype)
+                               (string->symbol stype))))])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S M) dia-block-theme-adjust : (-> (Dia-Block-Style S) Geo-Anchor-Name (Option (Dia-Block-Theme-Adjuster S M)) M
                                                     (Option (Dia-Block-Style S)))

@@ -29,6 +29,8 @@
                           #:color (dia-track-resolve-font-paint style)
                           #:rotate? r?
                           #:distance (if (or i?) 0.0 d)
+                          ;;; TODO: The arrowhead visually offsets the label from the line's center.
+                          #:single-datum-position 0.5
                           label base-position)))
 
 

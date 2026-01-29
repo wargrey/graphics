@@ -137,9 +137,7 @@
                                                   (Option Font) Length+% Nonnegative-Flonum
                                                   (Option Geo))
   (lambda [caption stereotype style stereotype-font stereotype-gapsize 100%]
-    (and caption
-         (or (symbol? stereotype)
-             (pair? stereotype))
+    (and caption stereotype
          (geo-vc-append #:gapsize (~dimension stereotype-gapsize 100%)
                         (geo-text #:color (dia-block-resolve-font-paint style)
                                   (format "«~a»" (if (symbol? stereotype) stereotype (car stereotype)))

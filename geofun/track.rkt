@@ -162,9 +162,17 @@
           [(null? (cdr ctrls)) (geo-track-quadratic-bezier goma endpt (car ctrls) anchor)]
           [else (geo-track-cubic-bezier goma endpt (car ctrls) (cadr ctrls) anchor)])))
 
-(define gomamon-move-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [goma target [anchor #false] [info #false]]
-    (geo-track-connect-to goma target anchor info)))
+(define gomamon-move-to! : (case-> [Gomamon (U Geo-Anchor-Name Complex) -> Void]
+                                   [Gomamon Geo-Anchor-Name Any -> Void]
+                                   [Gomamon Complex (Option Geo-Anchor-Name) -> Void]
+                                   [Gomamon Complex (Option Geo-Anchor-Name) Any -> Void])
+  (case-lambda
+    [(goma target) (geo-track-connect-to goma target #false #false)]
+    [(goma target argument)
+     (if (complex? target)
+         (geo-track-connect-to goma target argument #false)
+         (geo-track-connect-to goma target #false argument))]
+    [(goma target anchor info) (geo-track-connect-to goma target anchor info)]))
 
 (define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
   (lambda [goma target [anchor #false]]

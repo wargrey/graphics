@@ -29,26 +29,26 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) default-act-block-fallback-build : (Dia-Block-Builder Act-Block-Style Act-Block-Metadata)
-  (lambda [key caption style width height direction subtype]
+  (lambda [key caption style width height direction maybe-type]
     (dia-block-case
      style
-     [(act-central-buffer-style?) (act-block-central-buffer key caption style width height direction subtype)]
+     [(act-central-buffer-style?) (act-block-central-buffer key caption style width height direction maybe-type)]
      
-     [(act-decision-style?) (dia-symbol-diamond key style width height direction subtype)]
-     [(act-merge-style?) (dia-symbol-diamond key style width height direction subtype)]
-     [(act-fork-style?) (dia-block-rectangle/cr:2nd key caption style width height direction subtype)]
-     [(act-join-style?) (dia-block-rectangle/cr:2nd key caption style width height direction subtype)]
+     [(act-decision-style?) (dia-symbol-diamond key style width height direction maybe-type)]
+     [(act-merge-style?) (dia-symbol-diamond key style width height direction maybe-type)]
+     [(act-fork-style?) (dia-block-rectangle/cr:2nd key caption style width height direction maybe-type)]
+     [(act-join-style?) (dia-block-rectangle/cr:2nd key caption style width height direction maybe-type)]
 
-     [(act-time-event-style?) (act-block-time-event key caption style width height direction subtype)]
+     [(act-time-event-style?) (act-block-time-event key caption style width height direction maybe-type)]
 
-     [(act-initial-style?) (dia-symbol-circle key style height height null subtype)]
-     [(act-final-style?) (act-block-final key caption style width height direction subtype)]
-     [(act-flow-final-style?) (act-block-flow-final key caption style width height direction subtype)]
-     [(act-connector-style?) (dia-block-circle key caption style width height subtype)]
+     [(act-initial-style?) (dia-symbol-circle key style height height null maybe-type)]
+     [(act-final-style?) (act-block-final key caption style width height direction maybe-type)]
+     [(act-flow-final-style?) (act-block-flow-final key caption style width height direction maybe-type)]
+     [(act-connector-style?) (dia-block-circle key caption style width height maybe-type)]
 
      ; put root types here
-     [(act-action-style?) (dia-block-rectangle/cr:4th key caption style width height direction subtype)]
-     [(act-object-style?) (dia-block-rectangle key caption style width height direction subtype)])))
+     [(act-action-style?) (dia-block-rectangle/cr:4th key caption style width height direction maybe-type)]
+     [(act-object-style?) (act-block-object key caption style width height direction maybe-type)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Act-Block-Describer (Dia-Block-Describer Act-Block-Style Act-Block-Metadata))

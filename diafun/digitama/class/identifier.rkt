@@ -9,6 +9,7 @@
 (require geofun/digitama/track/anchor)
 
 (require "../block/dc.rkt")
+(require "../block/style.rkt")
 (require "../block/interface.rkt")
 (require "../track/interface.rkt")
 
@@ -19,12 +20,10 @@
 (define default-cls-block-identify : (Dia-Block-Identifier Cls-Block-Style Cls-Block-Metadata)
   (lambda [anchor text size]
     (if (symbol? anchor)
-        (let* ([tail (regexp-match #px"(.+)#(\\w+)$" text)]
-               [cname (and tail (cadr tail))]
-               [tag (and tail (caddr tail))])
-          (if (and cname tag)
-              (cls-tagged-class-identify anchor cname (string->symbol tag))
-              (cls-named-class-identify anchor text)))
+        (let-values ([(cname tag) (dia-block-caption-split-for-stereotype text)])
+          (if (and tag)
+              (cls-tagged-class-identify anchor cname tag)
+              (cls-named-class-identify anchor cname)))
         (cls-interface-style-construct anchor text))))
 
 (define default-cls-track-identify : (Dia-Track-Identifier Cls-Track-Style)

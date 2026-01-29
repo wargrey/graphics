@@ -4,10 +4,12 @@
 
 (require racket/string)
 
+(require geofun/digitama/self)
 (require geofun/digitama/path/label)
 (require geofun/digitama/track/anchor)
 
 (require "../block/dc.rkt")
+(require "../block/style.rkt")
 (require "../block/interface.rkt")
 (require "../track/interface.rkt")
 
@@ -18,7 +20,12 @@
   (lambda [source target labels extra-info]
     (cond [(or (dia:block-typeof? source act-object-style?)
                (dia:block*-typeof? target act-object-style?))
-           (act-track-adjust source target labels default-act~object~flow~style)]
+           (if (and (or (dia:block-typeof? source act-central-buffer-style?)
+                        (dia:block*-typeof? target act-central-buffer-style?))
+                    (geo-path-label-has-stereotype? labels))
+               (act-track-adjust source target labels default-act~storage~style)
+               (act-track-adjust source target labels default-act~object~flow~style))]
+          [(geo-path-label-has-rich-datum? labels geo?) (act-track-adjust source target labels default-act~object~flow~style)]
           [(dia:block-typeof? source act-decision-style?) (act-track-adjust source target labels default-act~decision~style)]
           [(dia:block-typeof? source act-merge-style?) (act-track-adjust source target labels default-act~decision~style)]
           [(dia:block-typeof? source act-fork-style?) (act-track-adjust source target labels default-act~parallel~style)]
@@ -86,7 +93,8 @@
                  [(string-prefix? text "/proc/")
                   (act-block-info anchor (substring text 6 size) default-act-central-buffer-style)]
                  [else (act-block-info anchor (substring text 1 size) default-act-central-buffer-style)])]
-          [else (act-block-info anchor text default-act-object-style)])))
+          [else (let-values ([(name stereotype) (dia-block-caption-split-for-stereotype text)])
+                  (act-block-info anchor name default-act-object-style stereotype))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define act-block-info : (->* (Geo-Anchor-Name String (-> (Dia-Block-Style Act-Block-Style)))

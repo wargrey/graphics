@@ -6,6 +6,7 @@
 (provide (all-from-out "digitama/activity/self.rkt"))
 (provide (all-from-out "digitama/activity/style.rkt"))
 (provide (all-from-out "digitama/activity/parameter.rkt"))
+(provide (all-from-out geofun/constructor))
 (provide (rename-out [dia-track-activate dia-track-act]
                      [dia-track-activate* dia-track-act*]))
 
@@ -23,6 +24,8 @@
 (require "digitama/activity/self.rkt")
 (require "digitama/activity/style.rkt")
 (require "digitama/activity/parameter.rkt")
+
+(require geofun/constructor)
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
