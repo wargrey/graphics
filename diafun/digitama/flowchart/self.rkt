@@ -34,7 +34,7 @@
      [(flow-start-style?) (flow-block-terminal key caption style width height direction subtype)]
      [(flow-preparation-style?) (dia-block-hexagon key caption style width height direction subtype)]
      [(flow-stop-style?) (flow-block-terminal key caption style width height direction subtype)]
-     [(flow-inspection-style?) (dia-block-circle key caption style width height subtype)]
+     [(flow-connector-style?) (dia-block-circle key caption style width height subtype)]
      [(flow-reference-style?) (flow-block-reference key caption style width height direction subtype)]
      
      [(flow-selection-style?) (flow-block-selection key caption style width height direction subtype)]

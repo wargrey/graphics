@@ -88,9 +88,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Crimson]
+   [stroke-color : Maybe-Color 'DarkGoldenrod]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint 'PeachPuff]))
 
 (define-phantom-struct act-merge-style : Act-Merge-Style #:-> act-control-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  +nan.0]
@@ -99,9 +99,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Maroon]
+   [stroke-color : Maybe-Color 'Goldenrod]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint 'PapayaWhip]))
 
 (define-phantom-struct act-fork-style : Act-Fork-Style #:-> act-control-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 200)]
@@ -157,7 +157,7 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Peru]
+   [stroke-color : Maybe-Color 'RosyBrown]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -174,7 +174,18 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
-(define-phantom-struct act-central-buffer-style : Act-Central-Buffer-Style #:-> act-object-style #:for dia-block-style
+(define-phantom-struct act-material-style : Act-Material-Style #:-> act-object-node-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  #false]
+   [height : Dia-Block-Option-Size #false]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'Teal]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-phantom-struct act-central-buffer-style : Act-Central-Buffer-Style #:-> act-object-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 61.8)]
    [height : Dia-Block-Option-Size (&% 200)]
    [padding : Dia-Block-Option-Padding #false]
@@ -237,23 +248,11 @@
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Flonum) (void)]))
 
-(define-phantom-struct act~decision~style : Act~Decision~Style #:-> act~control~flow~style #:for dia-track-style
+(define-phantom-struct act~decision~input~style : Act~Decision~Input~Style #:-> act~object~flow~style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
-   [font-paint : Option-Fill-Paint #false]
+   [font-paint : Option-Fill-Paint 'DarkGreen]
    [width : (Option Length+%) #false]
-   [color : Maybe-Color 'DarkSlateGray]
-   [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
-
-(define-phantom-struct act~parallel~style : Act~Parallel~Style #:-> act~control~flow~style #:for dia-track-style
-  ([font : (Option Font+Tweak) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Length+%) #false]
-   [color : Maybe-Color 'DarkSlateBlue]
+   [color : Maybe-Color 'YellowGreen]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]

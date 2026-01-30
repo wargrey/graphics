@@ -19,6 +19,7 @@
   ([identifier : (Dia-Track-Identifier Flow-Track-Style) plt-flow-track-identify]
    [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
+   [λroot-style : (Option (Dia-Track-Link-Root-Style Flow-Track-Style)) #false]
    [λbackstop-style : (-> Dia-Track-Backstop-Style) make-plt-flow-track-backstop-style])
   #:transparent)
 
@@ -27,5 +28,6 @@
    [typesetter : (Option (Dia-Block-Typesetter Flow-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata)) plt-flow-block-build]
    [fallback-builder : (Dia-Block-Builder Flow-Block-Style Flow-Block-Metadata) default-flow-block-fallback-build]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style Flow-Block-Style)) #false]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-plt-flow-block-backstop-style])
   #:transparent)

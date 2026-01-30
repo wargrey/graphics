@@ -97,8 +97,8 @@
           [(eq? ch0 #\=) (and (eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-merge-style))]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
-               (flow-block-info anchor (substring text 1 idx$) default-flow-inspection-style 'sink)
-               (flow-block-info anchor (substring text 1 size) default-flow-inspection-style 'root))]
+               (flow-block-info anchor (substring text 1 idx$) default-flow-connector-style 'sink)
+               (flow-block-info anchor (substring text 1 size) default-flow-connector-style 'root))]
           [(eq? ch0 #\&)
            (if (eq? ch$ #\.)
                (flow-block-info anchor (substring text 1 idx$) default-flow-reference-style 'page-sink)

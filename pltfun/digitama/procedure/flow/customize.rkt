@@ -25,8 +25,8 @@
   (lambda [id label style width height direction subtype]
     (dia-block-case style
      [(flow-process-style?) (plt-flow-block-process id label style width height direction subtype)]
-     [(flow-input-style?)   (dia-ghost-block id 'Input)]
-     [(flow-output-style?)  (dia-ghost-block id 'Output)]
+     [(flow-input-style?)   (dia-ghost-block id style)]
+     [(flow-output-style?)  (dia-ghost-block id style)]
      [(flow-storage-style?) (when (eq? subtype 'File)
                               (plt-flow-block-file id label style width height direction subtype))])))
 
@@ -40,17 +40,17 @@
                      (* width 0.25)))
 
     (if (or (not direction) (not (zero? direction)))
-        (create-dia-block #:id id #:tag 'Process subtype
+        (create-dia-block #:id id subtype
                           #:fit-region 1.00 0.36 0.00 0.00
                           #:with style fbox caption)
-        (create-dia-block #:id id #:tag 'Process subtype
+        (create-dia-block #:id id subtype
                           #:fit-region 1.00 1.00 0.0 0.0
                           #:with style (geo-rotate fbox (- direction (* pi 0.5))) caption))))
 
 (define #:forall (S) plt-flow-block-file : (Dia-Block-Create S Flow-Block-Metadata)
   (lambda [id caption style width height direction subtype]
     (define dog-ear% 0.1618)
-    (create-dia-block #:id id #:tag 'Storage subtype
+    (create-dia-block #:id id subtype
                       #:fit-region 1.00 (- 1.0 dog-ear%) 0.0 1.0
                       #:alignment 0.0 0.0
                       #:create-with style [geo-file width height #:dog-ear-size (&: dog-ear%)]

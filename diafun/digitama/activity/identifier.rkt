@@ -18,17 +18,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-act-track-identify : (Dia-Track-Identifier Act-Track-Style)
   (lambda [source target labels extra-info]
-    (cond [(or (dia:block-typeof? source act-object-style?)
-               (dia:block*-typeof? target act-object-style?))
+    (cond [(and (dia:block-typeof? source act-object-node-style?)
+                (dia:block*-typeof? target act-decision-style?))
+           (act-track-adjust source target labels default-act~decision~input~style)]
+          [(or (dia:block-typeof? source act-object-node-style?)
+               (dia:block*-typeof? target act-object-node-style?))
            (if (and (or (dia:block-typeof? source act-central-buffer-style?)
                         (dia:block*-typeof? target act-central-buffer-style?))
                     (geo-path-label-has-stereotype? labels))
                (act-track-adjust source target labels default-act~storage~style)
                (act-track-adjust source target labels default-act~object~flow~style))]
           [(geo-path-label-has-rich-datum? labels geo?) (act-track-adjust source target labels default-act~object~flow~style)]
-          [(dia:block-typeof? source act-decision-style?) (act-track-adjust source target labels default-act~decision~style)]
-          [(dia:block-typeof? source act-merge-style?) (act-track-adjust source target labels default-act~decision~style)]
-          [(dia:block-typeof? source act-fork-style?) (act-track-adjust source target labels default-act~parallel~style)]
           [else (act-track-adjust source target labels default-act~control~flow~style)])))
 
 (define default-act-block-identify : (Dia-Block-Identifier Act-Block-Style Act-Block-Metadata)
@@ -48,7 +48,6 @@
 
     ; check '^' before '?' for flowcharts of predicate functions
     (cond [(eq? ch0 #\^) (act-block-info anchor (substring text 1 size) default-act-initial-style)]
-          [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-object-style)]
           [(eq? ch$ #\?) (act-block-info anchor text default-act-decision-style)]
           [(eq? ch$ #\$)
            (if (string-suffix? text "~$")
@@ -76,6 +75,7 @@
            (and (string-suffix? text "...")
                 (act-block-info anchor (substring text 0 (- idx$2 1)) default-act-time-event-style))]
           [(eq? ch0 #\\) (act-block-info anchor (substring text 1 size) default-act-action-style)]
+          [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-action-style 'Manual)]
           [else (act-block-info anchor text default-act-action-style)])))
 
 (define act-object-text-identify : (-> Keyword String Positive-Index (Option (Dia-Block-Info Act-Block-Style Act-Block-Metadata)))
@@ -83,7 +83,8 @@
     (define-values (idx$ idx$2) (values (- size 1) (- size 2)))
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
 
-    (cond [(eq? ch0 #\/)
+    (cond [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-material-style)]
+          [(eq? ch0 #\/)
            (cond [(string-prefix? text "/doc/")
                   (if (eq? ch$ #\/)
                       (act-block-info anchor (substring text 5 idx$) default-act-central-buffer-style 'Directory)

@@ -16,7 +16,7 @@
     
     (geo-path* #:id (dia-track-id-merge (geo-id source) (and target (geo-id target)) #true)
                #:stroke (dia-track-resolve-line-paint style)
-               #:source-tip stip #:target-tip ttip
+               #:source-tip stip #:target-tip (and target ttip)
                #:tip-placement 'inside
                tracks)))
 

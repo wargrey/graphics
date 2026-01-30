@@ -75,7 +75,7 @@
    [fill-paint : Maybe-Fill-Paint 'Gainsboro]))
 
 ; On-Page-Connector -> Inspection
-(define-phantom-struct flow-inspection-style : Flow-Inspection-Style #:-> flow-block-style #:for dia-block-style
+(define-phantom-struct flow-connector-style : Flow-Connector-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  +nan.0]
    [height : Dia-Block-Option-Size (&% 61.8)]
    [padding : Dia-Block-Option-Padding (&% 4)]
@@ -116,7 +116,7 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'DarkOrchid]
+   [stroke-color : Maybe-Color 'SlateBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -127,7 +127,7 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Crimson]
+   [stroke-color : Maybe-Color 'Peru]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -174,7 +174,7 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Peru]
+   [stroke-color : Maybe-Color 'RosyBrown]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
@@ -187,9 +187,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'IndianRed]
+   [stroke-color : Maybe-Color 'DarkGoldenrod]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'SeaShell]))
+   [fill-paint : Maybe-Fill-Paint 'Bisque]))
 
 ; This one is quirk, but usually be used like the merge node in the activity diagram. 
 (define-phantom-struct flow-junction-style : Flow-Junction-Style #:-> flow-block-style #:for dia-block-style
@@ -199,9 +199,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Orange]
+   [stroke-color : Maybe-Color 'Goldenrod]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+   [fill-paint : Maybe-Fill-Paint 'PapayaWhip]))
 
 ; Normal dividing of a flow into multiple parallel ones, like the fork node in the activity diagram.
 (define-phantom-struct flow-extract-style : Flow-Extract-Style #:-> flow-block-style #:for dia-block-style
@@ -211,9 +211,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'DarkOrange]
+   [stroke-color : Maybe-Color 'Sienna]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'MistyRose]))
+   [fill-paint : Maybe-Fill-Paint 'SandyBrown]))
 
 ; Usually be used as the join node in the activity diagram.
 (define-phantom-struct flow-merge-style : Flow-Merge-Style #:-> flow-block-style #:for dia-block-style
@@ -223,9 +223,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Orange]
+   [stroke-color : Maybe-Color 'Chocolate]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'LemonChiffon]))
+   [fill-paint : Maybe-Fill-Paint 'NavajoWhite]))
 
 ; Can be used as the combination of the merge and extraction,
 ;  the expected information comes from more than one branches, and all portions share the same identity.
@@ -237,9 +237,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'GoldenRod]
+   [stroke-color : Maybe-Color 'CornflowerBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'PapayaWhip]))
+   [fill-paint : Maybe-Fill-Paint 'Azure]))
 
 ; Can be used as the combination of the merge and extraction.
 ;   Should be used to classify and order items by priority.
@@ -250,9 +250,9 @@
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
-   [stroke-color : Maybe-Color 'Sienna]
+   [stroke-color : Maybe-Color 'DarkSlateBlue]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'PeachPuff]))
+   [fill-paint : Maybe-Fill-Paint 'Lavender]))
 
 (define-phantom-struct flow-storage-style : Flow-Storage-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 61.8)]

@@ -21,6 +21,7 @@
 
   (jump-to '=-)
   (move-down 1 'wait...)
+  (move-down 1 '|:manually operate|)
   
   [#:tree (move-down 1 '-+)
    [=> (move-left 1 #false "[guard 1]")
@@ -35,7 +36,7 @@
   (jump-to '+-)
   (move-down 1 '@A)
   (jump-to '-=)
-  (jump-down 1 '@A.)
+  (jump-down 0.75 '@A.)
   (move-down 1 'End$))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

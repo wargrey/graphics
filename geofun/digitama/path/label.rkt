@@ -159,6 +159,12 @@
   (lambda [labels vobj?]
    (for/or : Boolean ([label (in-list labels)])
       (cond [(rich-datum<%>? label) (vobj? label)]
+            [(pair? label)
+             (if (list? label)
+                 (for/or : Boolean ([lbl (in-list label)])
+                   (and (rich-datum<%>? lbl) (vobj? lbl)))
+                 (or (and (rich-datum<%>? (car label)) (vobj? (car label)))
+                     (and (rich-datum<%>? (cdr label)) (vobj? (cdr label)))))]
             [else #false]))))
 
 (define geo-path-label-has-stereotype? : (-> (Listof Geo-Path-Label-Datum) Boolean)

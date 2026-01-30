@@ -254,13 +254,13 @@
                                        (geo:track:multiplicity mstart m-end t))
                                   extra)))
 
-(define gtlabel : (->* (Geo-Path-Label-Text Geo-Path-Label-Text) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
+(define gtlabel : (->* (Geo-Track-Datum Geo-Track-Datum) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
   (lambda [start end #:t [t (default-geo-track-label-base-position)] . extra]
-    (geo-track-info/paired-labels t start end #false extra)))
+    (geo-track-info/paired-labels t (geo-track-normalize start) (geo-track-normalize end) #false extra)))
 
-(define gtlabel* : (->* ((Listof Geo-Path-Label-Text)) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
+(define gtlabel* : (->* ((Listof Geo-Track-Datum)) (#:t Nonnegative-Flonum) #:rest Geo-Track-Info-Datum Geo:Track:Info)
   (lambda [labels #:t [t (default-geo-track-label-base-position)] . extra]
-    (geo-track-info/labels t labels #false extra)))
+    (geo-track-info/labels t (map geo-track-normalize labels) #false extra)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-anchor-position : (->* (Geo:Track Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)

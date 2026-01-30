@@ -27,28 +27,32 @@
           [(dia-track-style?? self act~object~flow~style?) (default-act~object~flow~style)]
           [else #false])))
 
+(define default-act-block-linker : (Dia-Block-Link-Root-Style Act-Block-Style)
+  (lambda [self]
+    (cond [(dia-block-style?? self act-object-node-style?) (default-act-object-style)]
+          [else #false])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) default-act-block-fallback-build : (Dia-Block-Builder Act-Block-Style Act-Block-Metadata)
   (lambda [key caption style width height direction maybe-type]
     (dia-block-case
      style
+     [(act-action-style?) (dia-block-rectangle/cr:4th key caption style width height direction maybe-type)]
+     [(act-object-style?) (act-block-object key caption style width height direction maybe-type)]
+     [(act-material-style?) (act-block-object key caption style width height direction (or maybe-type 'material))]
      [(act-central-buffer-style?) (act-block-central-buffer key caption style width height direction maybe-type)]
      
      [(act-decision-style?) (dia-symbol-diamond key style width height direction maybe-type)]
      [(act-merge-style?) (dia-symbol-diamond key style width height direction maybe-type)]
-     [(act-fork-style?) (dia-block-rectangle/cr:2nd key caption style width height direction maybe-type)]
-     [(act-join-style?) (dia-block-rectangle/cr:2nd key caption style width height direction maybe-type)]
+     [(act-fork-style?) (dia-block-rectangle/cr:2nd key #false style width height direction maybe-type)]
+     [(act-join-style?) (dia-block-rectangle/cr:2nd key #false style width height direction maybe-type)]
 
      [(act-time-event-style?) (act-block-time-event key caption style width height direction maybe-type)]
 
      [(act-initial-style?) (dia-symbol-circle key style height height null maybe-type)]
      [(act-final-style?) (act-block-final key caption style width height direction maybe-type)]
      [(act-flow-final-style?) (act-block-flow-final key caption style width height direction maybe-type)]
-     [(act-connector-style?) (dia-block-circle key caption style width height maybe-type)]
-
-     ; put root types here
-     [(act-action-style?) (dia-block-rectangle/cr:4th key caption style width height direction maybe-type)]
-     [(act-object-style?) (act-block-object key caption style width height direction maybe-type)])))
+     [(act-connector-style?) (dia-block-circle key caption style width height maybe-type)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Act-Block-Describer (Dia-Block-Describer Act-Block-Style Act-Block-Metadata))
@@ -58,7 +62,7 @@
    [typesetter : (Option (Dia-Block-Typesetter Act-Block-Style)) #false]
    [builder : (Option (Dia-Block-Builder Act-Block-Style Act-Block-Metadata)) #false]
    [fallback-builder : (Dia-Block-Builder Act-Block-Style Act-Block-Metadata) default-act-block-fallback-build]
-   [λroot-style : (Option (Dia-Block-Link-Root-Style Act-Block-Style)) #false]
+   [λroot-style : (Option (Dia-Block-Link-Root-Style Act-Block-Style)) default-act-block-linker]
    [λbackstop-style : (-> Dia-Block-Backstop-Style) make-act-block-backstop-style])
   #:transparent)
 
