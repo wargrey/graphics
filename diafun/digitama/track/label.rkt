@@ -19,28 +19,23 @@
 (define-type Dia-Track-Label-Info (List Index Geo-Path-Label-Datum Nonnegative-Flonum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-track-label-info-filter : (-> Geo-Track-Infobase Geo-Path-Clean-Prints Geo-Path-Clean-Prints
+(define dia-track-label-info-filter : (-> Geo-Track-Infobase Geo-Path-Clean-Prints Index Index
                                           (Values (Listof Geo-Path-Label-Datum) (Listof Dia-Track-Label-Info)
                                                   (Listof Geo-Track-Info-Datum)))
-  (lambda [infobase tracks refined-tracks]
+  (lambda [infobase tracks dropped-head-count dropped-tail-count]
+    (define idx$ : Index (unsafe-idx- (length tracks) dropped-tail-count))
+    
     (let label-filter ([sofni : (Listof Dia-Track-Label-Info) null]
                        [slebal : (Listof Geo-Path-Label-Datum) null]
                        [extra-infos : (Listof Geo-Track-Info-Datum) null]
                        [orig-tracks : Geo-Path-Clean-Prints tracks]
-                       [refd-tracks : Geo-Path-Clean-Prints refined-tracks]
                        [orig-src : (Option Float-Complex) #false]
                        [idx : Index 0])
-      (if (and (pair? orig-tracks) (pair? refd-tracks))
+      (if (and (pair? orig-tracks) (< idx idx$))
 
-          (let ([oself (car orig-tracks)]
-                [rself (car refd-tracks)])
-            (cond [(eq? (gpath:datum-cmd oself) #\M)
-                   (label-filter sofni slebal extra-infos (cdr orig-tracks) (cdr refd-tracks)
-                                 (gpp-clean-position oself)
-                                 idx)]
-                  [(eq? (gpath:datum-cmd oself) #\L)
+          (let-values ([(oself orest) (values (car orig-tracks) (cdr orig-tracks))])
+            (cond [(eq? (gpath:datum-cmd oself) #\L)
                    (let* ([otarget (gpp-clean-position oself)]
-                          [rtarget (gpp-clean-position rself)]
                           [info (and orig-src (hash-ref infobase (cons orig-src otarget) (λ [] #false)))])
                      (define-values (maybe-label base-position maybe-mult extra++)
                        (if (geo:track:info? info)
@@ -52,33 +47,33 @@
                                  (values labels t mult extra-infos)
                                  (values labels t mult (append extra-infos extra))))
                            (values #false 0.0 #false extra-infos)))
-
+                     
                      (define-values (label-info slabel++)
                        (if (or maybe-label)
-                           (values (list idx maybe-label base-position)
+                           (values (list (unsafe-idx- idx dropped-head-count) maybe-label base-position)
                                    (cons maybe-label slebal))
                            (values #false slebal)))
-
+                     
                      (define mult-info : (Option Dia-Track-Label-Info)
                        (let ([labels (and maybe-mult
                                           (geo-track-multiplicities-map (geo:track:multiplicity-source maybe-mult)
                                                                         (geo:track:multiplicity-target maybe-mult)))])
                          (and labels
-                              (list idx labels
+                              (list (unsafe-idx- idx dropped-head-count) labels
                                     (geo:track:multiplicity-base-position maybe-mult)))))
-                   
+                     
                      (label-filter (cond [(and label-info mult-info) (list* label-info mult-info sofni)]
                                          [(and label-info) (cons label-info sofni)]
                                          [(and mult-info) (cons mult-info sofni)]
                                          [else sofni])
-                                   slabel++ extra++ (cdr orig-tracks) (cdr refd-tracks) otarget
+                                   slabel++ extra++ orest otarget
                                    (unsafe-idx+ idx 1)))]
-
+                  
+                  [(eq? (gpath:datum-cmd oself) #\M) (label-filter sofni slebal extra-infos orest (gpp-clean-position oself) idx)]
+                          
                   ;;; TODO: deal with curves
-                  [else (label-filter sofni slebal extra-infos
-                                      (cdr orig-tracks) (cdr refd-tracks) orig-src
-                                      (unsafe-idx+ idx 1))]))
-          
+                  [else (label-filter sofni slebal extra-infos orest orig-src (unsafe-idx+ idx 1))]))
+
           (values (reverse slebal) sofni extra-infos)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

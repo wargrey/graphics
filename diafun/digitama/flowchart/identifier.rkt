@@ -70,31 +70,27 @@
                  [(eq? ch$ #\>) (flow-block-info anchor (substring text 1 idx$) default-flow-sort-style)]
                  [else (flow-block-info anchor (substring text 1 size) default-flow-process-style 'Predefined)])]
           [(eq? ch0 #\>)
-           (cond [(string-prefix? text ">>:")
-                  (flow-block-info anchor (substring text 3 size) default-flow-input-style 'user)]
-                 [(string-prefix? text ">>")
-                  (flow-block-info anchor (substring text 2 size) default-flow-input-style)]
-                 [(eq? ch$ #\<)
-                  (flow-block-info anchor (substring text 1 idx$) default-flow-collation-style)]
+           (cond [(string-prefix? text ">>:") (flow-block-info anchor (substring text 3 size) default-flow-input-style 'user)]
+                 [(string-prefix? text ">>")  (flow-block-info anchor (substring text 2 size) default-flow-input-style)]
+                 [(eq? ch$ #\-) (flow-block-info anchor #false default-flow-merge-style)]
+                 [(eq? ch$ #\<) (flow-block-info anchor (substring text 1 idx$) default-flow-collation-style)]
                  [else #false])]
           [(eq? ch0 #\<)
-           (cond [(string-prefix? text "<<:")
-                  (flow-block-info anchor (substring text 3 size) default-flow-output-style 'user)]
-                 [(string-prefix? text "<<")
-                  (flow-block-info anchor (substring text 2 size) default-flow-output-style)]
-                 [(eq? ch$ #\>)
-                  (flow-block-info anchor (substring text 1 idx$) default-flow-sort-style)]
+           (cond [(string-prefix? text "<<:") (flow-block-info anchor (substring text 3 size) default-flow-output-style 'user)]
+                 [(string-prefix? text "<<")  (flow-block-info anchor (substring text 2 size) default-flow-output-style)]
+                 [(eq? ch$ #\>) (flow-block-info anchor (substring text 1 idx$) default-flow-sort-style)]
                  [else #false])]
           [(eq? ch0 #\-)
-           (cond [(eq? ch$ #\=) (flow-block-info anchor (substring text 1 idx$) default-flow-extract-style)]
-                 [(eq? ch$ #\+) (flow-block-info anchor (substring text 1 size) default-flow-selection-style)]
+           (cond [(eq? ch$ #\=) (flow-block-info anchor #false default-flow-extract-style)]
+                 [(eq? ch$ #\<) (flow-block-info anchor #false default-flow-extract-style)]
+                 [(eq? ch$ #\+) (flow-block-info anchor #false default-flow-selection-style)]
                  [(string-prefix? text "--")
                   (if (string-suffix? text "--")
                       (flow-block-info anchor (substring text 2 idx$2) default-flow-process-style 'Alternate)
                       (flow-block-info anchor (substring text 2 size)  default-flow-process-style 'Alternate))]
                  [else #false])]
-          [(eq? ch0 #\+) (and (eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-junction-style))]
-          [(eq? ch0 #\=) (and (eq? ch$ #\-) (flow-block-info anchor (substring text 1 idx$) default-flow-merge-style))]
+          [(eq? ch0 #\+) (and (eq? ch$ #\-) (flow-block-info anchor #false default-flow-junction-style))]
+          [(eq? ch0 #\=) (and (eq? ch$ #\-) (flow-block-info anchor #false default-flow-merge-style))]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
                (flow-block-info anchor (substring text 1 idx$) default-flow-connector-style 'sink)
@@ -120,7 +116,7 @@
           [else (flow-block-info anchor text default-flow-process-style)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define flow-block-info : (->* (Geo-Anchor-Name String (-> (Dia-Block-Style Flow-Block-Style)))
+(define flow-block-info : (->* (Geo-Anchor-Name (Option String) (-> (Dia-Block-Style Flow-Block-Style)))
                                (Flow-Block-Metadata)
                                (Dia-Block-Info Flow-Block-Style Flow-Block-Metadata))
   (lambda [anchor text mk-style [datum #false]]

@@ -7,8 +7,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-flowchart! update.dia #:at 3
   [#:start-name "Update\nCourse Software"
-   #:frame 'White
-   #:opacity 0.32] #:-
+   #:frame 'White] #:-
   (move-down 1 ':|Run PowerShell|)
   (move-down 1 '.-=)
   

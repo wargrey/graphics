@@ -213,7 +213,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Sienna]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'SandyBrown]))
+   [fill-paint : Maybe-Fill-Paint 'Burlywood]))
 
 ; Usually be used as the join node in the activity diagram.
 (define-phantom-struct flow-merge-style : Flow-Merge-Style #:-> flow-block-style #:for dia-block-style

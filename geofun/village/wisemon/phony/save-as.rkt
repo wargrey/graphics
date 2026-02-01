@@ -110,6 +110,9 @@
 (define png-phony-goal : Wisemon-Phony
   (wisemon-make-free-phony #:name 'png #:phony (make~save-as 'png-bytes ".png") #:desc "Export module-level images as PNGs"))
 
+(define png@2x-phony-goal : Wisemon-Phony
+  (wisemon-make-free-phony #:name 'png@2x #:phony (make~save-as 'png@2x-bytes "@2x.png") #:desc "Export module-level images as 2x PNGs"))
+
 (define svg-phony-goal : Wisemon-Phony
   (wisemon-make-free-phony #:name 'svg #:phony (make~save-as 'svg-bytes ".svg") #:desc "Export module-level images as SVGs"))
 

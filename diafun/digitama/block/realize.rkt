@@ -43,7 +43,8 @@
                                     (define-values (width height) (dia-block-resolve-size style-spec))
                                     
                                     (let* ([id (geo-anchor->symbol anchor)]
-                                           [maybe-caption (cond [(not block-desc) (void)]
+                                           [maybe-caption (cond [(not text) #false]
+                                                                [(not block-desc) (void)]
                                                                 [(hash? block-desc) (hash-ref block-desc anchor void)]
                                                                 [else (block-desc anchor text style-spec metadata)])]
                                            [caption (and maybe-caption (make-caption id (if (void? maybe-caption) text maybe-caption) style-spec))]
@@ -106,7 +107,8 @@
                       (define-values (min-width min-height) (dia-block-resolve-size style-spec))
                       
                       (let* ([id (geo-anchor->symbol anchor)]
-                             [maybe-desc (cond [(not note-desc) (void)]
+                             [maybe-desc (cond [(not text) #false]
+                                               [(not note-desc) (void)]
                                                [(hash? note-desc) (hash-ref note-desc anchor void)]
                                                [else (note-desc anchor text style-spec metadata)])])
                         (make-note id

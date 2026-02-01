@@ -147,12 +147,12 @@
                           [layers : (Listof (GLayerof Geo)) null]
                           [op : (Option Symbol) 'source])
                (if (pair? labels)
-                   (let* ([label (car labels)]
-                          [V (gpp-directional-vector footprints (geo:path:label-idx label) (geo:path:label-position label))])
+                   (let*-values ([(label rest) (values (car labels) (cdr labels))]
+                                 [(V) (gpp-directional-vector footprints (geo:path:label-idx label) (geo:path:label-position label))])
                      (if (and V)
                          (let-values ([(layer distance) (geo-path-label-layer+distance label (- (car V) O) (cdr V))])
-                           (attach (cdr labels) (cons layer layers) (if (zero? distance) op #false)))
-                         (attach labels layers op)))
+                           (attach rest (cons layer layers) (if (zero? distance) op #false)))
+                         (attach rest layers op)))
                    (create-geometry-group geo:path name #false op
                                           (geo-layers-merge (geo:group-selves master) layers)
                                           self))))]

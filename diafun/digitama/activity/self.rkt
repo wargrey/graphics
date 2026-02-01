@@ -44,8 +44,8 @@
      
      [(act-decision-style?) (dia-symbol-diamond key style width height direction maybe-type)]
      [(act-merge-style?) (dia-symbol-diamond key style width height direction maybe-type)]
-     [(act-fork-style?) (dia-block-rectangle/cr:2nd key #false style width height direction maybe-type)]
-     [(act-join-style?) (dia-block-rectangle/cr:2nd key #false style width height direction maybe-type)]
+     [(act-fork-style?) (act-block-fork key #false style width height direction maybe-type)]
+     [(act-join-style?) (act-block-join key #false style width height direction maybe-type)]
 
      [(act-time-event-style?) (act-block-time-event key caption style width height direction maybe-type)]
 

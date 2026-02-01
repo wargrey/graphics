@@ -47,21 +47,23 @@
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
 
     ; check '^' before '?' for flowcharts of predicate functions
-    (cond [(eq? ch0 #\^) (act-block-info anchor (substring text 1 size) default-act-initial-style)]
-          [(eq? ch$ #\?) (act-block-info anchor text default-act-decision-style)]
+    (cond [(eq? ch0 #\^) (act-block-info anchor #false default-act-initial-style)]
+          [(eq? ch$ #\?) (act-block-info anchor #false default-act-decision-style)]
           [(eq? ch$ #\$)
            (if (string-suffix? text "~$")
-               (act-block-info anchor (substring text 0 (- idx$2 1)) default-act-flow-final-style 'Flow)
-               (act-block-info anchor (substring text 0 idx$) default-act-final-style 'Activity))]
+               (act-block-info anchor #false default-act-flow-final-style 'Flow)
+               (act-block-info anchor #false default-act-final-style 'Activity))]
           [(eq? ch0 #\λ) (act-block-info anchor (substring text 1 size) default-act-action-style 'Call)]
           [(eq? ch0 #\-)
-           (cond [(eq? ch$ #\=) (act-block-info anchor (substring text 1 idx$) default-act-fork-style)]
-                 [(eq? ch$ #\+) (act-block-info anchor (substring text 1 size) default-act-decision-style)]
+           (cond [(eq? ch$ #\=) (act-block-info anchor #false default-act-fork-style)]
+                 [(eq? ch$ #\+) (act-block-info anchor #false default-act-decision-style)]
+                 [(eq? ch$ #\<) (act-block-info anchor #false default-act-fork-style 'Compact)]
                  [else #false])]
-          [(eq? ch0 #\=) (and (eq? ch$ #\-) (act-block-info anchor (substring text 1 idx$) default-act-join-style))]
+          [(eq? ch0 #\=) (and (eq? ch$ #\-) (act-block-info anchor #false default-act-join-style))]
+          [(eq? ch0 #\>) (and (eq? ch$ #\-) (act-block-info anchor #false default-act-join-style 'Compact))]
           [(eq? ch0 #\+)
-           (cond [(eq? ch$ #\+) (act-block-info anchor (substring text 1 idx$) default-act-merge-style)]
-                 [(eq? ch$ #\-) (act-block-info anchor (substring text 1 idx$) default-act-merge-style)]
+           (cond [(eq? ch$ #\+) (act-block-info anchor #false default-act-merge-style)]
+                 [(eq? ch$ #\-) (act-block-info anchor #false default-act-merge-style)]
                  [else #false])]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
@@ -98,7 +100,7 @@
                   (act-block-info anchor name default-act-object-style stereotype))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define act-block-info : (->* (Geo-Anchor-Name String (-> (Dia-Block-Style Act-Block-Style)))
+(define act-block-info : (->* (Geo-Anchor-Name (Option String) (-> (Dia-Block-Style Act-Block-Style)))
                               (Act-Block-Metadata)
                               (Dia-Block-Info Act-Block-Style Act-Block-Metadata))
   (lambda [anchor text mk-style [datum #false]]

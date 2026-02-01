@@ -45,7 +45,7 @@
   (-> (Dia-Block-Style Style) Geo-Anchor-Name Metadata
       (U (Dia-Block-Style Style) False Void)))
 
-(define-type (Dia-Block-Info Style Metadata) (List String Metadata (Option (Dia-Block-Style Style))))
+(define-type (Dia-Block-Info Style Metadata) (List (Option String) Metadata (Option (Dia-Block-Style Style))))
 
 (define-type Dia-Block-Option-Size (Option Length+%))
 (define-type Dia-Block-Padding Geo-Insets-Datum+%)
@@ -259,14 +259,14 @@
                 [else maybe-adjusted-style]))
         replaced-style)))
 
-(define #:forall (S M) dia-block-info : (-> Geo-Anchor-Name String (-> (Dia-Block-Style S)) (-> (Option (Dia-Block-Theme-Adjuster S M))) M
+(define #:forall (S M) dia-block-info : (-> Geo-Anchor-Name (Option String) (-> (Dia-Block-Style S)) (-> (Option (Dia-Block-Theme-Adjuster S M))) M
                                             (Dia-Block-Info S M))
   (lambda [anchor text mk-style maybe-adjuster datum]
     (list text datum
           ((inst dia-block-theme-adjust S M)
            (mk-style) anchor (maybe-adjuster) datum))))
 
-(define #:forall (S M) dia-block-info* : (-> Geo-Anchor-Name String (-> (Dia-Block-Style S)) (-> (Option (Dia-Block-Theme-Adjuster S M))) (-> S) M
+(define #:forall (S M) dia-block-info* : (-> Geo-Anchor-Name (Option String) (-> (Dia-Block-Style S)) (-> (Option (Dia-Block-Theme-Adjuster S M))) (-> S) M
                                              (Dia-Block-Info S M))
   (lambda [anchor text mk-style maybe-adjuster mk-type-value datum]
     (list text datum

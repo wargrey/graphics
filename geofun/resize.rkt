@@ -86,9 +86,9 @@
                              [Geo Nonnegative-Real Nonnegative-Real -> Geo])
   (case-lambda
     [(self refer)
-     (if (not (real? refer))
-         (let-values ([(rw rh) (geo-flsize refer)]) (geo-resize self rw rh))
-         (let-values ([(w h) (geo-flsize self)]) (geo-scale self (/ refer (min w h)))))]
+     (if (real? refer)
+         (let-values ([(w h) (geo-flsize self)]) (geo-scale self (/ refer (min w h))))
+         (let-values ([(rw rh) (geo-flsize refer)]) (geo-resize self rw rh)))]
     [(self w h)
      (let-values ([(flwidth flheight) (geo-flsize self)])
        (geo-scale self

@@ -150,11 +150,11 @@
       (define-values (+ox +oy) (geo-layer-size nlayer horizon% vertical%))
       (define-values (-ox -oy) (values (- +ox) (- +oy)))
       
-      (geo-line-polygon-intersect/first* #:translate node-pos A B
-                                         (list (make-rectangular -ox -oy)
-                                               (make-rectangular +ox -oy)
-                                               (make-rectangular +ox +oy)
-                                               (make-rectangular -ox +oy))))))
+      (geo-line-polygon-intersect/first #:translate node-pos A B
+                                        (list (make-rectangular -ox -oy)
+                                              (make-rectangular +ox -oy)
+                                              (make-rectangular +ox +oy)
+                                              (make-rectangular -ox +oy))))))
 
 (define dia-default-intersect : Dia-Block-Intersect (dia-apothem-intersect 0.5 0.5))
 
@@ -166,8 +166,8 @@
          (let-values ([(ox oy) (geo-layer-size nlayer 0.5)])
            (define origin : Float-Complex (make-rectangular ox oy))
            
-           (geo-line-polygon-intersect/first* #:translate (- node-pos origin) A B
-                                              (dia:block:polygon-vertices g))))))
+           (geo-line-polygon-intersect/first #:translate (- node-pos origin) A B
+                                             (dia:block:polygon-vertices g))))))
 
 (define dia-circle-intersect : Dia-Block-Intersect
   (lambda [A B node-pos nlayer]

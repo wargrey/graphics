@@ -66,7 +66,7 @@
             (move-down 3 '#:/doc/实验报告)]
         [=> (move-down 1 '#::Filtrate)
             
-            [#:tree (move-down 0.75 '-=)
+            [#:tree (move-down 0.75 '--=)
              [=> (move-left)
                  [#:tree (move-down '#:/doc/实验报告 'Step2 material-pin)
                   [=> (move-to '#:/doc/实验报告 '#:write)]
@@ -110,15 +110,17 @@
        (move-down 1 'Grinding+Filter)
        (move-down 1 '#::Filtrate6)
 
-       [#:tree (move-down 1 '-6=)
-        [=> (move-right 1)
+       [#:tree (move-down 1 '-<)
+        [=> (move-right 0.2)
+            (L-step 0.5+0.5i #false material-pin)
             [#:tree (move-down 1 'Chromatography material-pin)
              [=> (move-left-down 0.25 1 'Experience6)
                  (move-down 1 'Cleanup)
                  (move-down 1 '6$)]
              [=> (move-right-down 1 1 '#::Chromatogram6)
                  (L-step 'Cleanup)]]]
-        [=> (move-left 1)
+        [=> (move-left 0.2)
+            (L-step -0.8+0.5i #false material-pin)
             [#:tree (move-down 'Cleanup 'keep? material-pin)
              [=> (move-to 'Cleanup (cons "[不再需要]" material-pin))]
              [=> (L-step '#:/试剂架 "[留给五年级做光学实验]")]]]]]]

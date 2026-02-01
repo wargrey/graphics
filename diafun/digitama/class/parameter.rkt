@@ -15,5 +15,4 @@
 (define default-cls-relationship-identifier : (Parameterof (Option Cls-RelationShip-Identifier)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-cls-stereotype-gapsize : (Parameterof Length+%) (make-parameter 4.0))
 (define default-cls-stereotype-font : (Parameterof (Option Font)) (make-parameter dia-preset-block-tag-font))

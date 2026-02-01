@@ -104,7 +104,7 @@
    [fill-paint : Maybe-Fill-Paint 'PapayaWhip]))
 
 (define-phantom-struct act-fork-style : Act-Fork-Style #:-> act-control-node-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (&% 200)]
+  ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size (&% 20)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Font+Tweak) #false]
@@ -115,7 +115,7 @@
    [fill-paint : Maybe-Fill-Paint 'Sienna]))
 
 (define-phantom-struct act-join-style : Act-Join-Style #:-> act-control-node-style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  (&% 200)]
+  ([width : Dia-Block-Option-Size #false]
    [height : Dia-Block-Option-Size (&% 20)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Font+Tweak) #false]

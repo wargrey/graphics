@@ -8,5 +8,4 @@
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-act-stereotype-gapsize : (Parameterof Length+%) (make-parameter 4.0))
 (define default-act-stereotype-font : (Parameterof (Option Font)) (make-parameter dia-preset-block-tag-font))

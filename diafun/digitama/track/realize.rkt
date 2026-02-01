@@ -142,24 +142,24 @@
           
           (let ([source (glayer-master src-layer)]
                 [target (and tgt-layer (glayer-master tgt-layer))])
-            (define retracks : Geo-Path-Clean-Prints*
+            (define retracks : (Option (Pairof Geo-Path-Clean-Prints* (Pairof Index Index)))
               (if (null? (cddr ctracks))
                   (dia-two-tracks-relocate-endpoints src-layer tgt-layer ctracks)
                   (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
+
+            (and retracks
+                 (let-values ([(label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks (cadr retracks) (cddr retracks))])
+                   (define style-self : (Option (Dia-Track-Style S)) (track-identify source target label-text extra-track-info))
             
-            (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks retracks))
-            (define style-self : (Option (Dia-Track-Style S)) (track-identify source target label-text extra-track-info))
-            
-            (and style-self
-                 (let* ([parent-style (and rootstyle (rootstyle style-self))]
-                        [style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:root parent-style #:backstop backstyle #:opacity opacity)])
-                   (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
-                     (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
-                           [path (make-path source target retracks style-spec)])
-                       (and (geo? path)
-                            (cons (geo-path-self-pin-layer (geo-path-attach-label path labels))
-                                  tracks))))))))
-     
+                   (and style-self
+                        (let* ([parent-style (and rootstyle (rootstyle style-self))]
+                               [style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:root parent-style #:backstop backstyle #:opacity opacity)])
+                          (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
+                            (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
+                                  [path (make-path source target (car retracks) style-spec)])
+                              (and (geo? path)
+                                   (cons (geo-path-self-pin-layer (geo-path-attach-label path labels))
+                                         tracks))))))))))
      tracks)))
 
 (define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
@@ -177,7 +177,7 @@
                  [tgt-endpt (gpp-clean-position (last ctracks))]
                  [source (hash-ref anchorbase src-endpt (λ [] src-endpt))]
                  [target (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt))])
-            (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks ctracks))
+            (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks 0 0))
             (define style-self : (U (Dia-Track-Style S) Void False)
               (cond [(not free-adjuster) style0]
                     [else (free-adjuster style0 source target ctracks label-text extra-track-info)]))
