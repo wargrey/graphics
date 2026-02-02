@@ -29,10 +29,10 @@
 (require "../block/interface.rkt")
 (require "../block/backstop.rkt")
 
-(require "../decoration/interface.rkt")
-(require "../decoration/backstop.rkt")
+(require "../decoration/freetrack/self.rkt")
+(require "../decoration/freetrack/backstop.rkt")
+
 (require "../decoration/note.rkt")
-(require "../decoration/freetrack.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
@@ -62,8 +62,7 @@
     (define make-block (dia-block-builder-compose (dia-block-factory-builder block-factory) (dia-block-factory-fallback-builder block-factory)))
     (define make-caption (dia-block-typesetter-compose (dia-block-factory-typesetter block-factory)))
 
-    (define free-style0 (make-dia-free-track-style))
-    (define free-adjuster (and free-factory (dia-free-track-factory-adjuster free-factory)))
+    (define free-adjuster (or (default-free-track-theme-adjuster) (and free-factory (dia-free-track-factory-adjuster free-factory))))
     (define make-free-path (dia-free-track-builder-compose (and free-factory (dia-free-track-factory-builder free-factory))))
     (define make-free-labels (dia-track-annotator-compose (and free-factory (dia-free-track-factory-annotator free-factory))))
     (define free-backstyle (or (and free-factory (let ([f (dia-free-track-factory-λbackstop-style free-factory)]) (and f (f)))) track-backstyle))
@@ -109,7 +108,7 @@
                    (cond [(not free-factory)(stick tracks blocks null #false next-pt rest)]
                          [else (stick (dia-free-track-cons anchor-base prints++ tracks infobase
                                                            free-adjuster make-free-labels make-free-path
-                                                           free-style0 free-backstyle opacity)
+                                                           free-backstyle opacity)
                                       blocks++ null #false next-pt rest)])]
 
                   [else (stick tracks blocks prints++ target next-pt rest)]))
@@ -162,12 +161,13 @@
                                          tracks))))))))))
      tracks)))
 
-(define #:forall (S) dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
-                                               (Option (Dia-Free-Track-Adjuster S)) (Dia-Free-Track-Annotator S) (Dia-Free-Track-Builder S)
-                                               (Dia-Track-Style S) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
-                                               (Listof (GLayerof Geo)))
-  (lambda [anchorbase prints tracks infobase free-adjuster make-label make-path style0 backstyle opacity]
+(define dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
+                                  (Option Dia-Free-Track-Adjuster) Dia-Free-Track-Annotator Dia-Free-Track-Builder
+                                  Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+                                  (Listof (GLayerof Geo)))
+  (lambda [anchorbase prints tracks infobase free-adjuster make-label make-path backstyle opacity]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
+    (displayln ctracks)
     
     (or
      (and (pair? ctracks)
@@ -178,12 +178,14 @@
                  [source (hash-ref anchorbase src-endpt (λ [] src-endpt))]
                  [target (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt))])
             (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks 0 0))
-            (define style-self : (U (Dia-Track-Style S) Void False)
-              (cond [(not free-adjuster) style0]
+            (define style0 (if (= src-endpt tgt-endpt) (default-dia~closed~track~style) (default-dia~open~track~style)))
+            (define style-self : (U (Dia-Track-Style Dia-Free-Track-Style) Void False)
+              (cond [(not free-adjuster) (void)]
                     [else (free-adjuster style0 source target ctracks label-text extra-track-info)]))
             
             (and style-self
-                 (let ([style-spec ((inst make-dia-track-style-spec S) #:custom (if (void? style-self) style0 style-self) #:backstop backstyle #:opacity opacity)])
+                 (let ([style-spec ((inst make-dia-track-style-spec Dia-Free-Track-Style)
+                                    #:custom (if (void? style-self) style0 style-self) #:backstop backstyle #:opacity opacity)])
                    (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
                      (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
                            [path (make-path source target ctracks style-spec)])

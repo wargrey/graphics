@@ -169,7 +169,7 @@
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
    [label-inline? : Boolean #false]
-   [label-distance : (Option Flonum) #false]))
+   [label-distance : (Option Length+%) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct cls~generalization~style : Cls~Generalization~Style #:-> cls-track-style #:for dia-track-style
@@ -182,7 +182,7 @@
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~realization~style : Cls~Realization~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -194,7 +194,7 @@
    [target-tip : Maybe-Geo-Tip default-generalization-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~composition~style : Cls~Composition~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -206,7 +206,7 @@
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~aggregation~style : Cls~Aggregation~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -218,7 +218,7 @@
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~association~style : Cls~Association~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -230,7 +230,7 @@
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~bidirection~style : Cls~Bidirection~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -242,7 +242,7 @@
    [target-tip : Maybe-Geo-Tip #false]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct cls~dependency~style : Cls~Dependency~Style #:-> cls-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -254,4 +254,4 @@
    [target-tip : Maybe-Geo-Tip default-arrow-tip]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))

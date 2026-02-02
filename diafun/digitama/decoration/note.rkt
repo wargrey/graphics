@@ -11,7 +11,10 @@
 (require "interface.rkt")
 
 (require "../block/style.rkt")
+(require "../track/style.rkt")
 (require "../block/interface.rkt")
+(require "../track/interface.rkt")
+
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

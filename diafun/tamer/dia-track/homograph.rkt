@@ -8,7 +8,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define scale : Nonnegative-Flonum 1.0)
 
-(define-flowchart! goma.dia [#:block-scale scale] #:-
+(define-flowchart! goma.dia [#:block-scale scale #:frame 'White] #:-
   [#:tree (move-down 1 '--=)
    [=> (move-left 1)
        (move-down 2 '<sort> "by priority")
@@ -43,4 +43,4 @@
 (module+ main
   (geo-ht-append #:gapsize 32.0
    goma.dia
-   (dia-track-activate goma.dia #:block-scale scale)))
+   (dia-track-activate goma.dia #:frame 'White #:block-scale scale)))

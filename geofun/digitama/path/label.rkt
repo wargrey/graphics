@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require digimon/measure)
-
 (require racket/math)
 
 (require "../../font.rkt")
@@ -45,7 +44,6 @@
            #:color [font-paint : Option-Fill-Paint #false]
            #:distance [distance : (Option Length+%) #false]
            #:rotate? [rotate? : Boolean #true]
-           #:mirror? [mirror? : Boolean #false]
            [label : Geo-Rich-Text] [position : Flonum 0.5]
            [adjust : (Option Real) #false] [unit : Angle-Unit 'rad]] : Geo:Path:Label
     (unsafe-geo:path:label idx
@@ -117,7 +115,7 @@
                [(and adjust) (geo-rotate label (+ (angle dir) adjust))]
                [(negative? (real-part dir)) (geo-rotate label (+ (angle dir) pi))]
                [else (geo-rotate label (angle dir))]))
-       
+
        (define distance : Flonum
          (cond [(or maybe-distance) (~distance maybe-distance (geo-height label))]
                [(or rotate?) (* (geo-height label) (if (negative? (real-part dir)) -0.75 0.75))]

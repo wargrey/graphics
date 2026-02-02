@@ -35,7 +35,7 @@
    [target-tip : Maybe-Geo-Tip]
    [label-rotate? : (U Boolean Void)]
    [label-inline? : (U Boolean Void)]
-   [label-distance : (U Flonum Void)])
+   [label-distance : (U Length+% Void)])
   #:transparent)
 
 (struct dia-track-backstop-style
@@ -46,7 +46,7 @@
    [target-tip : Option-Geo-Tip]
    [label-rotate? : Boolean]
    [label-inline? : Boolean]
-   [label-distance : (Option Flonum)])
+   [label-distance : (Option Length+%)])
   #:type-name Dia-Track-Backstop-Style
   #:transparent)
 
@@ -127,7 +127,7 @@
                                           (and rt (dia-track-style-font-paint rt)))
                                         (dia-track-backstop-style-font-paint (dia-track-style-spec-backstop self)))))))
 
-(define #:forall (S) dia-track-resolve-label-placement : (-> (Dia-Track-Style-Spec S) (Values Boolean Boolean (Option Flonum)))
+(define #:forall (S) dia-track-resolve-label-placement : (-> (Dia-Track-Style-Spec S) (Values Boolean Boolean (Option Length+%)))
   (lambda [self]
     (define rt (dia-track-style-spec-root self))
     (define bs (dia-track-style-spec-backstop self))
@@ -135,15 +135,15 @@
     
     (define r? : (U Boolean Void)
       (let ([? (dia-track-style-label-rotate? me)])
-        (if (void? ?) (if rt (dia-track-style-label-rotate? rt) (void)) ?)))
+        (if (void? ?) (when rt (dia-track-style-label-rotate? rt)) ?)))
 
     (define i? : (U Boolean Void)
       (let ([? (dia-track-style-label-inline? me)])
-        (if (void? ?) (if rt (dia-track-style-label-inline? rt) (void)) ?)))
+        (if (void? ?) (when rt (dia-track-style-label-inline? rt)) ?)))
 
-    (define d : (U Flonum Void)
+    (define d : (U Length+% Void)
       (let ([d (dia-track-style-label-distance me)])
-        (if (void? d) (if rt (dia-track-style-label-distance rt) (void)) d)))
+        (if (void? d) (when rt (dia-track-style-label-distance rt)) d)))
     
     (values (if (void? r?) (dia-track-backstop-style-label-rotate? bs) r?)
             (if (void? i?) (dia-track-backstop-style-label-inline? bs) i?)

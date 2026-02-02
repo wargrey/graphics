@@ -1,14 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [dia-track-annotate dia-free-track-annotate]))
 
 (require geofun/digitama/dc/path)
 
-(require "../track/style.rkt")
-(require "interface.rkt")
+(require "self.rkt")
+(require "../../track/style.rkt")
+(require "../../track/backstop.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-free-track-build : (Dia-Free-Track-Builder S)
+(define dia-free-track-build : Dia-Free-Track-Builder
   (lambda [source target tracks style]
     (define-values (stip ttip) (dia-track-resolve-tips style))
     
@@ -18,9 +20,8 @@
                #:tip-placement 'inside
                tracks)))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-free-track-builder-compose : (-> (Option (Dia-Free-Track-Builder S)) (Dia-Free-Track-Builder S))
+(define dia-free-track-builder-compose : (-> (Option Dia-Free-Track-Builder) Dia-Free-Track-Builder)
   (lambda [custom]
     (cond [(not custom) dia-free-track-build]
           [else (λ [source target ctracks style]

@@ -119,11 +119,12 @@
         (define-values (self rest) (values (car prints) (cdr prints)))
 
         (cond [(gpp:point? self)
-               (let ([cmd (gpath:datum-cmd self)]
-                     [pt (gpath:print-end-here self)])
-                 (if (and (null? rest) tgt-adjust)
-                     (cairo_straight-line cr cmd (+ pt tgt-adjust) treat-M-as-L? 0)
-                     (cairo_straight-line cr cmd pt treat-M-as-L? 0)))]
+               (cond [(gpp:closed-point? self) (cairo_close_path cr)]
+                     [else (let ([cmd (gpath:datum-cmd self)]
+                                 [pt (gpath:print-end-here self)])
+                             (if (and (null? rest) tgt-adjust)
+                                 (cairo_straight-line cr cmd (+ pt tgt-adjust) treat-M-as-L? 0)
+                                 (cairo_straight-line cr cmd pt treat-M-as-L? 0)))])]
               [(gpp:arc? self) #\A (cairo_elliptical_arc cr self)]
               [(gpp:bezier? self) (cairo_bezier_curve cr self
                                                       (or (and head? src-adjust) 0.0+0.0i)

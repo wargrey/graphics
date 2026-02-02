@@ -87,10 +87,8 @@
   (move-to 'dup ext)
   
   (jump-to 0.5-3.5i '.sys)
-  (move-right 5 #false title)
-  (move-down 13.0)
-  (move-left '.sys)
-  (move-up '.sys))
+  (T-step 5+13i title)
+  (T-step '.sys))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

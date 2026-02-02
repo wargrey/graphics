@@ -32,8 +32,8 @@
 (define default-flow-start-keyword-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(begin|start|home))$"))
 (define default-flow-stop-keyword-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(end|done|return|exit|terminate))$"))
 
-(define default-flow-success-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(t(rue)?)|(?i:y(es)?)|(?i:do))$"))
-(define default-flow-failure-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(f(alse)?)|(?i:n(o)?))$"))
+(define default-flow-positive-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(t(rue)?)|(?i:y(es)?)|(?i:do))$"))
+(define default-flow-negative-decision-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"^(?i:(f(alse)?)|(?i:n(o)?))$"))
 (define default-flow-loop-label-regexp : (Parameterof (U Byte-Regexp Regexp)) (make-parameter #px"(^(?i:(for|each|while|next)))|((?i:loop)$)"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -288,7 +288,7 @@
    [target-tip : Option-Geo-Tip default-arrow-tip]
    [label-rotate? : Boolean #false]
    [label-inline? : Boolean #true]
-   [label-distance : (Option Flonum) #false]))
+   [label-distance : (Option Length+%) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct flow~line~style : Flow~Line~Style #:-> flow-track-style #:for dia-track-style
@@ -301,7 +301,7 @@
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct flow~decision~style : Flow~Decision~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -313,43 +313,43 @@
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct flow~parallel~style : Flow~Parallel~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
-   [color : Maybe-Color 'DarkSlateBlue]
+   [color : Maybe-Color 'DarkSlateGray]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
-(define-phantom-struct flow~success~style : Flow~Success~Style #:-> flow~decision~style #:for dia-track-style
+(define-phantom-struct flow~positive~style : Flow~Positive~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
-   [color : Maybe-Color 'MediumSeaGreen]
+   [color : Maybe-Color 'OliveDrab]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
-(define-phantom-struct flow~failure~style : Flow~Failure~Style #:-> flow~decision~style #:for dia-track-style
+(define-phantom-struct flow~negative~style : Flow~Negative~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]
-   [color : Maybe-Color 'DarkGoldenrod]
+   [color : Maybe-Color 'PaleVioletRed]
    [dash : (Option Stroke-Dash+Offset) #false]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct flow~loop~style : Flow~Loop~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -361,7 +361,7 @@
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))
 
 (define-phantom-struct flow~storage~style : Flow~Storage~Style #:-> flow-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
@@ -373,4 +373,4 @@
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Flonum) (void)]))
+   [label-distance : (U Void Length+%) (void)]))

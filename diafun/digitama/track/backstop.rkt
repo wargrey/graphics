@@ -27,12 +27,10 @@
     (make-geo-path-labels #:index idx
                           #:font (dia-track-resolve-font style)
                           #:color (dia-track-resolve-font-paint style)
-                          #:rotate? r?
-                          #:distance (if (or i?) 0.0 d)
+                          #:rotate? r? #:distance (if (or i?) 0.0 d)
                           ;;; TODO: The arrowhead visually offsets the label from the line's center.
                           #:single-datum-position 0.5
                           label base-position)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-track-builder-compose : (-> (Option (Dia-Track-Builder S)) (Dia-Track-Builder S))

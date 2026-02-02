@@ -18,10 +18,10 @@
   (lambda [source target labels extra-info]
     (define track-style : (Option (Dia-Track-Style Flow-Track-Style))
       (cond [(dia:block-typeof? source flow-decision-style?)
-             (cond [(geo-path-match-any-label? labels (default-flow-success-decision-regexp))
-                    (flow-track-adjust source target labels default-flow~success~style)]
-                   [(geo-path-match-any-label? labels (default-flow-failure-decision-regexp))
-                    (flow-track-adjust source target labels default-flow~failure~style)]
+             (cond [(geo-path-match-any-label? labels (default-flow-positive-decision-regexp))
+                    (flow-track-adjust source target labels default-flow~positive~style)]
+                   [(geo-path-match-any-label? labels (default-flow-negative-decision-regexp))
+                    (flow-track-adjust source target labels default-flow~negative~style)]
                    [else (flow-track-adjust source target labels default-flow~decision~style)])]
             [(dia:block-typeof? source flow-selection-style?)
              (flow-track-adjust source target labels default-flow~decision~style)]
@@ -123,6 +123,6 @@
     ((inst dia-block-info Flow-Block-Style Flow-Block-Metadata) anchor text mk-style default-flow-block-theme-adjuster datum)))
 
 (define flow-track-adjust : (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Label-Datum) (-> (Dia-Track-Style Flow-Track-Style))
-                              (Option (Dia-Track-Style Flow-Track-Style)))
+                                (Option (Dia-Track-Style Flow-Track-Style)))
   (lambda [source target label mk-style]
     ((inst dia-track-theme-adjust Flow-Track-Style Dia:Block (Option Dia:Block)) source target label mk-style default-flow-track-theme-adjuster)))

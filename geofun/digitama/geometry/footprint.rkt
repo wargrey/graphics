@@ -33,6 +33,7 @@
   #:transparent)
 
 (struct gpp:point gpath:print () #:type-name GPP:Point #:transparent)
+(struct gpp:closed-point gpp:point () #:type-name GPP:Closed-Point #:transparent)
 
 (struct gpp:arc gpath:print
   ([center : Float-Complex]
@@ -97,7 +98,7 @@
           (let-values ([(self rest) (values (car prints) (cdr prints))])
             (cond [(gpp:close? self)
                    (if (and p-head)
-                       (traverse rest #false (cons (gpp:point #\L p-head) stnirp) p-head)
+                       (traverse rest #false (cons (gpp:closed-point #\L p-head) stnirp) p-head)
                        (traverse rest p-head stnirp curpos))]
                   [(gpp:vector? self)
                    (let ([cmd (gpath:datum-cmd self)]
