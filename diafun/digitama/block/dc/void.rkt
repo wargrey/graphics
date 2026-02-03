@@ -10,4 +10,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-ghost-block : (->* (Symbol (Dia-Block-Style-Spec S)) (Any) Dia:Block)
   (lambda [id style [tags #false]]
-    (create-dia-block #:id id tags #:with-group style the-void-group)))
+    (create-dia-block #:id id tags
+                      #:intersect dia-id-intersect
+                      #:with-group style the-void-group)))

@@ -20,9 +20,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uml-note-build : Dia-Note-Builder
   (lambda [key body style padding direction sotype]
-    (define stereotype (and sotype (dia-block-stereotype sotype style dia-preset-note-tag-font-tweak)))
-    (define-values (stwidth stheight) (if (not stereotype) (values 0.0 0.0) (geo-size stereotype)))
     (define-values (bdwidth bdheight) (geo-size body))
+    (define stereotype (and sotype (dia-block-stereotype sotype style dia-preset-note-tag-font-tweak +inf.0)))
+    (define-values (stwidth stheight) (if (not stereotype) (values 0.0 0.0) (geo-size stereotype)))
     (define-values (top rgt bot lft) (geo-inset-values padding))
     (define dog-ear : Nonnegative-Flonum (+ top stheight))
     (define width : Nonnegative-Flonum (+ lft (max (+ stwidth dog-ear) bdwidth) rgt))

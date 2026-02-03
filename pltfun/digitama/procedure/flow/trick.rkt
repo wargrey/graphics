@@ -60,7 +60,7 @@
     
     (string->keyword
      (cond [(eof-object? body) (string-append "/doc/" pltflow-delim "#<eof>" (symbol->immutable-string (gensym pltflow-delim)))]
-           [(eof-object? (peek-byte in amount)) (string-append "/doc/"  body)]
+           [(eof-object? (peek-byte in amount)) (string-append "/doc/" pltflow-delim body (symbol->immutable-string (gensym pltflow-delim)))]
            [else (string-append "/doc/" pltflow-delim body "..." (symbol->immutable-string (gensym pltflow-delim)))]))))
 
 (define plt-flow-function->anchor : (-> Any (U Symbol Keyword))

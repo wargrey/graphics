@@ -17,6 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter #:specialized (Flow-Track-Style) plt-flow-track-factory : Plt-Flow-Track-Factory #:as dia-track-factory
   ([identifier : (Dia-Track-Identifier Flow-Track-Style) plt-flow-track-identify]
+   [dangling-identifier : (Option (Dia-Dangling-Track-Identifier Flow-Track-Style)) #false]
    [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
    [λroot-style : (Option (Dia-Track-Link-Root-Style Flow-Track-Style)) #false]

@@ -56,7 +56,7 @@
 (define #:forall (S) act-block-time-event : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignore-width height direction stereotype]
     (create-dia-block #:id block-key '(Event Time)
-                      #:fit-region 1.00 0.45 0.00 0.00
+                      #:fit-region 1.00 0.42 0.00 0.00
                       #:create-with style [geo-sandglass (* height 0.618)]
                       caption)))
 

@@ -41,7 +41,7 @@
 
     (if (or (not direction) (not (zero? direction)))
         (create-dia-block #:id id subtype
-                          #:fit-region 1.00 0.36 0.00 0.00
+                          #:fit-region 1.00 0.40 0.00 0.00
                           #:with style fbox caption)
         (create-dia-block #:id id subtype
                           #:fit-region 1.00 1.00 0.0 0.0

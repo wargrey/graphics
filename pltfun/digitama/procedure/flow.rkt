@@ -45,7 +45,7 @@
            #:output-desc [alt-out : (Option (-> Any (U Void Geo-Rich-Text))) #false]
            #:reader [f : (-> Input-Port Any) read] #:peek-size [peek-size : Index 8]
            [in : Input-Port] [repeats : Index 1]] : Dia:FlowChart
-    (parameterize ([default-flow-storage-style (make-flow-storage-style #:width (&% 40.0) #:height (&% 61.8) #:padding (&% 8) #:font dia-preset-file-font)]
+    (parameterize ([default-flow-storage-style (make-flow-storage-style #:width (&% 40.0) #:height (&% 61.8) #:padding (&% 8) #:font dia-preset-note-font)]
                    [default-flow~storage~style (make-flow~storage~style #:label-rotate? rotation?)])
       (define-values (base-width base-height) (dia-block-reference-size block-factory))
       (define self (dia-initial-track #false grid-width grid-height +0.5 0.0+0.0i '#:>>
@@ -193,7 +193,7 @@
         (define out-descs (list->n:vector alt-out size #false))
         (define funcs (plt-flow-function-rename fs))
         
-        (define symbol-anchor (if and? '=* '-+))
+        (define symbol-anchor (if and? '+- '-+))
       
         (if (or downward?)
             (let ([xjoin (* (sub1 size) xstep 0.5)])

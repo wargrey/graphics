@@ -11,7 +11,6 @@
 (define dia-preset-block-tag-font : Font (desc-font #:size 'normal #:family 'monospace #:weight 'bold))
 (define dia-preset-block-caption-font : Font (desc-font #:size 'xx-large))
 (define dia-preset-header-font : Font (desc-font #:size 'large #:weight 'bold))
-(define dia-preset-file-font : Font (desc-font #:family 'monospace #:size 'xx-large))
 
 (define dia-preset-block-stroke : Pen (desc-stroke #:width 2.0 #:color 'DarkGrey #:join 'round #:cap 'round))
 (define dia-preset-track-stroke : Pen (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))

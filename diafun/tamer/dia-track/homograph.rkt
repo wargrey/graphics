@@ -9,7 +9,7 @@
 (define scale : Nonnegative-Flonum 1.0)
 
 (define note-desc
-  #hasheq([//#decisionInput . "block comment: decision block\n\n对于活动图, 此处使用有误！流程图随意。"]))
+  #hasheq([//#decisionInput . "block comment: decision block\n\n流程图随意;\n活动图,此处用法有误！"]))
 
 (define-flowchart! goma.dia [#:block-scale scale #:frame 'Snow #:note-desc note-desc] #:-
   [#:tree (move-down 1 '--=)
@@ -49,7 +49,9 @@
   (radial-back 1 pi '//|track comment: control flow|)
 
   (jump-to '-+)
-  (radial-back 1.75 -pi/5 '//#decisionInput))
+  (radial-back 1.75 -pi/5 '//#decisionInput)
+
+  (jump-left-down '+- '#:/db/Store '//#error))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

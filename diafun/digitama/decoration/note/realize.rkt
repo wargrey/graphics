@@ -3,10 +3,11 @@
 (provide (all-defined-out))
 
 (require digimon/measure)
-(require geofun/font)
 
+(require geofun/font)
 (require geofun/digitama/self)
 (require geofun/digitama/dc/path)
+(require geofun/digitama/layer/void)
 (require geofun/digitama/track/anchor)
 
 (require geofun/digitama/geometry/footprint)
@@ -51,7 +52,7 @@
     (and make-note
          (let*-values ([(text stereotype) (dia-block-caption-split-for-stereotype (substring text 2 size))]
                        [(note-info) (dia-note-block-info anchor text make-dia-note-block-style stereotype)]
-                       [(text metadata style) (values (car note-info) (cadr note-info) (caddr note-info))])
+                       [(style) (values (caddr note-info))])
            (and style
                 (let* ([backstop-style ((dia-note-factory-λblock-backstop-style note-factory))]
                        [typeset (or (dia-note-factory-typesetter note-factory) dia-note-typeset)]
@@ -63,9 +64,13 @@
                            [maybe-desc (cond [(not text) #false]
                                              [(not note-desc) (void)]
                                              [(hash? note-desc) (hash-ref note-desc anchor void)]
-                                             [else (note-desc anchor text style-spec metadata)])]
-                           [body (and maybe-desc (typeset id (if (void? maybe-desc) text maybe-desc) style-spec max-width max-height))])
-                      (and body (make-note id body style-spec (dia-block-resolve-padding style-spec) direction metadata))))))))))
+                                             [else (note-desc anchor text style-spec stereotype)])]
+                           [body.txt (if (void? maybe-desc) text maybe-desc)]
+                           [body (and maybe-desc (typeset id body.txt style-spec max-width max-height))])
+                      (and (or body stereotype)
+                           (make-note id (or body the-void-geo) style-spec
+                                      (dia-block-resolve-padding style-spec)
+                                      direction stereotype))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-note-typeset : Dia-Note-Typesetter

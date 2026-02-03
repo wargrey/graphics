@@ -38,7 +38,7 @@
   #:format "default-plt-flow-block-~a"
   ([width : Nonnegative-Flonum 150.0]
    [height : Nonnegative-Flonum 75.0] ; 1/2 of the width
-   [padding : Dia-Block-Padding (&% 4)]
+   [padding : Dia-Block-Padding (&% 2)]
    [font : Font dia-preset-header-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint plt-flow-preset-block-stroke]

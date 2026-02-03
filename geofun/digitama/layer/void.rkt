@@ -11,8 +11,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define the-void-geo : Geo
-  (let ([zero-ext (λ [self] (values 0.0 0.0 geo-zero-ink))])
-    (create-geometry-object geo #:with [(string->unreadable-symbol "the-void-geo") void zero-ext geo-zero-pads])))
+  (let ([one-ext (λ [self] (values 0.0 0.0 geo-zero-ink))])
+    (create-geometry-object geo #:with [(string->unreadable-symbol "the-void-geo") void one-ext geo-zero-pads])))
 
 (define the-void-layer : (GLayerof Geo) (glayer the-void-geo 0.0 0.0 0.0 0.0))
 (define the-void-layers : (GLayer-Groupof Geo) (glayer-group 0.0 0.0 (list the-void-layer)))
@@ -20,7 +20,7 @@
 (define the-void-group : Geo:Group
   (make-geo:group (string->unreadable-symbol "the-void-group")
                   #false #false #false
-                  (glayer-group 0.0 0.0 (list the-void-layer))))
+                  the-void-layers))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-void? : (-> Any Boolean : #:+ Geo)

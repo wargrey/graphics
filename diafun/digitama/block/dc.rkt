@@ -157,6 +157,10 @@
 
 (define dia-default-intersect : Dia-Block-Intersect (dia-apothem-intersect 0.5 0.5))
 
+(define dia-id-intersect : Dia-Block-Intersect
+  (lambda [A B node-pos nlayer]
+    node-pos))
+
 (define dia-polygon-intersect : Dia-Block-Intersect
   (lambda [A B node-pos nlayer]
     (define g (glayer-master nlayer))

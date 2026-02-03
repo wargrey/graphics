@@ -12,9 +12,11 @@
 (require geofun/constructor)
 
 (require geofun/digitama/self)
-(require geofun/digitama/geometry/polygon/quadrilateral)
-(require geofun/digitama/geometry/polygon/hexagon)
+(require geofun/digitama/dc/resize)
 (require geofun/digitama/geometry/sides)
+
+(require geofun/digitama/geometry/polygon/hexagon)
+(require geofun/digitama/geometry/polygon/quadrilateral)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-rectangle : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
@@ -23,16 +25,15 @@
                                                 Dia:Block)
   (lambda [key caption style width height direction [tags #false] [sotype #false] [sofont #false]]
     (if (and caption sotype)
-        (let* ([padding (dia-block-resolve-padding style)]
-               [stereotype (dia-block-stereotype sotype style sofont)]
-               [t% (/ (geo-standard-insets-top padding) height)]
-               [y% (/ (geo-height stereotype) height)])
+        (let*-values ([(padding) (dia-block-resolve-padding style)]
+                      [(top rgt bot lft) (geo-inset-values padding)]
+                      [(stereotype) (dia-block-stereotype sotype style sofont (- width lft rgt))])
           (create-dia-block #:id key tags
-                            #:fit-region 1.0 (- 1.0 y%) 0.0 1.0
+                            #:fit-region 1.0 (- 1.0 (/ (geo-height stereotype) height)) 0.0 1.0
                             #:margin padding
                             #:with style
                             (geo-pin* #:id (dia-block-shape-id key)
-                                      0.5 t% 0.5 0.0
+                                      0.5 (/ top height) 0.5 0.0
                                       (geo-rectangle #:stroke (dia-block-resolve-stroke-paint style)
                                                      #:fill (dia-block-resolve-fill-paint style)
                                                      width height)
@@ -48,16 +49,15 @@
                                                         Dia:Block)
   (lambda [key caption style width height corner-radius direction [tags #false] [sotype #false] [sofont #false]]
     (if (and caption sotype)
-        (let* ([padding (dia-block-resolve-padding style)]
-               [stereotype (dia-block-stereotype sotype style sofont)]
-               [t% (/ (geo-standard-insets-top padding) height)]
-               [y% (/ (geo-height stereotype) height)])
+        (let*-values ([(padding) (dia-block-resolve-padding style)]
+                      [(top rgt bot lft) (geo-inset-values padding)]
+                      [(stereotype) (dia-block-stereotype sotype style sofont (- width lft rgt))])
           (create-dia-block #:id key tags
-                            #:fit-region 1.0 (- 1.0 y%) 0.0 1.0
+                            #:fit-region 1.0 (- 1.0 (/ (geo-height stereotype) height)) 0.0 1.0
                             #:margin padding
                             #:with style
                             (geo-pin* #:id (dia-block-shape-id key)
-                                      0.5 t% 0.5 0.0
+                                      0.5 (/ top height) 0.5 0.0
                                       (geo-rounded-rectangle #:stroke (dia-block-resolve-stroke-paint style)
                                                              #:fill (dia-block-resolve-fill-paint style)
                                                              width height corner-radius)
@@ -171,24 +171,19 @@
                                  tags)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-block-stereotype : (-> Symbol (Dia-Block-Style-Spec S) (Option Font+Tweak) Geo)
-  (lambda [stereotype style stereotype-font]
-    (geo-text #:color (dia-block-resolve-font-paint style)
-              (format "«~a»" stereotype)
-              (cond [(font? stereotype-font) stereotype-font]
-                    [(not stereotype-font) (dia-block-resolve-font style)]
-                    [else (desc-font* (dia-block-resolve-font style) #:tweak stereotype-font)]))))
+(define #:forall (S) dia-block-stereotype : (-> Symbol (Dia-Block-Style-Spec S) (Option Font+Tweak) Flonum Geo)
+  (lambda [stereotype style stereotype-font max-width]
+    (define stereotype.txt : Geo:Text
+      (geo-text #:color (dia-block-resolve-font-paint style)
+                (format "«~a»" stereotype)
+                (cond [(font? stereotype-font) stereotype-font]
+                      [(not stereotype-font) (dia-block-resolve-font style)]
+                      [else (desc-font* (dia-block-resolve-font style) #:tweak stereotype-font)])))
 
-(define #:forall (S) dia-caption+stereotype : (-> (Option Geo) (Option Symbol) (Dia-Block-Style-Spec S)
-                                                    (Option Font) Length+% Nonnegative-Flonum
-                                                    (Option Geo))
-    (lambda [caption stereotype style stereotype-font stereotype-gapsize 100%]
-      (and caption stereotype
-           (geo-vc-append #:gapsize (~dimension stereotype-gapsize 100%)
-                          (geo-text #:color (dia-block-resolve-font-paint style)
-                                    (format "«~a»" (if (symbol? stereotype) stereotype (car stereotype)))
-                                    (or stereotype-font (dia-block-resolve-font style)))
-                          caption))))
+    (cond[(<= max-width 0.0) stereotype.txt]
+         [else (let ([swidth (geo-width stereotype.txt)])
+                 (cond [(<= swidth max-width) stereotype.txt]
+                       [else (geo-scale stereotype.txt (/ max-width swidth) 1.0)]))])))
 
 (define #:forall (S) dia-polygon-shape : (-> (Option Symbol) (Dia-Block-Style-Spec S) (Listof Float-Complex) Geo)
   (lambda [key style vertices]
