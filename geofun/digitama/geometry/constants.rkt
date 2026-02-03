@@ -1,8 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide -pi/2 pi/2 3pi/2 2pi pi -pi -2pi pi/4 3pi/4 2pi/5 4pi/5)
-(provide phi 1/phi -phi -1/phi)
+(provide (all-from-out digimon/measure))
 
 (require digimon/measure)
 
@@ -12,6 +11,6 @@
 (define sin72º : Nonnegative-Flonum (max (sin 2pi/5) 0.0))
 (define 1/sin72º : Nonnegative-Flonum (max (/ 1.0 sin72º) 0.0))
 
-(define sin54º : Nonnegative-Flonum (max (cos (* pi 0.3)) 0.0))
+(define sin54º : Nonnegative-Flonum (max (sin (* pi 0.3)) 0.0))
 (define cos54º : Nonnegative-Flonum (max (cos (* pi 0.3)) 0.0))
 (define tan54º : Nonnegative-Flonum (max (tan (* pi 0.3)) 0.0))

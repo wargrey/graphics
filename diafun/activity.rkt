@@ -20,6 +20,7 @@
 (require "digitama/block/interface.rkt")
 
 (require "digitama/decoration/base.rkt")
+(require "digitama/decoration/note/uml.rkt")
 
 (require "digitama/activity/self.rkt")
 (require "digitama/activity/style.rkt")
@@ -61,7 +62,7 @@
            #:track-factory [track-factory : Act-Track-Factory (default-act-track-factory)]
            #:block-factory [block-factory : Act-Block-Factory (default-act-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-desc [block-desc : (Option Act-Block-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
@@ -83,7 +84,7 @@
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [master : Dia-Track-Datum]] : Dia:Activity
     (define self (if (geo:track? master) master (dia:track-self master)))
@@ -99,7 +100,7 @@
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:block-factory [block-factory : Act-Block-Factory (default-act-block-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:block-desc [block-desc : (Option Act-Block-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
@@ -111,7 +112,7 @@
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:block-factory [block-factory : (Dia-Block-Factory S M)]
            #:block-desc [block-desc : (Option (Dia-Block-Describer S M)) #false]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (dia-block-realize block-factory block-desc note-factory note-desc caption direction scale opacity)))

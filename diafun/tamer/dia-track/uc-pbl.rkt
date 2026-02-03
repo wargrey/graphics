@@ -15,7 +15,7 @@
       [(#:Researcher #:Teacher) (remake-dia-block-style self #:fill-paint 'Yellow)]
       [(#:Engineer) (remake-dia-block-style self #:fill-paint 'DeepSkyBlue)]
       [(arch dev api bdd) (remake-dia-block-style self #:fill-paint 'DeepSkyBlue #:stroke-color 'transparent)]
-      [(fit dup example slide) (remake-dia-block-style self #:fill-paint 'LightGreen #:stroke-color 'transparent)]
+      [(fit dup example demo) (remake-dia-block-style self #:fill-paint 'LightGreen #:stroke-color 'transparent)]
       [(ct study trade-off) (remake-dia-block-style self #:fill-paint 'LemonChiffon #:stroke-color 'transparent)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,48 +36,48 @@
                         (bdd . "行为驱动开发")
                         (deploy . "部署系统\n同步课程源码")
                         (study . "研发课程")
-                        (slide . "编写演示程序")
+                        (demo . "编写演示程序")
                         (fit . "裁剪课程项目")
                         (dup . "完成课程项目")
                         (experiment . "设计实验")
                         (ct . "分解、识别\n抽象、建模")
                         (trade-off . "权衡新旧知识点")
                         (report . "项目总结与报告"))] #:-
-  (radial-move 2 -45 'arch)
+  (radial-move 2 -pi/4 'arch)
   (radial-move 2 0 'dev)
-  (radial-move 2 +45 'train)
+  (radial-move 2 +pi/4 'train)
   
   (jump-to 'dev)
-  (radial-move 2.5 -25 'bdd inc)
+  (radial-move 2.5 -pi/8 'bdd inc)
   (radial-back 2.5 +0 'asset ext)
 
   (jump-to 'arch)
-  (radial-move 2.5 -15 'api inc)
+  (radial-move 2.5 -pi/12 'api inc)
   (move-to 'bdd inc)
 
   (jump-to 'train)
-  (radial-move 2 -15 'doc inc)
-  (radial-move 2 +15 'example inc)
-  (radial-back 2.0 +75 'study ext)
+  (radial-move 2 -pi/12 'doc inc)
+  (radial-move 2 +pi/12 'example inc)
+  (radial-back 2.0 +5pi/12 'study ext)
   
   (jump-to -0.5+8i '#:Teacher)
-  (radial-move 2 -30 'fit)
+  (radial-move 2 -pi/6 'fit)
   (radial-move 3 0 'deploy)
   (move-to 3+9i 'report)
   
   [#:tree (jump-to -0.5+4i '#:Researcher)
-   [=> (radial-move 2.0 25 'slide)
+   [=> (radial-move 2.0 +pi/8 'demo)
        (move-to 'study)
        (move-to 'example inc)]
    [=> (move-to '#:Teacher)]]
 
   (jump-to 'study)
-  (radial-move 2.5 -10 'trade-off inc)
-  (radial-back 2.0 +25 'experiment ext)
+  (radial-move 2.5 -pi/12 'trade-off inc)
+  (radial-back 2.0 +pi/8 'experiment ext)
   (move-to 3.0+5.5i 'ct inc)
 
   [#:tree (jump-to 6+8i '#:Student)
-   [=> (radial-move 2 -150.0 'dup)
+   [=> (radial-move 2 -5pi/6 'dup)
        (move-to 'report)]
    [=> (move-to 'deploy)]]
   
@@ -86,8 +86,8 @@
   (jump-to 'ct)
   (move-to 'dup ext)
   
-  (jump-to 0.5-3.5i '.sys)
-  (T-step 5+13i title)
+  (jump-to 0.5-3i '.sys)
+  (T-step 5+12.5i title)
   (T-step '.sys))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

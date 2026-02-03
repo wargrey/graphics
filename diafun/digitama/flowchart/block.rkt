@@ -109,6 +109,7 @@
 
 (define #:forall (S) flow-block-collation : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
+    ; TODO: find a better intersect
     (define width (* height 1.2))
     (dia-block-polygon block-key caption style direction
                        (dia-hourglass-vertices width height) 1.0 0.375 0.0 0.0
@@ -117,13 +118,9 @@
 (define #:forall (S) flow-block-sort : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style ignored-width height direction subtype]
     (define width (* height 1.2))
-    (define h/2 : Nonnegative-Flonum (* height 0.5))
-    
-    (create-dia-block #:block dia:block:polygon #:id block-key subtype
-                      #:intersect dia-polygon-intersect
-                      #:fit-region 1.0 0.375 0.0 0.125
-                      #:with style (dia-polygon-shape block-key style (dia-sort-vertices width height))
-                      caption (geo-rhombus-vertices width height))))
+    (dia-block-polygon block-key caption style direction
+                       (dia-sort-vertices width height) 1.0 0.375 0.0 0.125
+                       subtype (geo-rhombus-vertices width height))))
 
 (define #:forall (S) flow-block-storage : (Dia-Block-Create S (Option Symbol))
   (lambda [block-key caption style width height direction subtype]

@@ -19,7 +19,9 @@
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-sort-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex))
+(define dia-sort-vertices : (-> Nonnegative-Flonum Nonnegative-Flonum
+                                (List Float-Complex Float-Complex Float-Complex
+                                      Float-Complex Float-Complex Float-Complex))
   (lambda [width height]
      (define w/2 : Nonnegative-Flonum (* width 0.5))
      (define h/2 : Nonnegative-Flonum (* height 0.5))

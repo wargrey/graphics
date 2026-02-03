@@ -31,6 +31,15 @@
           [(geo-path-label-has-rich-datum? labels geo?) (act-track-adjust source target labels default-act~object~flow~style)]
           [else (act-track-adjust source target labels default-act~control~flow~style)])))
 
+(define default-act-dangling-track-identify : (Dia-Dangling-Track-Identifier Act-Track-Style)
+  (case-lambda
+    [(source labels extra-info)
+     (cond [(dia:block-typeof? source act-central-buffer-style?) (act-track-adjust source #false labels default-act~storage~style)]
+           [else #false])]
+    [(none labels extra-info target)
+     (cond [(dia:block-typeof? target act-central-buffer-style?) (act-track-adjust #false target labels default-act~storage~style)]
+           [else #false])]))
+
 (define default-act-block-identify : (Dia-Block-Identifier Act-Block-Style Act-Block-Metadata)
   (lambda [anchor text size]
     (if (keyword? anchor)
@@ -67,8 +76,8 @@
                  [else #false])]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
-               (act-block-info anchor (substring text 1 idx$) default-act-connector-style 'sink)
-               (act-block-info anchor (substring text 1 size) default-act-connector-style 'root))]
+               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style 'sink)
+               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style 'root))]
           [(eq? ch0 #\&)
            (if (eq? ch$ #\.)
                (act-block-info anchor (substring text 1 idx$) default-act-signal-style 'page-sink)
@@ -106,7 +115,7 @@
   (lambda [anchor text mk-style [datum #false]]
     ((inst dia-block-info Act-Block-Style Act-Block-Metadata) anchor text mk-style default-act-block-theme-adjuster datum)))
 
-(define act-track-adjust : (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Label-Datum) (-> (Dia-Track-Style Act-Track-Style))
-                              (Option (Dia-Track-Style Act-Track-Style)))
+(define act-track-adjust : (-> (Option Dia:Block) (Option Dia:Block) (Listof Geo-Path-Label-Datum) (-> (Dia-Track-Style Act-Track-Style))
+                               (Option (Dia-Track-Style Act-Track-Style)))
   (lambda [source target label mk-style]
-    ((inst dia-track-theme-adjust Act-Track-Style Dia:Block (Option Dia:Block)) source target label mk-style default-act-track-theme-adjuster)))
+    ((inst dia-track-theme-adjust Act-Track-Style (Option Dia:Block) (Option Dia:Block)) source target label mk-style default-act-track-theme-adjuster)))

@@ -10,10 +10,6 @@
   (lambda [id text style]
     (dia-block-text->caption text style #:id id)))
 
-(define #:forall (S) dia-note-typeset : (Dia-Block-Typesetter S)
-  (lambda [id text style]
-    (dia-block-text->caption text style #:id id #:alignment 'left #:trim? #false)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-typesetter-compose : (case-> [(Option (Dia-Block-Typesetter S)) -> (Dia-Block-Typesetter S)]
                                                             [(Option (Dia-Block-Typesetter S)) (Dia-Block-Typesetter S) -> (Dia-Block-Typesetter S)])

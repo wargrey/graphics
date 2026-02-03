@@ -22,7 +22,7 @@
 (define-type Dia-Track-Endpoint (U Geo-Anchor-Name Float-Complex))
 
 (define-type (Dia-Track-Theme-Adjuster* S Src Tgt) (-> (Dia-Track-Style S) Src Tgt (Listof Geo-Path-Label-Datum) (U (Dia-Track-Style S) False Void)))
-(define-type (Dia-Track-Theme-Adjuster S) (Dia-Track-Theme-Adjuster* S Geo (Option Geo)))
+(define-type (Dia-Track-Theme-Adjuster S) (Dia-Track-Theme-Adjuster* S (Option Geo) (Option Geo)))
 
 (define-struct dia-track-style : Dia-Track-Style
   #:forall ([phantom-type : T])

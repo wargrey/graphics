@@ -41,6 +41,7 @@
 
 (define-struct/parameter #:specialized (UC-Track-Style) uc-track-factory : UC-Track-Factory #:as dia-track-factory
   ([identifier : (Dia-Track-Identifier UC-Track-Style) default-uc-track-identify]
+   [dangling-identifier : (Option (Dia-Dangling-Track-Identifier UC-Track-Style)) #false]
    [annotator : (Option (Dia-Track-Annotator UC-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder UC-Track-Style)) #false]
    [λroot-style : (Option (Dia-Track-Link-Root-Style UC-Track-Style)) #false]

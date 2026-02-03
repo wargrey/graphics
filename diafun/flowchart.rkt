@@ -54,7 +54,7 @@
            #:track-factory [track-factory : Flow-Track-Factory (default-flow-track-factory)]
            #:block-factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
            #:block-desc [block-desc : (Option Flow-Block-Describer) #false]
@@ -80,7 +80,7 @@
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            [master : Dia-Track-Datum]] : Dia:FlowChart
     (define self (if (geo:track? master) master (dia:track-self master)))
 
@@ -96,7 +96,7 @@
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:block-factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            #:block-desc [block-desc : (Option Flow-Block-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
@@ -109,6 +109,6 @@
            #:block-desc [block-desc : (Option (Dia-Block-Describer S M)) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-factory [block-factory : (Dia-Block-Factory S M)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (dia-block-realize block-factory block-desc note-factory note-desc caption direction scale opacity)))

@@ -18,7 +18,9 @@
   (lambda [source target labels extra-info]
     (define track-style : (Option (Dia-Track-Style Flow-Track-Style))
       (cond [(dia:block-typeof? source flow-decision-style?)
-             (cond [(geo-path-match-any-label? labels (default-flow-positive-decision-regexp))
+             (cond [(geo-path-match-any-label? labels (default-flow-loop-label-regexp))
+                    (flow-track-adjust source target labels default-flow~loop~style)]
+                   [(geo-path-match-any-label? labels (default-flow-positive-decision-regexp))
                     (flow-track-adjust source target labels default-flow~positive~style)]
                    [(geo-path-match-any-label? labels (default-flow-negative-decision-regexp))
                     (flow-track-adjust source target labels default-flow~negative~style)]
@@ -27,7 +29,7 @@
              (flow-track-adjust source target labels default-flow~decision~style)]
             [(dia:block-typeof? source flow-extract-style?)
              (flow-track-adjust source target labels default-flow~parallel~style)]
-            [(or (dia:block-typeof? source flow-storage-style?) (dia:block*-typeof? source flow-storage-style?))
+            [(or (dia:block-typeof? source flow-storage-style?) (dia:block-typeof? source flow-storage-style?))
              (if (pair? labels)
                  (flow-track-adjust source target labels default-flow~storage~style)
                  (flow-track-adjust source target labels default-flow~line~style))]
@@ -37,9 +39,22 @@
 
     (and track-style
          (if (or (dia:block-has-tag? source 'Alternate)
-                 (dia:block*-has-tag? target 'Alternate))
+                 (dia:block-has-tag? target 'Alternate))
              (dia-track-swap-dash-style track-style 'long-dash)
              track-style))))
+
+(define default-flow-dangling-track-identify : (Dia-Dangling-Track-Identifier Flow-Track-Style)
+  (case-lambda
+    [(source labels extra-info)
+     (cond [(dia:block-typeof? source flow-storage-style?) (flow-track-adjust source #false labels default-flow~storage~style)]
+           [(geo-path-match-any-label? labels (default-flow-loop-label-regexp))
+            (flow-track-adjust source #false labels default-flow~loop~style)]
+           [else #false])]
+    [(none labels extra-info target)
+     (cond [(dia:block-typeof? target flow-storage-style?) (flow-track-adjust #false target labels default-flow~storage~style)]
+           [(geo-path-match-any-label? labels (default-flow-loop-label-regexp))
+            (flow-track-adjust #false target labels default-flow~loop~style)]
+           [else #false])]))
 
 (define default-flow-block-identify : (Dia-Block-Identifier Flow-Block-Style Flow-Block-Metadata)
   (lambda [anchor text size]
@@ -93,8 +108,8 @@
           [(eq? ch0 #\=) (and (eq? ch$ #\-) (flow-block-info anchor #false default-flow-merge-style))]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
-               (flow-block-info anchor (substring text 1 idx$) default-flow-connector-style 'sink)
-               (flow-block-info anchor (substring text 1 size) default-flow-connector-style 'root))]
+               (flow-block-info anchor (string (string-ref text 1)) default-flow-connector-style 'sink)
+               (flow-block-info anchor (string (string-ref text 1)) default-flow-connector-style 'root))]
           [(eq? ch0 #\&)
            (if (eq? ch$ #\.)
                (flow-block-info anchor (substring text 1 idx$) default-flow-reference-style 'page-sink)
@@ -122,7 +137,7 @@
   (lambda [anchor text mk-style [datum #false]]
     ((inst dia-block-info Flow-Block-Style Flow-Block-Metadata) anchor text mk-style default-flow-block-theme-adjuster datum)))
 
-(define flow-track-adjust : (-> Dia:Block (Option Dia:Block) (Listof Geo-Path-Label-Datum) (-> (Dia-Track-Style Flow-Track-Style))
+(define flow-track-adjust : (-> (Option Dia:Block) (Option Dia:Block) (Listof Geo-Path-Label-Datum) (-> (Dia-Track-Style Flow-Track-Style))
                                 (Option (Dia-Track-Style Flow-Track-Style)))
   (lambda [source target label mk-style]
-    ((inst dia-track-theme-adjust Flow-Track-Style Dia:Block (Option Dia:Block)) source target label mk-style default-flow-track-theme-adjuster)))
+    ((inst dia-track-theme-adjust Flow-Track-Style (Option Dia:Block) (Option Dia:Block)) source target label mk-style default-flow-track-theme-adjuster)))

@@ -12,8 +12,8 @@
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/footprint)
 
-(require geofun/digitama/dc/track)
 (require geofun/digitama/dc/path)
+(require geofun/digitama/dc/track)
 (require geofun/digitama/track/trail)
 (require geofun/digitama/track/anchor)
 
@@ -32,7 +32,8 @@
 (require "../decoration/freetrack/self.rkt")
 (require "../decoration/freetrack/backstop.rkt")
 
-(require "../decoration/note.rkt")
+(require "../decoration/note/self.rkt")
+(require "../decoration/note/realize.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
@@ -51,6 +52,7 @@
     (define infobase (geo:track-foot-infos self))
     
     (define track-identifier (dia-track-factory-identifier track-factory))
+    (define track-dangling-identifier (dia-track-factory-dangling-identifier track-factory))
     (define track-rootstyle (dia-track-factory-λroot-style track-factory))
     (define track-backstyle ((dia-track-factory-λbackstop-style track-factory)))
     (define track->path (dia-track-builder-compose (dia-track-factory-builder track-factory)))
@@ -91,34 +93,38 @@
             
             (cond [(glayer? source)
                    (cond [(eq? (gpath:datum-cmd self) #\M)
-                          (stick (dia-track-cons source target prints++ tracks infobase
-                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
+                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
                                  blocks++ null #false next-pt rest)]
                          [(and target)
-                          (stick (dia-track-cons source target prints++ tracks infobase
-                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
+                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
                                  blocks++ (list self) source next-pt rest)]
                          [(pair? tracks)
-                          (stick (dia-track-cons source #false prints++ tracks infobase
-                                                 track-identifier make-labels track->path track-rootstyle track-backstyle opacity)
+                          (stick (dia-track-cons source #false prints++ tracks infobase track-identifier track-dangling-identifier
+                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
                                  blocks++ (list self) source next-pt rest)]
                          [else (stick tracks blocks++ prints++ source next-pt rest)])]
-                   
+
                   [(eq? (gpath:datum-cmd self) #\M)
-                   (cond [(not free-factory)(stick tracks blocks null #false next-pt rest)]
+                   (cond [(and target)
+                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
+                                 blocks++ null #false next-pt rest)]
+                         [(not free-factory)(stick tracks blocks null #false next-pt rest)]
                          [else (stick (dia-free-track-cons anchor-base prints++ tracks infobase
                                                            free-adjuster make-free-labels make-free-path
                                                            free-backstyle opacity)
                                       blocks++ null #false next-pt rest)])]
 
-                  [else (stick tracks blocks prints++ target next-pt rest)]))
+                  [else #;#:deadcode (stick tracks blocks prints++ target next-pt rest)]))
 
           (values
-           (let sort : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
-                                                [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
+           (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
+                                                          [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
              (if (pair? srohcna)
                  (let ([block (hash-ref blocks (car srohcna) (λ [] #false))])
-                   (sort (if (not block) ordered-blocks (cons block ordered-blocks)) (cdr srohcna)))
+                   (collect-blocks (if (not block) ordered-blocks (cons block ordered-blocks)) (cdr srohcna)))
                  ordered-blocks))
            
            ;;; NOTE
@@ -128,18 +134,19 @@
            (reverse tracks))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-track-cons : (-> (GLayerof Dia:Block) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
-                                          (Dia-Track-Identifier S) (Dia-Track-Annotator S) (Dia-Track-Builder S)
+(define #:forall (S) dia-track-cons : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
+                                          (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S)) (Dia-Track-Annotator S) (Dia-Track-Builder S)
                                           (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+                                          (Option Dia-Note-Factory)
                                           (Listof (GLayerof Geo)))
-  (lambda [src-layer tgt-layer prints tracks infobase track-identify make-label make-path rootstyle backstyle opacity]
+  (lambda [src-layer tgt-layer prints tracks infobase track-identify track-dangling-identify make-label make-path rootstyle backstyle opacity note-factory]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
 
     (or
      (and (pair? ctracks)
           (pair? (cdr ctracks))
           
-          (let ([source (glayer-master src-layer)]
+          (let ([source (and src-layer (glayer-master src-layer))]
                 [target (and tgt-layer (glayer-master tgt-layer))])
             (define retracks : (Option (Pairof Geo-Path-Clean-Prints* (Pairof Index Index)))
               (if (null? (cddr ctracks))
@@ -147,18 +154,13 @@
                   (dia-more-tracks-relocate-endpoints src-layer tgt-layer ctracks)))
 
             (and retracks
-                 (let-values ([(label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks (cadr retracks) (cddr retracks))])
-                   (define style-self : (Option (Dia-Track-Style S)) (track-identify source target label-text extra-track-info))
-            
-                   (and style-self
-                        (let* ([parent-style (and rootstyle (rootstyle style-self))]
-                               [style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:root parent-style #:backstop backstyle #:opacity opacity)])
-                          (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
-                            (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
-                                  [path (make-path source target (car retracks) style-spec)])
-                              (and (geo? path)
-                                   (cons (geo-path-self-pin-layer (geo-path-attach-label path labels))
-                                         tracks))))))))))
+                 (let ([opt-path (if (or (dia:block:note? source) (dia:block:note? target))
+                                     (and note-factory (dia-note-track-realize source target retracks note-factory opacity))
+                                     (dia-track-realize* source target ctracks retracks infobase track-identify track-dangling-identify
+                                                         make-label make-path rootstyle backstyle opacity))])
+                   (and opt-path
+                        (cons (geo-path-self-pin-layer opt-path)
+                              tracks))))))
      tracks)))
 
 (define dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
@@ -167,7 +169,6 @@
                                   (Listof (GLayerof Geo)))
   (lambda [anchorbase prints tracks infobase free-adjuster make-label make-path backstyle opacity]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
-    (displayln ctracks)
     
     (or
      (and (pair? ctracks)
@@ -182,7 +183,7 @@
             (define style-self : (U (Dia-Track-Style Dia-Free-Track-Style) Void False)
               (cond [(not free-adjuster) (void)]
                     [else (free-adjuster style0 source target ctracks label-text extra-track-info)]))
-            
+
             (and style-self
                  (let ([style-spec ((inst make-dia-track-style-spec Dia-Free-Track-Style)
                                     #:custom (if (void? style-self) style0 style-self) #:backstop backstyle #:opacity opacity)])
@@ -193,6 +194,30 @@
                             (cons (geo-path-self-pin-layer (geo-path-attach-label path labels)) tracks))))))))
   
      tracks)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) dia-track-realize* : (-> (Option Dia:Block) (Option Dia:Block) Geo-Path-Clean-Prints (Pairof Geo-Path-Clean-Prints* (Pairof Index Index))
+                                              Geo-Track-Infobase (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S))
+                                              (Dia-Track-Annotator S) (Dia-Track-Builder S)
+                                              (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+                                              (Option Geo-Path))
+  (lambda [source target ctracks retracks infobase track-identify track-dangling-identify make-label make-path rootstyle backstyle opacity]
+    (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks (cadr retracks) (cddr retracks)))
+    (define style-self
+      (cond [(and source target) (track-identify source target label-text extra-track-info)]
+            [(not track-dangling-identify) #false]
+            [(and source) (track-dangling-identify source label-text extra-track-info)]
+            [(and target) (track-dangling-identify source label-text extra-track-info target)]
+            [else #false]))
+
+    (and style-self
+         (let* ([parent-style (and rootstyle (rootstyle style-self))]
+                [style-spec ((inst make-dia-track-style-spec S) #:custom style-self #:root parent-style #:backstop backstyle #:opacity opacity)])
+           (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
+             (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
+                   [path (make-path source target (car retracks) style-spec)])
+               (and (geo? path)
+                    (geo-path-attach-label path labels))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S M) dia-register-home-name : (-> Geo-Trail (Option Geo-Rich-Text) (Option (Dia-Block-Describer S M))

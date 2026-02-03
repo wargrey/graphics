@@ -3,11 +3,19 @@
 (provide (all-defined-out))
 
 (require digimon/struct)
+(require digimon/measure)
+
+(require geofun/digitama/self)
+(require geofun/digitama/dc/rect)
+(require geofun/digitama/dc/composite)
+(require geofun/digitama/geometry/sides)
 
 (require "../track/dc.rkt")
 (require "../track/interface.rkt")
 (require "../block/interface.rkt")
+(require "../decoration/note/self.rkt")
 
+(require "../block/dc.rkt")
 (require "../block/dc/node.rkt")
 
 (require "style.rkt")
@@ -46,6 +54,25 @@
      [(flow-collation-style?) (flow-block-collation key caption style width height direction subtype)]
      [(flow-sort-style?) (flow-block-sort key caption style width height direction subtype)])))
 
+(define default-flow-note-build : Dia-Note-Builder
+  (lambda [key body style padding direction whatever]
+    (define-values (top rgt bot lft) (geo-inset-values padding))
+    (define-values (w h) (geo-size body))
+    (define-values (width height) (values (+ lft w rgt) (+ top h bot)))
+    (define angle (or direction 0.0))
+
+    (create-dia-block #:block dia:block:note
+                      #:id key whatever
+                      #:with-group style
+                      (geo-composite (geo-open-rectangle #:open-sides (list (cond [(< (abs angle) pi/4) 'l]
+                                                                                  [(< angle (+ 3pi/4)) 't]
+                                                                                  [(< angle (- 3pi/4)) 'b]
+                                                                                  [else 'r]))
+                                                         #:stroke (dia-block-resolve-stroke-paint style)
+                                                         #:fill (dia-block-resolve-fill-paint style)
+                                                         width height)
+                                     lft top body))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Flow-Block-Describer (Dia-Block-Describer Flow-Block-Style Flow-Block-Metadata))
 
@@ -60,8 +87,11 @@
 
 (define-struct/parameter #:specialized (Flow-Track-Style) flow-track-factory : Flow-Track-Factory #:as dia-track-factory
   ([identifier : (Dia-Track-Identifier Flow-Track-Style) default-flow-track-identify]
+   [dangling-identifier : (Option (Dia-Dangling-Track-Identifier Flow-Track-Style)) default-flow-dangling-track-identify]
    [annotator : (Option (Dia-Track-Annotator Flow-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Flow-Track-Style)) #false]
    [λroot-style : (Option (Dia-Track-Link-Root-Style Flow-Track-Style)) #false]
    [λbackstop-style : (-> Dia-Track-Backstop-Style) make-flow-track-backstop-style])
   #:transparent)
+
+(define flow-note-factory : Dia-Note-Factory (make-dia-note-factory #:builder default-flow-note-build))

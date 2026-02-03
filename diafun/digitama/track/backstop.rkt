@@ -14,9 +14,9 @@
   (lambda [source target tracks style]
     (define-values (stip ttip) (dia-track-resolve-tips style))
     
-    (geo-path* #:id (dia-track-id-merge (geo-id source) (and target (geo-id target)) #true)
+    (geo-path* #:id (dia-track-id-merge (and source (geo-id source)) (and target (geo-id target)) #true)
                #:stroke (dia-track-resolve-line-paint style)
-               #:source-tip stip #:target-tip (and target ttip)
+               #:source-tip stip #:target-tip ttip
                #:tip-placement 'inside
                tracks)))
 

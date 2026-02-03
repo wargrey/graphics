@@ -25,8 +25,7 @@
     (define padding (dia-block-resolve-padding style))
     
     (define stickman : Geo:Stickman
-      (geo-stickman #:id (dia-block-shape-id id)
-                    #:fallback-border-thickness (dia-block-resolve-stroke-width style)
+      (geo-stickman #:fallback-border-thickness (dia-block-resolve-stroke-width style)
                     #:stroke (dia-block-resolve-stroke-paint style)
                     #:head-color head-color
                     #:body-color body-color

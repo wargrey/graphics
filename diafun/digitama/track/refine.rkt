@@ -44,7 +44,7 @@
          (cons (list maybe-apt maybe-bpt)
                (cons 0 0)))))
 
-(define dia-more-tracks-relocate-endpoints : (-> (GLayerof Geo) (Option (GLayerof Geo))
+(define dia-more-tracks-relocate-endpoints : (-> (Option (GLayerof Geo)) (Option (GLayerof Geo))
                                                  (List* GPath:Print GPath:Print GPath:Print (Listof GPath:Print))
                                                  (Option (Pairof Geo-Path-Clean-Prints* (Pairof Index Index))))
   (lambda [source target tracks]
@@ -52,7 +52,7 @@
                         [h2nd : GPath:Print (cadr tracks)]
                         [rest : (Listof GPath:Print) (cddr tracks)]
                         [dropped-head-count : Index 0])
-      (define maybe-head (dia-two-tracks-relocate-source source h1st h2nd))
+      (define maybe-head (if (not source) h1st (dia-two-tracks-relocate-source source h1st h2nd)))
 
       (cond [(not maybe-head) (and (pair? rest) (relocate-head h2nd (car rest) (cdr rest) (unsafe-idx+ dropped-head-count 1)))]
             [(not target) (cons (list* maybe-head h2nd rest) (cons dropped-head-count 0))]

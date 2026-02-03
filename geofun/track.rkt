@@ -179,24 +179,24 @@
     (geo-track-jump-to goma target anchor)))
 
 (define gomamon-radial-move*! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [goma length degrees [anchor #false] [info #false]]
+  (lambda [goma length radians [anchor #false] [info #false]]
     (define here : Float-Complex (geo:track-here goma))
-    (define delta : Complex (make-polar length (degrees->radians degrees)))
+    (define delta : Complex (make-polar length radians))
 
     (geo-track-connect-to goma delta anchor info here)))
 
 (define gomamon-radial-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [goma length degrees [anchor #false] [info #false]]
+  (lambda [goma length radians [anchor #false] [info #false]]
     (define here : Float-Complex (geo:track-here goma))
-    (define delta : Complex (make-polar length (degrees->radians degrees)))
+    (define delta : Complex (make-polar length radians))
 
     (geo-track-connect-to goma delta anchor info here)
     (geo-track-jump-to goma here)))
 
 (define gomamon-radial-back! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [goma length degrees [anchor #false] [info #false]]
+  (lambda [goma length radians [anchor #false] [info #false]]
     (define here : Float-Complex (geo:track-here goma))
-    (define delta : Complex (make-polar length (degrees->radians degrees)))
+    (define delta : Complex (make-polar length radians))
 
     (geo-track-jump-to goma delta anchor here)
     (geo-track-connect-to goma here info)))

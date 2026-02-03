@@ -45,20 +45,28 @@
            #:background [bg-paint : Option-Fill-Paint #false]
            #:alignment [alignment : Geo-Text-Alignment 'center]
            #:precision [precision : (U Integer (List '= Integer)) 3]
+           #:max-width [max-width : (Option Nonnegative-Flonum) #false]
+           #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:radix [base : (U (List 'up Integer) Integer) 10]
            [text : Geo-Rich-Text]
            [font : (Option Font)]
            [color : Option-Fill-Paint]] : Geo
     (cond [(or (string? text) (symbol? text))
-           (geo-text #:id text-id #:alignment alignment
-                     #:color color #:background bg-paint
-                     text font)]
-          [(geo-markup-datum? text)
+           (if (or max-width max-height)
+               (geo-paragraph #:id text-id #:alignment alignment
+                              #:color color #:background bg-paint
+                              #:max-width  (or  max-width +inf.0)
+                              #:max-height (or max-height +inf.0) 
+                              text font)
+               (geo-text #:id text-id #:alignment alignment
+                         #:color color #:background bg-paint
+                         text font))]
+          [(geo-markup-datum? text) ; TODO: deal with size limits
            (geo-markup #:id text-id #:alignment alignment
                        #:color color #:background bg-paint
                        #:error-color 'GhostWhite #:error-background 'Firebrick
                        text font)]
-          [(geo? text) text]
+          [(geo? text) #;#:|TODO: deal with size limits| text]
           [else (geo-rich-numerical-text-realize #:id text-id
                                                  #:background bg-paint #:alignment alignment
                                                  #:precision precision #:radix base
@@ -69,6 +77,8 @@
            #:background [bg-paint : Option-Fill-Paint #false]
            #:alignment [alignment : Geo-Text-Alignment 'center]
            #:precision [precision : (U Integer (List '= Integer)) 3]
+           #:max-width [max-width : (Option Nonnegative-Flonum) #false]
+           #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:radix [base : (U (List 'up Integer) Integer) 10]
            [text : (U T Geo-Rich-Text)]
            [font : (Option Font)]
@@ -77,5 +87,6 @@
         (geo-rich-text-realize #:id text-id
                                #:background bg-paint #:alignment alignment
                                #:precision precision #:radix base
+                               #:max-width max-width #:max-height max-height
                                text font color)
         text)))

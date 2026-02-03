@@ -98,14 +98,14 @@
 (define #:forall (S) dia-block-polygon : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S) (Option Flonum)
                                                       (List* Float-Complex Float-Complex (Listof Float-Complex))
                                                       Flonum Flonum Flonum Flonum)
-                                              (Any)
+                                              (Any (Option (List* Float-Complex Float-Complex (Listof Float-Complex))))
                                               Dia:Block)
-  (lambda [key caption style direction vertices hfit% vfit% lft% top% [tags #false]]
+  (lambda [key caption style direction vertices hfit% vfit% lft% top% [tags #false] [alt-vertices #false]]
     (create-dia-block #:block dia:block:polygon #:id key tags
                       #:intersect dia-polygon-intersect
                       #:fit-region hfit% vfit% lft% top%
                       #:create-with style [geo-polygon #:window +nan.0+nan.0i vertices]
-                      caption vertices)))
+                      caption (or alt-vertices vertices))))
 
 (define #:forall (S) dia-block-symmetric-polygon : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S) (Option Flonum)
                                                                 (List* Float-Complex Float-Complex (Listof Float-Complex))
@@ -171,11 +171,13 @@
                                  tags)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-block-stereotype : (-> Symbol (Dia-Block-Style-Spec S) (Option Font) Geo)
+(define #:forall (S) dia-block-stereotype : (-> Symbol (Dia-Block-Style-Spec S) (Option Font+Tweak) Geo)
   (lambda [stereotype style stereotype-font]
     (geo-text #:color (dia-block-resolve-font-paint style)
               (format "«~a»" stereotype)
-              (or stereotype-font (dia-block-resolve-font style)))))
+              (cond [(font? stereotype-font) stereotype-font]
+                    [(not stereotype-font) (dia-block-resolve-font style)]
+                    [else (desc-font* (dia-block-resolve-font style) #:tweak stereotype-font)]))))
 
 (define #:forall (S) dia-caption+stereotype : (-> (Option Geo) (Option Symbol) (Dia-Block-Style-Spec S)
                                                     (Option Font) Length+% Nonnegative-Flonum

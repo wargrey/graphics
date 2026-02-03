@@ -40,6 +40,7 @@
 
 (define-struct/parameter #:specialized (Cls-Track-Style) cls-track-factory : Cls-Track-Factory #:as dia-track-factory
   ([identifier : (Dia-Track-Identifier Cls-Track-Style) default-cls-track-identify]
+   [dangling-identifier : (Option (Dia-Dangling-Track-Identifier Cls-Track-Style)) #false]
    [annotator : (Option (Dia-Track-Annotator Cls-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Cls-Track-Style)) #false]
    [λroot-style : (Option (Dia-Track-Link-Root-Style Cls-Track-Style)) #false]

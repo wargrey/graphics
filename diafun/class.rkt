@@ -56,7 +56,7 @@
            #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
            #:track-factory [track-factory : Cls-Track-Factory (default-cls-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
@@ -76,7 +76,7 @@
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
            #:block-scale [scale : Nonnegative-Real 1.0]
@@ -96,7 +96,7 @@
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (dia-block-realize block-factory #false note-factory note-desc caption direction scale opacity)))
@@ -106,7 +106,7 @@
            #:scale [scale : Nonnegative-Real 0.5]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:block-factory [block-factory : (Dia-Block-Factory S M)]
-           #:note-factory [note-factory : (Option Dia-Note-Factory) (default-dia-note-factory)]
+           #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [caption : Any] [direction : (Option Float) #false]] : (Option Dia:Block)
     (dia-block-realize block-factory #false note-factory note-desc caption direction scale opacity)))

@@ -50,9 +50,9 @@
   (jump-up '.-=)
 
   [#:seq
-   [(jump-left '>>:|Update JrPLT| (string->keyword "/doc/C:\\opt\\JrPLT/"))       => (move-down 1 #false "cd")]
-   [(jump-left '>>:|Update graphics| (string->keyword "/doc/C:\\opt\\graphics/")) => (move-down 1 #false "cd")]
-   [(jump-left '>>:|Update digimon| (string->symbol "/doc/C:\\opt\\digimon/"))    => (move-down 1 #false "cd")]])
+   [(jump-left '>>:|Update JrPLT| (string->keyword "/doc/C:\\opt\\JrPLT/"))       => (move-downwards '>>:|Enter JrPLT| #false "cd")]
+   [(jump-left '>>:|Update graphics| (string->keyword "/doc/C:\\opt\\graphics/")) => (move-downwards '>>:|Enter graphics| #false "cd")]
+   [(jump-left '>>:|Update digimon| (string->symbol "/doc/C:\\opt\\digimon/"))    => (move-downwards '>>:|Enter digimon| #false "cd")]])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main

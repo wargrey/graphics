@@ -93,6 +93,8 @@
            #:color [alt-color : Option-Fill-Paint #false]
            #:font [alt-font : Option-Font #false]
            #:alignment [alignment : Geo-Text-Alignment 'center]
+           #:max-width [max-width : (Option Nonnegative-Flonum) #false]
+           #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:trim? [trim? : Boolean #true]
            [desc : Geo-Rich-Text]
            [style : (Dia-Block-Style-Spec S)]] : (Option Geo)
@@ -109,6 +111,7 @@
                [(bytes? text)  (> (bytes-length text) 0)]
                [else #true])
          (geo-rich-text-realize #:id (dia-block-caption-id (or id (gensym 'dia:block:caption:)))
+                                #:max-width max-width #:max-height max-height
                                 #:alignment alignment
                                 text font paint))))
 
@@ -144,17 +147,39 @@
     (define Height (dia-block-backstop-style-height (dia-block-style-spec-backstop style)))
     (define scale (or (dia-block-style-spec-scale style) 1.0))
 
-    (values (* scale (if (not  maybe-width)  Width (~dimension  maybe-width  Width)))
-            (* scale (if (not maybe-height) Height (~dimension maybe-height Height))))))
+    (define block-width  (* scale (if (not  maybe-width)  Width (~dimension  maybe-width  Width))))
+    (define block-height (* scale (if (not maybe-height) Height (~dimension maybe-height Height))))
+
+    (cond [(and (rational? block-width) (rational? block-height)) (values block-width block-height)]
+          [(rational? block-width) (raise-user-error 'dia-block-resolve-size "infinite block height is not allowed: ~a" (cons block-width block-height))]
+          [(rational? block-height) (raise-user-error 'dia-block-resolve-size "infinite block width is not allowed: ~a" (cons block-width block-height))]
+          [else (raise-user-error 'dia-block-resolve-size "infinite block size are not allowed: ~a" (cons block-width block-height))])))
+
+(define #:forall (S) dia-block-resolve-size/inf : (->* ((Dia-Block-Style-Spec S))
+                                                       (#:width Dia-Block-Option-Size #:height Dia-Block-Option-Size)
+                                                       (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [style #:width [alt-width #false] #:height [alt-height #false] #:allow-infinite? [allow-infinite? #false]]
+    (define rt (dia-block-style-spec-root style))
+    (define maybe-width  (or alt-width  (dia-block-style-width  (dia-block-style-spec-custom style)) (and rt (dia-block-style-width  rt))))
+    (define maybe-height (or alt-height (dia-block-style-height (dia-block-style-spec-custom style)) (and rt (dia-block-style-height rt))))
+    (define Width  (dia-block-backstop-style-width  (dia-block-style-spec-backstop style)))
+    (define Height (dia-block-backstop-style-height (dia-block-style-spec-backstop style)))
+    (define scale (or (dia-block-style-spec-scale style) 1.0))
+
+    (values (* scale (if (not  maybe-width)  Width (~dimension/inf  maybe-width  Width)))
+            (* scale (if (not maybe-height) Height (~dimension/inf maybe-height Height))))))
 
 (define #:forall (S) dia-block-resolve-width : (-> (Dia-Block-Style-Spec S) Nonnegative-Flonum)
   (lambda [style]
     (define rt (dia-block-style-spec-root style))
     (define maybe-width (or (dia-block-style-width  (dia-block-style-spec-custom style)) (and rt (dia-block-style-width  rt))))
-    (define Width  (dia-block-backstop-style-width (dia-block-style-spec-backstop style)))
-    
-    (* (if (or maybe-width) (~dimension maybe-width Width) Width)
-       (or (dia-block-style-spec-scale style) 1.0))))
+    (define Width (dia-block-backstop-style-width (dia-block-style-spec-backstop style)))
+    (define width (* (if (or maybe-width) (~dimension maybe-width Width) Width)
+         (or (dia-block-style-spec-scale style) 1.0)))
+
+    (cond [(rational? width) width]
+          [else (raise-user-error 'dia-block-resolve-width
+                                  "infinite block width: ~a" width)])))
 
 (define #:forall (S) dia-block-resolve-padding : (->* ((Dia-Block-Style-Spec S))
                                                       (#:padding Dia-Block-Option-Padding)
@@ -230,7 +255,7 @@
 
 (define dia-block-caption-split-for-stereotype : (-> String (Values String (Option Symbol)))
   (lambda [text]
-    (define maybe (regexp-match #px"(.+)#(\\w+)$" text))
+    (define maybe (regexp-match #px"(.*)#(\\w+)$" text))
 
     (cond [(not maybe) (values text #false)]
           [else (values (or (cadr maybe) text)

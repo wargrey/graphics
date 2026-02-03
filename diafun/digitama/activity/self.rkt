@@ -8,8 +8,8 @@
 (require "../track/interface.rkt")
 (require "../block/interface.rkt")
 
-(require "../block/dc/symbol.rkt")
 (require "../block/dc/node.rkt")
+(require "../block/dc/symbol.rkt")
 
 (require "style.rkt")
 (require "block.rkt")
@@ -68,6 +68,7 @@
 
 (define-struct/parameter #:specialized (Act-Track-Style) act-track-factory : Act-Track-Factory #:as dia-track-factory
   ([identifier : (Dia-Track-Identifier Act-Track-Style) default-act-track-identify]
+   [dangling-identifier : (Option (Dia-Dangling-Track-Identifier Act-Track-Style)) default-act-dangling-track-identify]
    [annotator : (Option (Dia-Track-Annotator Act-Track-Style)) #false]
    [builder : (Option (Dia-Track-Builder Act-Track-Style)) #false]
    [λroot-style : (Option (Dia-Track-Link-Root-Style Act-Track-Style)) default-act-track-linker]

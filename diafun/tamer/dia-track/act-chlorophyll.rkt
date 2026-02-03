@@ -113,7 +113,7 @@
        [#:tree (move-down 1 '-<)
         [=> (move-right 0.2)
             (L-step 0.5+0.5i #false material-pin)
-            [#:tree (move-down 1 'Chromatography material-pin)
+            [#:tree (move-down 1 'Chromatography)
              [=> (move-left-down 0.25 1 'Experience6)
                  (move-down 1 'Cleanup)
                  (move-down 1 '6$)]
@@ -121,7 +121,7 @@
                  (L-step 'Cleanup)]]]
         [=> (move-left 0.2)
             (L-step -0.8+0.5i #false material-pin)
-            [#:tree (move-down 'Cleanup 'keep? material-pin)
+            [#:tree (move-down 'Cleanup 'keep?)
              [=> (move-to 'Cleanup (cons "[不再需要]" material-pin))]
              [=> (L-step '#:/试剂架 "[留给五年级做光学实验]")]]]]]]
   

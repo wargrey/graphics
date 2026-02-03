@@ -72,7 +72,7 @@
      (syntax/loc stx
        (let ([g shape])
          (with-asserts ([g geo:group?])
-           (create-geometry-group make-block (or name (geo-id g)) #false #false
+           (create-geometry-group make-block (if (not name) (dia-block-shape-id name) (geo-id g)) #false #false
                                   #:outline (geo-outline g)
                                   #:desc (geo:group-desc g)
                                   (geo:group-selves g)
@@ -108,8 +108,7 @@
   #:type-name Dia:Block:Ellipse
   #:transparent)
 
-(struct dia:block:note dia:block
-  ([body : Geo-Option-Rich-Text])
+(struct dia:block:note dia:block ()
   #:type-name Dia:Block:Note
   #:transparent)
 
