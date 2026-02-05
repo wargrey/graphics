@@ -59,11 +59,10 @@
     (set-geo-trail-ranchors! self (cons anchor (geo-trail-ranchors self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-trail-anchored-positions : (->* (Geo-Trail) ((Option Geo-Trusted-Anchors)) (Immutable-HashTable Float-Complex Geo-Anchor-Name))
-  (lambda [self [trusted-anchors #false]]
+(define geo-trail-anchored-positions : (-> Geo-Trail (Immutable-HashTable Float-Complex Geo-Anchor-Name))
+  (lambda [self]
     (for/fold ([positions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (hasheqv)])
-              ([(anchor pos) (in-hash (geo-trail-positions self))]
-               #:when (geo-anchor-trusted? anchor trusted-anchors))
+              ([(anchor pos) (in-hash (geo-trail-positions self))])
       (define Eanchor : (Option Geo-Anchor-Name) (hash-ref positions pos (λ [] #false)))
 
       (cond [(not Eanchor) (hash-set positions pos anchor)]

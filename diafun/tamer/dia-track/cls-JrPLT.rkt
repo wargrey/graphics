@@ -21,7 +21,7 @@
 
   (jump-to 'Cosmos)
   (move-left-up   2 0.75 'OnionSkin (gtmult 1 1 'composition))
-  (move-down-left 2 0.75 '#:IScreen)
+  (move-left-down 2 0.75 '#:IScreen)
   (jump-to 'Cosmos)
   (move-left-down 2 0.75 'LinkedPlaneInfo (gtmult 1 1 'composition))
   (move-down 1.75 '#:IPlaneInfo)

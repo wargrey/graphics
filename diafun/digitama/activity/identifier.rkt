@@ -34,11 +34,11 @@
 (define default-act-dangling-track-identify : (Dia-Dangling-Track-Identifier Act-Track-Style)
   (case-lambda
     [(source labels extra-info)
-     (cond [(dia:block-typeof? source act-central-buffer-style?) (act-track-adjust source #false labels default-act~storage~style)]
-           [else #false])]
+     (and (dia:block-typeof? source act-central-buffer-style?)
+          (act-track-adjust source #false labels default-act~storage~style))]
     [(none labels extra-info target)
-     (cond [(dia:block-typeof? target act-central-buffer-style?) (act-track-adjust #false target labels default-act~storage~style)]
-           [else #false])]))
+     (and (dia:block-typeof? target act-central-buffer-style?)
+          (act-track-adjust #false target labels default-act~storage~style))]))
 
 (define default-act-block-identify : (Dia-Block-Identifier Act-Block-Style Act-Block-Metadata)
   (lambda [anchor text size]

@@ -49,9 +49,13 @@
     (define srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath))
     (define origin : Float-Complex (geo-bbox-position (geo:track-bbox self)))
     (define-values (Width Height) (geo-flsize self))
+
+    (define user-stickers : (Listof (GLayerof Geo))
+      (for/list ([s (in-list (geo:track-stickers self))])
+        (geo-sticker->layer (car s) (- (cdr s) origin) offset)))
     
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
-                [stickers : (Listof (GLayerof Geo)) null])
+                [stickers : (Listof (GLayerof Geo)) user-stickers])
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
                (if (geo-anchor-trusted? anchor trusted-anchors)

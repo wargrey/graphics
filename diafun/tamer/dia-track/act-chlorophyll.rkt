@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require diafun/activity)
+(require geofun/avatar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define captions
@@ -67,7 +68,7 @@
         [=> (move-down 1 '#::Filtrate)
             
             [#:tree (move-down 0.75 '--=)
-             [=> (move-left)
+             [=> (move-left 1 '.logo)
                  [#:tree (move-down '#:/doc/实验报告 'Step2 material-pin)
                   [=> (move-to '#:/doc/实验报告 '#:write)]
                   [=> [#:tree (move-left-down 0.5 1 'obvious?)
@@ -127,13 +128,16 @@
   
   (jump-to 2)
   [#:tree (jump-down 'Prepare6 '#:/doc/课件)
-   [=> (move-left 0.25)
+   [=> (sidestep-left 2)
        (L-step 'Watch #false '#:read)]
-   [=> (move-left 0.25)
+   [=> (sidestep-left)
        (L-step 'Prepare #false '#:read)]
    [=> (move-to 'Prepare6 '#:read)]]
+
+  (jump-to '.logo)
+  (stamp (bacteriophage-logo 16) 'cb -0.1i)
   
-  (jump-up '#:home)
+  (jump-to 2)
   (move-down '$))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

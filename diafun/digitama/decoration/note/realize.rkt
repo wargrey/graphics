@@ -85,12 +85,14 @@
 
     (cond [(dia:block:note? target)
            (geo-path* #:id (dia-track-id-merge (geo-id target) (and source (geo-id source)) #false)
+                      #:type (dia-track-style-type-object style)
                       #:stroke (dia-track-resolve-line-paint style)
                       #:source-tip ttip #:target-tip stip
                       #:tip-placement 'inside #:source-placement (if (not source) 'center 'inside)
                       tracks)]
           [(dia:block:note? source)
            (geo-path* #:id (dia-track-id-merge (and source (geo-id source)) (and target (geo-id target)) #false)
+                      #:type (dia-track-style-type-object style)
                       #:stroke (dia-track-resolve-line-paint style)
                       #:source-tip stip #:target-tip ttip
                       #:tip-placement 'inside #:target-placement (if (not target) 'center 'inside)

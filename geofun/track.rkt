@@ -12,16 +12,6 @@
 (provide current-master-track)
 
 (provide
- (rename-out [gomamon-move-up-right! gomamon-move-right-up!]
-             [gomamon-move-right-down! gomamon-move-down-right!]
-             [gomamon-move-down-left! gomamon-move-left-down!]
-             [gomamon-move-left-up! gomamon-move-up-left!])
-
- (rename-out [gomamon-jump-up-right! gomamon-jump-right-up!]
-             [gomamon-jump-right-down! gomamon-jump-down-right!]
-             [gomamon-jump-down-left! gomamon-jump-left-down!]
-             [gomamon-jump-left-up! gomamon-jump-up-left!])
-
  (rename-out [gomamon-move-upwards! gomamon-move-upward!]
              [gomamon-move-rightwards! gomamon-move-rightward!]
              [gomamon-move-downwards! gomamon-move-downward!]
@@ -37,7 +27,6 @@
              [geo-track-lane gomamon-lane!]
              [make-sticker make-geo-sticker]))
 
-(require racket/math)
 (require digimon/measure)
 
 (require "digitama/self.rkt")
@@ -46,9 +35,10 @@
 
 (require "digitama/dc/track.rkt")
 (require "digitama/dc/composite.rkt")
-(require "digitama/paint/self.rkt")
+(require "digitama/layer/type.rkt")
 (require "digitama/layer/sticker.rkt")
 (require "digitama/path/label.rkt")
+(require "digitama/paint/self.rkt")
 
 (require "digitama/track/dsl.rkt")
 (require "digitama/track/self.rkt")
@@ -109,7 +99,7 @@
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)
-                            null
+                            null null
                             
                             ; gomamon fields
                             xstep ystep (* tsx xstep) (* tsy ystep))))
@@ -119,9 +109,9 @@
 (define-gomamon-line-move! right           #:-> +1.0)
 (define-gomamon-line-move! up              #:!> -1.0)
 (define-gomamon-line-move! down            #:!> +1.0)
-(define-gomamon-line-move! up right        #:+> +1.0 -1.0)
+(define-gomamon-line-move! right up        #:+> +1.0 -1.0)
 (define-gomamon-line-move! right down      #:+> +1.0 +1.0)
-(define-gomamon-line-move! down left       #:+> -1.0 +1.0)
+(define-gomamon-line-move! left down       #:+> -1.0 +1.0)
 (define-gomamon-line-move! left up         #:+> -1.0 -1.0)
 
 (define-gomamon-turn-move! up-right-down   #:+> [180.0 360.0  1.0  0.0  2.0  0.0] #:boundary-guard -1.0i)
@@ -203,11 +193,11 @@
 
 (define gomamon-random-walk! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma xstep ystep [anchor #false] [info #false]]
-    (geo-track-L goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor info)))
+    (geo-track-move goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor info)))
 
 (define gomamon-random-jump! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name)) Void)
   (lambda [goma xstep ystep [anchor #false]]
-    (geo-track-M goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor)))
+    (geo-track-move goma (* (- (* (random) 2.0) 1.0) xstep) (* (- (* (random) 2.0) 1.0) ystep) 1.0 1.0 anchor)))
 
 (define gomamon-T-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
   (lambda [goma target [info1 #false] [info2 #false]]
@@ -228,6 +218,23 @@
     
     (gomamon-move-down!  goma vstep #false info1)
     (gomamon-move-right! goma hstep #false info2)))
+
+(define gomamon-stamp! : (case-> [Gomamon Geo-Sticker -> Void]
+                                 [Gomamon Geo -> Void]
+                                 [Gomamon Geo Geo-Pin-Anchor -> Void]
+                                 [Gomamon Geo Geo-Pin-Anchor Complex -> Void])
+  (case-lambda
+    [(goma gobj)
+     (define here : Float-Complex (geo:track-here goma))
+     (define sticker : Geo-Sticker
+       (cond [(geo-sticker? gobj) gobj]
+             [else (make-sticker gobj 'cc)]))
+     
+     (set-geo:track-stickers! goma
+                              (cons (cons sticker here)
+                                    (geo:track-stickers goma)))]
+    [(goma gobj anchor) (gomamon-stamp! goma (make-sticker gobj anchor))]
+    [(goma gobj anchor offset) (gomamon-stamp! goma (make-sticker gobj anchor (geo-track-grid-position goma offset)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-stick

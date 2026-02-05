@@ -36,7 +36,8 @@
 (define-type Geo-Maybe-Path (U Void Geo-Option-Path))
 
 (struct geo:path:self geo
-  ([footprints : Geo-Path-Clean-Prints+]
+  ([type : Any]
+   [footprints : Geo-Path-Clean-Prints+]
    [source : (Pairof Float-Complex Flonum)]
    [target : (Pairof Float-Complex Flonum)]
    [origin : Float-Complex]
@@ -56,6 +57,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-path*
   (lambda [#:id [id : (Option Symbol) #false]
+           #:type [type : Any #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:source-tip [src-tip : (Option Geo-Tip) #false]
            #:target-tip [tgt-tip : (Option Geo-Tip) #false]
@@ -84,7 +86,7 @@
                             #:with [id (geo-draw-path-self! stroke (or src-clr tip-clr) (or tgt-clr tip-clr) s.cfg t.cfg)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
-                            footprints
+                            type footprints
                             (cons spt srad) (cons ept erad)
                             (make-rectangular lx ty) (make-rectangular xoff yoff)
                             src-shape tgt-shape
@@ -205,6 +207,12 @@
         (let ([slayer (car (glayer-group-layers (geo:group-selves master)))])
           (- (geo-path-self-pin-position (geo:path-self master))
              (make-rectangular (glayer-x slayer) (glayer-y slayer)))))))
+
+(define geo-path-type : (-> Geo-Path Any)
+  (lambda [master]
+    (if (geo:path:self? master)
+        (geo:path:self-type master)
+        (geo-path-type (geo-path-ungroup master)))))
 
 (define geo-path-endpoints : (-> Geo-Path (Values Float-Complex Float-Complex))
   (lambda [master]

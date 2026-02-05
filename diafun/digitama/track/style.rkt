@@ -57,6 +57,10 @@
    [scale : (Option Nonnegative-Flonum) #false]
    [opacity : (Option Nonnegative-Flonum) #false]))
 
+(define #:forall (S) dia-track-style-type-object : (-> (Dia-Track-Style-Spec S) S)
+  (lambda [self]
+    (dia-track-style-phantom-type (dia-track-style-spec-custom self))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-track-resolve-line-paint : (-> (Dia-Track-Style-Spec S) Pen)
   (lambda [self]

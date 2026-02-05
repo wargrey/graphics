@@ -13,10 +13,12 @@
 (define #:forall (S) dia-track-build : (Dia-Track-Builder S)
   (lambda [source target tracks style]
     (define-values (stip ttip) (dia-track-resolve-tips style))
+    (define-values (sid tid) (values (and source (geo-id source)) (and target (geo-id target))))
     
-    (geo-path* #:id (dia-track-id-merge (and source (geo-id source)) (and target (geo-id target)) #true)
+    (geo-path* #:id (dia-track-id-merge sid tid #true)
+               #:type (dia-track-style-type-object style)
                #:stroke (dia-track-resolve-line-paint style)
-               #:source-tip stip #:target-tip ttip
+               #:source-tip stip #:target-tip (and target ttip)
                #:tip-placement 'inside
                tracks)))
 

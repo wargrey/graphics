@@ -67,7 +67,7 @@
         (move-down 2 'Exit$)]]
    [(move-down 1 'Zero? "Y")
     =>
-    (move-down-right 1 'Exit$ '|Exit with Error Status| "False")
+    (move-right-down 1 'Exit$ '|Exit with Error Status| "False")
     (move-down 1 Page2)]
    [(move-to 'Exit$ "True")]]
 

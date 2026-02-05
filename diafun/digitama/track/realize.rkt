@@ -9,6 +9,7 @@
 
 (require geofun/digitama/self)
 (require geofun/digitama/layer/type)
+(require geofun/digitama/layer/sticker)
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/footprint)
 
@@ -41,7 +42,7 @@
                                                     (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
                                                     (Option Dia-Note-Factory) (Option Dia-Note-Describer)
                                                     Real (Option Nonnegative-Real) (Option Geo-Rich-Text)
-                                                    (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
+                                                    (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
   (lambda [self track-factory free-factory block-factory block-desc0 note-factory note-desc scale opacity0 home-name]
     (define gpath : Geo-Trail (geo:track-trail self))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
@@ -70,68 +71,77 @@
     (define free-backstyle (or (and free-factory (let ([f (dia-free-track-factory-λbackstop-style free-factory)]) (and f (f)))) track-backstyle))
 
     ; NOTICE: the footprints are initially reversed
-    (let stick ([tracks : (Listof (GLayerof Geo)) null]
-                [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
-                [prints : Geo-Path-Prints null]
-                [target : (Option (GLayerof Dia:Block)) #false]
-                [last-pt : (Option Float-Complex) #false]
-                [stnirp : Geo-Path-Prints (geo:track-footprints self)])
-      (if (pair? stnirp)
-
-          (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
-            (define next-pt : (Option Float-Complex) (gpp-position self last-pt))
-            (define anchor : (Option Geo-Anchor-Name) (and next-pt (hash-ref anchor-base next-pt (λ [] #false))))
-            (define prints++ : (Pairof GPath:Datum Geo-Path-Prints) (cons self prints))
-
-            (define-values (source blocks++)
-              (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
-                    [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
-                    [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                 [new-block (dia-block-layer-realize block-identifier make-block make-caption block-rootstyle block-backstyle block-desc
-                                                                     note-factory note-desc anchor next-pt direction block-scale opacity)])
-                            (values new-block (hash-set blocks anchor new-block)))]))
+    (define-values (tracks blocks)
+      (let stick : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))) ([tracks : (Listof (GLayerof Geo)) null]
+                                                                             [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
+                                                                             [prints : Geo-Path-Prints null]
+                                                                             [target : (Option (GLayerof Dia:Block)) #false]
+                                                                             [last-pt : (Option Float-Complex) #false]
+                                                                             [stnirp : Geo-Path-Prints (geo:track-footprints self)])
+        (if (pair? stnirp)
             
-            (cond [(glayer? source)
-                   (cond [(eq? (gpath:datum-cmd self) #\M)
-                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
-                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
-                                 blocks++ null #false next-pt rest)]
-                         [(and target)
-                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
-                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
-                                 blocks++ (list self) source next-pt rest)]
-                         [(pair? tracks)
-                          (stick (dia-track-cons source #false prints++ tracks infobase track-identifier track-dangling-identifier
-                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
-                                 blocks++ (list self) source next-pt rest)]
-                         [else (stick tracks blocks++ prints++ source next-pt rest)])]
+            (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
+              (define next-pt : (Option Float-Complex) (gpp-position self last-pt))
+              (define anchor : (Option Geo-Anchor-Name) (and next-pt (hash-ref anchor-base next-pt (λ [] #false))))
+              (define prints++ : (Pairof GPath:Datum Geo-Path-Prints) (cons self prints))
+              
+              (define-values (source blocks++)
+                (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
+                      [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
+                      [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
+                                   [new-block (dia-block-layer-realize block-identifier make-block make-caption block-rootstyle block-backstyle block-desc
+                                                                       note-factory note-desc anchor next-pt direction block-scale opacity)])
+                              (values new-block (hash-set blocks anchor new-block)))]))
+            
+              (cond [(glayer? source)
+                     (cond [(eq? (gpath:datum-cmd self) #\M)
+                            (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                   make-labels track->path track-rootstyle track-backstyle opacity note-factory)
+                                   blocks++ null #false next-pt rest)]
+                           [(and target)
+                            (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                   make-labels track->path track-rootstyle track-backstyle opacity note-factory)
+                                   blocks++ (list self) source next-pt rest)]
+                           [(pair? tracks)
+                            (stick (dia-track-cons source #false prints++ tracks infobase track-identifier track-dangling-identifier
+                                                   make-labels track->path track-rootstyle track-backstyle opacity note-factory)
+                                   blocks++ (list self) source next-pt rest)]
+                           [else (stick tracks blocks++ prints++ source next-pt rest)])]
+                    
+                    [(eq? (gpath:datum-cmd self) #\M)
+                     (cond [(and target)
+                            (stick (dia-track-cons #false target prints++ tracks infobase track-identifier track-dangling-identifier
+                                                   make-labels track->path track-rootstyle track-backstyle opacity note-factory)
+                                   blocks++ null #false next-pt rest)]
+                           [(not free-factory) (stick tracks blocks null #false next-pt rest)]
+                           [else (stick (dia-free-track-cons anchor-base prints++ tracks infobase
+                                                             free-adjuster make-free-labels make-free-path
+                                                             free-backstyle opacity)
+                                        blocks++ null #false next-pt rest)])]
+                    
+                    [else #;#:deadcode (stick tracks blocks prints++ target next-pt rest)]))
 
-                  [(eq? (gpath:datum-cmd self) #\M)
-                   (cond [(and target)
-                          (stick (dia-track-cons source target prints++ tracks infobase track-identifier track-dangling-identifier
-                                                 make-labels track->path track-rootstyle track-backstyle opacity note-factory)
-                                 blocks++ null #false next-pt rest)]
-                         [(not free-factory)(stick tracks blocks null #false next-pt rest)]
-                         [else (stick (dia-free-track-cons anchor-base prints++ tracks infobase
-                                                           free-adjuster make-free-labels make-free-path
-                                                           free-backstyle opacity)
-                                      blocks++ null #false next-pt rest)])]
+            (values tracks
+                    (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
+                                                                   [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
+                      (if (pair? srohcna)
+                          (let ([block (hash-ref blocks (car srohcna) (λ [] #false))])
+                            (collect-blocks (cond [(not block) ordered-blocks]
+                                                  [else (cons block ordered-blocks)])
+                                            (cdr srohcna)))
+                          ordered-blocks))))))
 
-                  [else #;#:deadcode (stick tracks blocks prints++ target next-pt rest)]))
+    (values
+     ;;; NOTE
+     ; We need to draw tracks backwards,
+     ;   as we usually create archtectural path before jumping back for various branches.
+     ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
+     (reverse tracks)
+     
+     blocks
 
-          (values
-           (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
-                                                          [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
-             (if (pair? srohcna)
-                 (let ([block (hash-ref blocks (car srohcna) (λ [] #false))])
-                   (collect-blocks (if (not block) ordered-blocks (cons block ordered-blocks)) (cdr srohcna)))
-                 ordered-blocks))
-           
-           ;;; NOTE
-           ; We need to draw tracks backwards,
-           ;   as we usually create archtectural path before jumping back for various branches.
-           ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
-           (reverse tracks))))))
+     (for/list ([s (in-list (geo:track-stickers self))])
+        (geo-sticker->layer (car s) (cdr s))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-track-cons : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase

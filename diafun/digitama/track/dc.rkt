@@ -21,8 +21,8 @@
     [(_ Geo id self (~seq #:frame frame) realize:expr argl ...)
      (syntax/loc stx
        (parameterize ([current-master-track self])
-         (let*-values ([(blocks tracks) realize]
-                       [(stickers) (append tracks blocks)]
+         (let*-values ([(tracks blocks user-stickers) realize]
+                       [(stickers) (append tracks blocks user-stickers)]
                        [(border background margin padding open-sides) (geo-frame-values frame)])
            (create-geometry-group Geo id #false #false
                                   #:border border #:background background

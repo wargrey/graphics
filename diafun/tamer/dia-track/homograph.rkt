@@ -11,7 +11,7 @@
 (define note-desc
   #hasheq([//#decisionInput . "block comment: decision block\n\n流程图随意;\n活动图,此处用法有误！"]))
 
-(define-flowchart! goma.dia [#:block-scale scale #:frame 'Snow #:note-desc note-desc] #:-
+(define-flowchart! goma.dia [#:block-scale scale #:frame 'LavenderBlush #:note-desc note-desc] #:-
   [#:tree (move-down 1 '--=)
    [=> (move-left 1)
        (move-down 2 '<sort> "by priority")

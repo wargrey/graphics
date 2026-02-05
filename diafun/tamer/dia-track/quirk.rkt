@@ -32,9 +32,9 @@
 
   (jump-to 'collate '#:/doc/whatever)
   [#:tree (jump-right 1.5 '#:/doc/pptx)
-   [=> (move-left 0.25)
+   [=> (sidestep-left 2)
        (L-step 'step1 #false '#:horizon)]
-   [=> (move-left 0.25)
+   [=> (sidestep-left)
        (L-step 'step2 #false '#:horizon)]
    [=> (move-down '|<   >|)
        (move-leftwards '|<   >| #false '#:U-turn)

@@ -15,6 +15,7 @@
     (define-values (stip ttip) (dia-track-resolve-tips style))
     
     (geo-path* #:id (dia-track-id-merge source target #false)
+               #:type (dia-track-style-type-object style)
                #:stroke (dia-track-resolve-line-paint style)
                #:source-tip stip #:target-tip ttip
                #:tip-placement 'inside

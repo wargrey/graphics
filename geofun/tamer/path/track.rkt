@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require geofun/track)
+(require geofun/avatar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-gomamon! goma [108 108] #:-
@@ -22,7 +23,8 @@
   (close)
   
   (jump-right-down 2 1 '#:diamond)
-  [=> (drift '#:home '(-0.5+i -0.5-i))]
+  [=> (drift '#:home '(-0.5+i -0.5-i))
+      (stamp (bacteriophage-logo 20.0) 'ct)]
   
   (move-up-right)
   (move-right-down)

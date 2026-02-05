@@ -5,6 +5,7 @@
 (require "../self.rkt")
 (require "../paint.rkt")
 (require "../layer/type.rkt")
+(require "../layer/sticker.rkt")
 (require "../richtext/self.rkt")
 
 (require "../track/self.rkt")
@@ -23,15 +24,15 @@
 (define-type Geo-Track-Infobase (HashTable (Pairof Float-Complex Float-Complex) Geo:Track:Info))
 
 (struct geo:track:zone
-  ([grid-pos : Float-Complex]
+  ([parent : (Option Geo:Track:Zone)]
+   [grid-pos : Float-Complex]
    [grid-span : Float-Complex]
-   [desc : Geo-Rich-Text]
+   [desc : Geo-Option-Rich-Text]
    [type : Symbol])
   #:type-name Geo:Track:Zone
   #:transparent)
 
-(struct geo:track:zone:fixed geo:track:zone
-  ()
+(struct geo:track:zone:fixed geo:track:zone ()
   #:type-name Geo:Track:Zone:Fixed
   #:transparent)
 
@@ -47,7 +48,8 @@
    [here : Float-Complex]
    [footprints : Geo-Path-Prints]
    [foot-infos : Geo-Track-Infobase]
-   [zones : (Listof Geo:Track:Zone)])
+   [zones : (Listof Geo:Track:Zone)]
+   [stickers : (Listof (Pairof Geo-Sticker-Datum Float-Complex))])
   #:type-name Geo:Track
   #:transparent
   #:mutable)
