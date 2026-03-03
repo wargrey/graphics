@@ -98,7 +98,9 @@
   (lambda [text text-id font paint]
     (cond [(geo? text) text]
 
-          ;;; TODO: transparent color makes the label clear underneath arrows but sometimes doesn't work for pdf
+          ;;; TODO
+          ; transparent color makes the label clear underneath arrows
+          ;   but sometimes doesn't work for pdf or causing pdf rasterizing the image
           [else (geo-rich-text-realize #:id text-id #:alignment 'center #:background transparent
                                        text font paint)])))
 
