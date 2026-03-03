@@ -2,10 +2,10 @@
 
 (provide (all-defined-out))
 
+(require "dc.rkt")
 (require "../self.rkt")
 
 (require "../dc/plain.rkt")
-(require "../dc/path.rkt")
 (require "../dc/composite.rkt")
 
 (require "../layer/type.rkt")

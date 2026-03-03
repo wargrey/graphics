@@ -256,7 +256,7 @@
 
 (define-phantom-struct flow-storage-style : Flow-Storage-Style #:-> flow-block-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 61.8)]
-   [height : Dia-Block-Option-Size (&% 161.8)]
+   [height : Dia-Block-Option-Size (&% 128)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]

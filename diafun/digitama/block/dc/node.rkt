@@ -6,6 +6,7 @@
 (require "../style.rkt")
 
 (require digimon/measure)
+(require racket/keyword)
 
 (require geofun/font)
 (require geofun/composite)
@@ -21,7 +22,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-rectangle : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
                                                         Nonnegative-Flonum Nonnegative-Flonum (Option Flonum))
-                                                (Any (Option Symbol) (Option Font))
+                                                (Any (Option Keyword) (Option Font))
                                                 Dia:Block)
   (lambda [key caption style width height direction [tags #false] [sotype #false] [sofont #false]]
     (if (and caption sotype)
@@ -45,7 +46,7 @@
 
 (define #:forall (S) dia-block-rounded-rectangle : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
                                                                 Nonnegative-Flonum Nonnegative-Flonum Length+% (Option Flonum))
-                                                        (Any (Option Symbol) (Option Font))
+                                                        (Any (Option Keyword) (Option Font))
                                                         Dia:Block)
   (lambda [key caption style width height corner-radius direction [tags #false] [sotype #false] [sofont #false]]
     (if (and caption sotype)
@@ -89,7 +90,7 @@
     
     (create-dia-block #:block dia:block:ellipse #:id key tags
                       #:intersect dia-ellipse-intersect
-                      #:fit-region 0.81 0.875
+                      #:fit-region 0.81 1.00
                       #:create-with style [geo-ellipse width height]
                       caption
                       (+ (* width 0.5) thickness)
@@ -122,21 +123,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-rectangle/cr:2nd : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
                                                                Nonnegative-Flonum Nonnegative-Flonum (Option Flonum))
-                                                       (Any (Option Symbol) (Option Font))
+                                                       (Any (Option Keyword) (Option Font))
                                                        Dia:Block)
   (lambda [key caption style width height direction [tags #false] [sotype #false] [sofont #false]]
     (dia-block-rounded-rectangle key caption style width height (&% 50) direction tags sotype sofont)))
 
 (define #:forall (S) dia-block-rectangle/cr:4th : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
                                                                Nonnegative-Flonum Nonnegative-Flonum (Option Flonum))
-                                                       (Any (Option Symbol) (Option Font))
+                                                       (Any (Option Keyword) (Option Font))
                                                        Dia:Block)
   (lambda [key caption style width height direction [tags #false] [sotype #false] [sofont #false]]
     (dia-block-rounded-rectangle key caption style width height (&% 25) direction tags sotype sofont)))
 
 (define #:forall (S) dia-block-rectangle/cr:8th : (->* (Symbol (Option Geo) (Dia-Block-Style-Spec S)
                                                                Nonnegative-Flonum Nonnegative-Flonum (Option Flonum))
-                                                       (Any (Option Symbol) (Option Font))
+                                                       (Any (Option Keyword) (Option Font))
                                                        Dia:Block)
   (lambda [key caption style width height direction [tags #false] [sotype #false] [sofont #false]]
     (dia-block-rounded-rectangle key caption style width height (&% 12.5) direction tags sotype sofont)))
@@ -171,11 +172,11 @@
                                  tags)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-block-stereotype : (-> Symbol (Dia-Block-Style-Spec S) (Option Font+Tweak) Flonum Geo)
+(define #:forall (S) dia-block-stereotype : (-> Any (Dia-Block-Style-Spec S) (Option Font+Tweak) Flonum Geo)
   (lambda [stereotype style stereotype-font max-width]
     (define stereotype.txt : Geo:Text
       (geo-text #:color (dia-block-resolve-font-paint style)
-                (format "«~a»" stereotype)
+                (format "«~a»" (if (keyword? stereotype) (keyword->immutable-string stereotype) stereotype))
                 (cond [(font? stereotype-font) stereotype-font]
                       [(not stereotype-font) (dia-block-resolve-font style)]
                       [else (desc-font* (dia-block-resolve-font style) #:tweak stereotype-font)])))

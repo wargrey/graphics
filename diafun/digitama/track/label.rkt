@@ -6,9 +6,9 @@
 
 (require geofun/digitama/geometry/footprint)
 
-(require geofun/digitama/dc/track)
 (require geofun/digitama/track/self)
 (require geofun/digitama/track/mult)
+(require geofun/digitama/track/metadata)
 (require geofun/digitama/path/label)
 
 (require "style.rkt")

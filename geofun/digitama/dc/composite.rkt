@@ -7,6 +7,8 @@
 (require digimon/function)
 (require digimon/measure)
 
+(require "string.rkt")
+
 (require "../self.rkt")
 (require "../convert.rkt")
 
@@ -15,6 +17,7 @@
 
 (require "../geometry/ink.rkt")
 (require "../geometry/sides.rkt")
+
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
 (require "../layer/table.rkt")
@@ -113,6 +116,13 @@
     (if (geo-frame-ink? ink)
         (geo-frame-ink-body-origin ink)
         0.0+0.0i)))
+
+(define geo-group-desc-from-caption : (-> (Option Geo) (Option String))
+  (lambda [maybe-caption]
+    (and maybe-caption
+         (cond [(geo:string? maybe-caption) (geo:string-body maybe-caption)]
+               [(geo:group? maybe-caption) (geo:group-desc maybe-caption)]
+               [else #false]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-composite : (->* (Geo Real Real Geo)

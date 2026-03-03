@@ -34,11 +34,9 @@
                     (unsafe-geo-bbox lx ty rx by))))]))
 
 (define geo-bbox-fit! : (case-> [Geo-BBox Float-Complex -> Void]
-                                [Geo-BBox Float-Complex Flonum Flonum -> Void]
                                 [Geo-BBox Flonum Flonum -> Void])
   (case-lambda
     [(self pos) (geo-bbox-fit! self (real-part pos) (imag-part pos))]
-    [(self pos dx dy) (geo-bbox-fit! self (+ (real-part pos) dx) (+ (imag-part pos) dy))]
     [(self x y)
      (cond [(< x (geo-bbox-lx self)) (set-geo-bbox-lx! self x)]
            [(> x (geo-bbox-rx self)) (set-geo-bbox-rx! self x)])

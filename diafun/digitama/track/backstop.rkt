@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/path/label)
 
 (require "style.rkt")

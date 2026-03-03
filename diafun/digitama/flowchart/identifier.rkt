@@ -57,7 +57,7 @@
            [else #false])]))
 
 (define default-flow-block-identify : (Dia-Block-Identifier Flow-Block-Style Flow-Block-Metadata)
-  (lambda [anchor text size]
+  (lambda [anchor text size stereotype]
     (if (keyword? anchor)
 
         (cond [(eq? anchor '#:home) (flow-block-info anchor text default-flow-start-style)]

@@ -79,7 +79,7 @@
 (require "digitama/dc/polygon/pentagon.rkt")
 (require "digitama/dc/polygon/hexagon.rkt")
 
-(require "digitama/dc/path.rkt")
+(require "digitama/path/dc.rkt")
 (require "digitama/path/label.rkt")
 (require "digitama/path/tips.rkt")
 (require "digitama/path/tick.rkt")

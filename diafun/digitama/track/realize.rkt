@@ -13,8 +13,8 @@
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/footprint)
 
-(require geofun/digitama/dc/path)
-(require geofun/digitama/dc/track)
+(require geofun/digitama/path/dc)
+(require geofun/digitama/track/self)
 (require geofun/digitama/track/trail)
 (require geofun/digitama/track/anchor)
 
@@ -36,13 +36,17 @@
 (require "../decoration/note/self.rkt")
 (require "../decoration/note/realize.rkt")
 
+(require "../zone/realize.rkt")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
                                                     (Dia-Track-Factory TS) (Option Dia-Free-Track-Factory)
                                                     (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
                                                     (Option Dia-Note-Factory) (Option Dia-Note-Describer)
                                                     Real (Option Nonnegative-Real) (Option Geo-Rich-Text)
-                                                    (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
+                                                    (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))
+                                                            (Listof (GLayerof Geo))
+                                                            (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
   (lambda [self track-factory free-factory block-factory block-desc0 note-factory note-desc scale opacity0 home-name]
     (define gpath : Geo-Trail (geo:track-trail self))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
@@ -71,13 +75,14 @@
     (define free-backstyle (or (and free-factory (let ([f (dia-free-track-factory-λbackstop-style free-factory)]) (and f (f)))) track-backstyle))
 
     ; NOTICE: the footprints are initially reversed
-    (define-values (tracks blocks)
-      (let stick : (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))) ([tracks : (Listof (GLayerof Geo)) null]
-                                                                             [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
-                                                                             [prints : Geo-Path-Prints null]
-                                                                             [target : (Option (GLayerof Dia:Block)) #false]
-                                                                             [last-pt : (Option Float-Complex) #false]
-                                                                             [stnirp : Geo-Path-Prints (geo:track-footprints self)])
+    (define-values (tracks blockdb)
+      (let stick : (Values (Listof (GLayerof Geo-Path)) (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))))
+        ([tracks : (Listof (GLayerof Geo-Path)) null]
+         [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
+         [prints : Geo-Path-Prints null]
+         [target : (Option (GLayerof Dia:Block)) #false]
+         [last-pt : (Option Float-Complex) #false]
+         [stnirp : Geo-Path-Prints (geo:track-footprints self)])
         (if (pair? stnirp)
             
             (let*-values ([(self rest) (values (car stnirp) (cdr stnirp))])
@@ -121,34 +126,47 @@
                     
                     [else #;#:deadcode (stick tracks blocks prints++ target next-pt rest)]))
 
-            (values tracks
-                    (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
-                                                                   [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
-                      (if (pair? srohcna)
-                          (let ([block (hash-ref blocks (car srohcna) (λ [] #false))])
-                            (collect-blocks (cond [(not block) ordered-blocks]
-                                                  [else (cons block ordered-blocks)])
-                                            (cdr srohcna)))
-                          ordered-blocks))))))
+            (values tracks blocks))))
+
+    (define-values (bands zones)
+      (for/fold ([bands : (Listof (GLayerof Geo)) null]
+                 [zones : (Listof (GLayerof Geo)) null])
+                ([zone (in-list (geo:track-zones self))])
+        (cond [(geo:track:zone:flex? zone)
+               (define group (dia-flex-zone-realize zone blockdb tracks opacity))
+               (values bands (if (not group) zones (cons group zones)))]
+              [(geo:track:zone:fixed? zone)
+               (define group (dia-fixed-zone-realize zone blockdb tracks opacity))
+               (values (if (not group) bands (cons group bands)) zones)]
+              [else (values bands zones)])))
 
     (values
+     bands zones
+     
      ;;; NOTE
      ; We need to draw tracks backwards,
      ;   as we usually create archtectural path before jumping back for various branches.
      ;   So that drawing backwards allow main loop path hiding branch paths sharing same routes.
      (reverse tracks)
      
-     blocks
+     (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
+                                                    [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
+       (if (pair? srohcna)
+           (let ([block (hash-ref blockdb (car srohcna) (λ [] #false))])
+             (collect-blocks (cond [(not block) ordered-blocks]
+                                   [else (cons block ordered-blocks)])
+                             (cdr srohcna)))
+           ordered-blocks))
 
      (for/list ([s (in-list (geo:track-stickers self))])
         (geo-sticker->layer (car s) (cdr s))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-track-cons : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
+(define #:forall (S) dia-track-cons : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo-Path)) Geo-Track-Infobase
                                           (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S)) (Dia-Track-Annotator S) (Dia-Track-Builder S)
                                           (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
                                           (Option Dia-Note-Factory)
-                                          (Listof (GLayerof Geo)))
+                                          (Listof (GLayerof Geo-Path)))
   (lambda [src-layer tgt-layer prints tracks infobase track-identify track-dangling-identify make-label make-path rootstyle backstyle opacity note-factory]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
 
@@ -173,10 +191,10 @@
                               tracks))))))
      tracks)))
 
-(define dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo)) Geo-Track-Infobase
+(define dia-free-track-cons : (-> (Immutable-HashTable Float-Complex Geo-Anchor-Name) Geo-Path-Prints (Listof (GLayerof Geo-Path)) Geo-Track-Infobase
                                   (Option Dia-Free-Track-Adjuster) Dia-Free-Track-Annotator Dia-Free-Track-Builder
                                   Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
-                                  (Listof (GLayerof Geo)))
+                                  (Listof (GLayerof Geo-Path)))
   (lambda [anchorbase prints tracks infobase free-adjuster make-label make-path backstyle opacity]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
     
@@ -189,7 +207,10 @@
                  [source (hash-ref anchorbase src-endpt (λ [] src-endpt))]
                  [target (hash-ref anchorbase tgt-endpt (λ [] tgt-endpt))])
             (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks 0 0))
-            (define style0 (if (= src-endpt tgt-endpt) (default-dia~closed~track~style) (default-dia~open~track~style)))
+            (define style0
+              (cond [(not (= src-endpt tgt-endpt)) (default-dia~open~track~style)]
+                    [(keyword? source) (default-dia~zone~track~style)]
+                    [else (default-dia~closed~track~style)]))
             (define style-self : (U (Dia-Track-Style Dia-Free-Track-Style) Void False)
               (cond [(not free-adjuster) (void)]
                     [else (free-adjuster style0 source target ctracks label-text extra-track-info)]))

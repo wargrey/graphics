@@ -59,6 +59,7 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:type [type : Any #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [fill : Maybe-Fill-Paint #false]
            #:source-tip [src-tip : (Option Geo-Tip) #false]
            #:target-tip [tgt-tip : (Option Geo-Tip) #false]
            #:tip-color [tip-clr : (Option Color) #false]
@@ -83,7 +84,7 @@
     (define-values (xoff yoff width height x-stroke? y-stroke?) (point2d->window +nan.0+nan.0i lx ty rx by))
 
     (create-geometry-object geo:path:self
-                            #:with [id (geo-draw-path-self! stroke (or src-clr tip-clr) (or tgt-clr tip-clr) s.cfg t.cfg)
+                            #:with [id (geo-draw-path-self! stroke fill (or src-clr tip-clr) (or tgt-clr tip-clr) s.cfg t.cfg)
                                        (geo-shape-extent width height 0.0 0.0)
                                        (geo-shape-outline stroke x-stroke? y-stroke?)]
                             type footprints
@@ -97,6 +98,7 @@
 (define geo-path
   (lambda [#:id [id : (Option Symbol) #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [fill : Maybe-Fill-Paint #false]
            #:source-tip [src-tip : (Option Geo-Tip) #false]
            #:target-tip [tgt-tip : (Option Geo-Tip) #false]
            #:tip-color [tip-clr : (Option Color) #false]
@@ -117,7 +119,7 @@
            [segments : (Listof PolyCurve2D)] [tick-step : Real 0] [tick-rng : (U Real (Pairof Real Real)) 0]] : (U Geo:Path:Self Geo:Path)
     (define-values (sx sy) (2d-scale-values scale))
     (define me : Geo:Path:Self
-      (geo-path* #:id id #:stroke stroke #:source-tip src-tip #:target-tip tgt-tip
+      (geo-path* #:id id #:stroke stroke #:fill fill #:source-tip src-tip #:target-tip tgt-tip
                  #:tip-color tip-clr #:source-color src-clr #:target-color tgt-clr
                  #:tip-placement tip-plm #:source-placement src-plm #:target-placement tgt-plm
                  (let-values ([(curves lx ty rx by) (~polycurves segments offset sx sy)])
@@ -264,7 +266,7 @@
     (geo:path-self master)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-path-self-pin-layer : (->* (Geo-Path) (Float-Complex) (GLayerof Geo))
+(define geo-path-self-pin-layer : (->* (Geo-Path) (Float-Complex) (GLayerof Geo-Path))
   (lambda [master [offset 0.0+0.0i]]
     (define ppos : Float-Complex (+ (geo-path-self-pin-position master #false) offset))
     (define-values (width height) (geo-flsize master))
@@ -272,8 +274,8 @@
     (glayer master (real-part ppos) (imag-part ppos) width height)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-draw-path-self! : (-> Maybe-Stroke-Paint (Option Color) (Option Color) Geo-Tip-Config Geo-Tip-Config Geo-Surface-Draw!)
-  (lambda [alt-stroke alt-sclr alt-tclr scfg tcfg]
+(define geo-draw-path-self! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option Color) (Option Color) Geo-Tip-Config Geo-Tip-Config Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill alt-sclr alt-tclr scfg tcfg]
     (define alt-srgba (and alt-sclr (rgb* alt-sclr)))
     (define alt-trgba (and alt-tclr (rgb* alt-tclr)))
     
@@ -295,7 +297,7 @@
                (desc-brush #:color clr #:opacity opacity)))
 
         (dc_edge cr x0 y0 width height
-                 (geo:path:self-footprints self) (geo:path:self-bbox-offset self) paint
+                 (geo:path:self-footprints self) (geo:path:self-bbox-offset self) paint (geo-select-fill-source alt-fill)
                  (geo:path:self-source-tip self) (tip-pen scfg sclr) (tip-brush scfg sclr) (car (geo:path:self-source self))
                  (geo:path:self-target-tip self) (tip-pen tcfg tclr) (tip-brush tcfg tclr) (car (geo:path:self-target self))
                  (geo:path:self-adjust-offset self))))))

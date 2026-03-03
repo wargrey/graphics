@@ -17,15 +17,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; controls
-(define #:forall (S) act-block-final : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-done : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction tag]
     (dia-symbol-bullseye block-key style width height (&% 72) 'Activity)))
 
-(define #:forall (S) act-block-flow-final : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-terminate : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction stereotype]
     (dia-symbol-circle block-key style width height (list pi/4 3pi/4) 'Flow)))
 
-(define #:forall (S) act-block-fork : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-fork : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction tag]
     (define width-coeffcient : Nonnegative-Flonum
       (cond [(eq? tag 'Compact) 0.5]
@@ -38,7 +38,7 @@
                           [else 1.0]))]))
     (dia-block-rectangle/cr:2nd block-key #false style (* width width-coeffcient) height direction tag)))
 
-(define #:forall (S) act-block-join : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-join : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction tag]
     (define width-coeffcient : Nonnegative-Flonum
       (cond [(eq? tag 'Compact) 0.5]
@@ -53,7 +53,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Actions
-(define #:forall (S) act-block-time-event : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-time-event : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style ignore-width height direction stereotype]
     (create-dia-block #:id block-key '(Event Time)
                       #:fit-region 1.00 0.42 0.00 0.00
@@ -62,12 +62,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; objects
-(define #:forall (S) act-block-object : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-object : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction stereotype]
     (dia-block-rectangle block-key caption style width height direction stereotype
                          stereotype (default-act-stereotype-font))))
 
-(define #:forall (S) act-block-central-buffer : (Dia-Block-Create S (Option Symbol))
+(define #:forall (S) act-block-central-buffer : (Dia-Block-Create S (Option Keyword))
   (lambda [block-key caption style width height direction stereotype]
     (act-block-object block-key caption style width height direction
-                      (if (or stereotype) 'datastore 'centralBuffer))))
+                      (or stereotype '#:centralBuffer))))
+
+(define #:forall (S) act-block-data-store : (Dia-Block-Create S (Option Keyword))
+  (lambda [block-key caption style width height direction stereotype]
+    (act-block-object block-key caption style width height direction
+                      (or stereotype '#:datastore))))

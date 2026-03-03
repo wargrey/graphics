@@ -9,16 +9,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dc_edge : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                      Geo-Path-Clean-Prints Float-Complex (Option Pen)
+                      Geo-Path-Clean-Prints Float-Complex (Option Pen) (Option Brush)
                       Geo-Path-Prints (Option Pen) (Option Brush) Float-Complex
                       Geo-Path-Prints (Option Pen) (Option Brush) Float-Complex
                       (Pairof (Option Float-Complex) (Option Float-Complex))
                       Any)
-  (lambda [cr x0 y0 flwidth flheight footprints offset stroke
+  (lambda [cr x0 y0 flwidth flheight footprints offset stroke background
               src-mkr-prints src-mkr-pen src-mkr-brush src-pos
               tgt-mkr-prints tgt-mkr-pen tgt-mkr-brush tgt-pos
               adjust-offset]
     (define-values (dx dy) (values (real-part offset) (imag-part offset)))
+
+    (when (and background)
+      (cairo_save cr)
+      (cairo_new_path cr)
+      (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset) #true)
+      (cairo-render-with-fill cr background)
+      (cairo_restore cr))
     
     (cairo_new_path cr)
     (cairo_clean_path cr footprints (+ x0 dx) (+ y0 dy) (car adjust-offset) (cdr adjust-offset) #false)

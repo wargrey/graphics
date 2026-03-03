@@ -6,7 +6,7 @@
 
 (require geofun/font)
 (require geofun/digitama/self)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/layer/void)
 (require geofun/digitama/track/anchor)
 
@@ -43,16 +43,16 @@
                 [path (dia-note-track-build source target (car retracks) style-spec)])
            (and (geo? path) path)))))
 
-(define dia-note-block-realize : (-> Geo-Anchor-Name String Positive-Index Dia-Note-Factory (Option Dia-Note-Describer)
+(define dia-note-block-realize : (-> Geo-Anchor-Name String (Option Keyword) Dia-Note-Factory (Option Dia-Note-Describer)
                                      (Option Flonum) (Option Nonnegative-Flonum) (Option Nonnegative-Flonum)
                                      (Option Dia:Block:Note))
-  (lambda [anchor text size note-factory note-desc direction scale opacity]
+  (lambda [anchor raw-text stereotype note-factory note-desc direction scale opacity]
     (define make-note (dia-note-factory-builder note-factory))
+    (define text (substring raw-text 2)) ; meanwhile it must be prefixed with "//"
     
     (and make-note
-         (let*-values ([(text stereotype) (dia-block-caption-split-for-stereotype (substring text 2 size))]
-                       [(note-info) (dia-note-block-info anchor text make-dia-note-block-style stereotype)]
-                       [(style) (values (caddr note-info))])
+         (let* ([note-info (dia-note-block-info anchor text make-dia-note-block-style stereotype)]
+                [style (values (caddr note-info))])
            (and style
                 (let* ([backstop-style ((dia-note-factory-λblock-backstop-style note-factory))]
                        [typeset (or (dia-note-factory-typesetter note-factory) dia-note-typeset)]

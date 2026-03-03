@@ -23,7 +23,7 @@
 (struct cls-block-style () #:type-name Cls-Block-Style)
 (struct cls-track-style () #:type-name Cls-Track-Style)
 
-(define-type Cls-Block-Metadata (Option Symbol))
+(define-type Cls-Block-Metadata (Option Keyword))
 (define-type Cls-Block-Theme-Adjuster (Dia-Block-Theme-Adjuster Cls-Block-Style Cls-Block-Metadata))
 (define-type Cls-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster Cls-Track-Style))
 

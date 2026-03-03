@@ -18,12 +18,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-cls-block-identify : (Dia-Block-Identifier Cls-Block-Style Cls-Block-Metadata)
-  (lambda [anchor text size]
+  (lambda [anchor text size stereotype]
     (if (symbol? anchor)
-        (let-values ([(cname tag) (dia-block-caption-split-for-stereotype text)])
-          (if (and tag)
-              (cls-tagged-class-identify anchor cname tag)
-              (cls-named-class-identify anchor cname)))
+        (if (and stereotype)
+            (cls-tagged-class-identify anchor text stereotype)
+            (cls-named-class-identify anchor text))
         (cls-interface-style-construct anchor text))))
 
 (define default-cls-track-identify : (Dia-Track-Identifier Cls-Track-Style)
@@ -45,14 +44,14 @@
          [else (cls-track-adjust source target labels default-cls~generalization~style)])])))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define cls-tagged-class-identify : (-> Symbol String Symbol (Option (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata)))
+(define cls-tagged-class-identify : (-> Symbol String Keyword (Option (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata)))
   (lambda [anchor text tag]
     (case/eq tag
-      [(T t Type type) (cls-plain-type-construct anchor text)]
-      [(A a Abstract abstract) (cls-abstract-style-construct anchor text)]
-      [(E e Enum enum Enumeration enumeration) (cls-block-info anchor text default-cls-enumeration-style)]
-      [(λ F f Lambda lambda Function function) (cls-block-info anchor text default-cls-lambda-style)]
-      [(Functor functor) (cls-block-info anchor text default-cls-lambda-style)]
+      [(#:T #:t #:Type #:type) (cls-plain-type-construct anchor text)]
+      [(#:A #:a #:Abstract #:abstract) (cls-abstract-style-construct anchor text)]
+      [(#:E #:e #:Enum #:enum #:Enumeration #:enumeration) (cls-block-info anchor text default-cls-enumeration-style)]
+      [(#:λ #:F #:f #:Lambda #:lambda #:Function #:function) (cls-block-info anchor text default-cls-lambda-style)]
+      [(#:Functor #:functor) (cls-block-info anchor text default-cls-lambda-style)]
       [else (cls-block-info anchor text default-cls-unrecognized-style tag)])))
 
 (define cls-named-class-identify : (-> Symbol String (Option (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata)))
@@ -78,15 +77,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define cls-interface-style-construct : (-> Geo-Anchor-Name String (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata))
   (lambda [anchor text]
-    (cls-block-info anchor text default-cls-interface-style 'Interface)))
+    (cls-block-info anchor text default-cls-interface-style '#:Interface)))
 
 (define cls-abstract-style-construct : (-> Geo-Anchor-Name String (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata))
   (lambda [anchor text]
-    (cls-block-info anchor text default-cls-abstract-style 'Abstract)))
+    (cls-block-info anchor text default-cls-abstract-style '#:Abstract)))
 
 (define cls-plain-type-construct : (-> Geo-Anchor-Name String (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata))
   (lambda [anchor text]
-    (cls-block-info anchor text default-cls-type-style 'Type)))
+    (cls-block-info anchor text default-cls-type-style '#:Type)))
 
 (define cls-plain-style-construct : (-> Geo-Anchor-Name String (Dia-Block-Info Cls-Block-Style Cls-Block-Metadata))
   (lambda [anchor text]

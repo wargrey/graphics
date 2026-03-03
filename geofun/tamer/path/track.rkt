@@ -26,9 +26,9 @@
   [=> (drift '#:home '(-0.5+i -0.5-i))
       (stamp (bacteriophage-logo 20.0) 'ct)]
   
-  (move-up-right)
+  (move-right-up)
   (move-right-down)
-  (move-down-left)
+  (move-left-down)
   (move-left-up)
   #;(close)
   
@@ -61,13 +61,13 @@
   (jump-leftward 0.5)
   (move-left-down 0.5 0.5)
   (move-right-down 0.5 0.5)
-  (move-up-right 0.5 0.5)
-  (move-up-left 0.5 0.5)
+  (move-right-up 0.5 0.5)
+  (move-left-up 0.5 0.5)
   (close))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (require geofun/digitama/dc/track)
+  (require geofun/digitama/track/self)
   (require geofun/vector)
   (require bitmap)
 

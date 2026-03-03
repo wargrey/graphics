@@ -4,7 +4,9 @@
 
 (require digimon/measure)
 (require digimon/struct)
+
 (require racket/string)
+(require racket/list)
 
 (require geofun/font)
 (require geofun/stroke)
@@ -253,15 +255,23 @@
   (lambda [anchor]
     (string->symbol (string-append "&" (geo-anchor->string anchor)))))
 
-(define dia-block-caption-split-for-stereotype : (-> String (Values String (Option Symbol)))
+(define dia-block-caption-split-for-stereotype : (-> String (Values String (Option Keyword)))
   (lambda [text]
-    (define maybe (regexp-match #px"(.*)#(\\w+)$" text))
+    (define has-hash? (regexp-match? #px"#" text))
 
-    (cond [(not maybe) (values text #false)]
-          [else (values (or (cadr maybe) text)
-                        (let ([stype (caddr maybe)])
-                          (and (string? stype)
-                               (string->symbol stype))))])))
+    (cond [(not has-hash?) (values text #false)]
+          [else (let ([tokens (string-split text #px"#")])
+                  (define-values (cname stype)
+                    (cond [(not (pair? tokens)) (values text #false)]
+                          [(null? (cdr tokens)) (values "" (string-trim (car tokens)))]
+                          [(null? (cddr tokens)) (values (car tokens) (string-trim (cadr tokens)))]
+                          [else (let-values ([(cnames tag) (split-at-right tokens 1)])
+                                  (values (string-join cnames "#") (string-trim (car tag))))]))
+                  (values cname
+                          (and stype
+                               (and (non-empty-string? stype)
+                                    (cond [(eq? (string-ref stype 0) #\.) #false]
+                                          [else (string->keyword stype)])))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S M) dia-block-theme-adjust : (-> (Dia-Block-Style S) Geo-Anchor-Name (Option (Dia-Block-Theme-Adjuster S M)) M

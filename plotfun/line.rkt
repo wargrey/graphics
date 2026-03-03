@@ -9,12 +9,12 @@
 (require racket/case)
 (require digimon/measure)
 
-(require geofun/digitama/dc/path)
-(require geofun/digitama/dc/composite)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/combine)
 
+(require geofun/digitama/dc/composite)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)
 

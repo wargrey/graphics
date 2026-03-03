@@ -2,13 +2,13 @@
 
 (provide (all-defined-out))
 
+(require "self.rkt")
+
 (require "../self.rkt")
-(require "../convert.rkt")
 (require "../composite.rkt")
 (require "../geometry/bbox.rkt")
 
 (require "../dc/text.rkt")
-(require "../dc/track.rkt")
 (require "../dc/composite.rkt")
 
 (require "../layer/type.rkt")

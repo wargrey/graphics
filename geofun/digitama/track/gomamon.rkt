@@ -2,14 +2,12 @@
 
 (provide (all-defined-out))
 
+(require "self.rkt")
 (require "datum.rkt")
 (require "trail.rkt")
 (require "anchor.rkt")
 
 (require "../base.rkt")
-(require "../dc/track.rkt")
-
-(require "../geometry/bbox.rkt")
 (require "../geometry/footprint.rkt")
 
 (require (for-syntax racket/base))
@@ -201,13 +199,12 @@
     (define cpos++ : Float-Complex (+ (make-rectangular (* ex rx) (* ey ry)) cpos))
     (define path:arc (gpp:arc #\A cpos++ (+ (make-rectangular (* cx rx) (* cy ry)) cpos) rx ry start end clockwise?))
 
-    (geo-bbox-fit! (geo:track-bbox self) cpos++)
     (when (and guard)
-      (geo-bbox-fit! (geo:track-bbox self) cpos
-                     (real->double-flonum (* (real-part guard) rx))
-                     (real->double-flonum (* (imag-part guard) ry))))
+      (geo-track-try-fit! self
+                          (+ cpos (make-rectangular (real->double-flonum (* (real-part guard) rx))
+                                                    (real->double-flonum (* (imag-part guard) ry))))))
 
-    (geo-trail-try-set! (geo:track-trail self) anchor cpos++)
+    (geo-track-try-fit! self anchor cpos++)
     (set-geo:track-here! self cpos++)
     (set-geo:track-footprints! self (cons path:arc (geo:track-footprints self)))))
 
@@ -217,14 +214,11 @@
   (case-lambda
     [(self anchor pos-anchor)
      (define pos : Float-Complex (geo-track-target-position self anchor))
-     
-     (when (complex? anchor)
-       (geo-trail-try-set! (geo:track-trail self) pos-anchor pos))
-     
+     (when (complex? anchor) (geo-track-try-fit! self pos-anchor pos))
      (geo-track-jump-to self pos)]
     [(self target anchor offset) ; used by the `radial back`
      (let ([pos (geo-track-target-position self target offset)])
-       (geo-trail-try-set! (geo:track-trail self) anchor pos)
+       (geo-track-try-fit! self anchor pos)
        (geo-track-jump-to self pos))]
     [(self abs-pos) ; used by the `radial move` and `geo-back-jump-to`
      (set-geo:track-origin! self abs-pos)
@@ -238,8 +232,7 @@
     [(self target pos-anchor info) (geo-track-connect-to self target pos-anchor info 0.0+0.0i)]
     [(self target pos-anchor info offset) ; used by the `radial move`
      (let ([pos (geo-track-target-position self target offset)])
-       (when (complex? target)
-         (geo-trail-try-set! (geo:track-trail self) pos-anchor pos))
+       (when (complex? target) (geo-track-try-fit! self pos-anchor pos))
        (geo-track-connect-to self pos info))]
     [(self abs-pos info) ; used by the `radial back` and `geo-track-connect-to`
      (unless (not info)
@@ -258,9 +251,7 @@
   (lambda [self endpt ctrl anchor]
     (define path:bezier (gpp:bezier:quadratic #\Q endpt (geo:track-here self) (default-bezier-samples) ctrl))
 
-    (geo-bbox-fit! (geo:track-bbox self) endpt)
-    (geo-bbox-fit! (geo:track-bbox self) ctrl)
-    (geo-trail-try-set! (geo:track-trail self) anchor endpt)
+    (geo-track-try-fit! self anchor endpt ctrl)
     (set-geo:track-here! self endpt)
     (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))))
 
@@ -268,10 +259,7 @@
   (lambda [self endpt ctrl1 ctrl2 anchor]
     (define path:bezier (gpp:bezier:cubic #\C endpt (geo:track-here self) (default-bezier-samples) ctrl1 ctrl2))
 
-    (geo-bbox-fit! (geo:track-bbox self) endpt)
-    (geo-bbox-fit! (geo:track-bbox self) ctrl1)
-    (geo-bbox-fit! (geo:track-bbox self) ctrl2)
-    (geo-trail-try-set! (geo:track-trail self) anchor endpt)
+    (geo-track-try-fit! self anchor endpt ctrl1 ctrl2)
     (set-geo:track-here! self endpt)
     (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))))
 
@@ -290,8 +278,7 @@
                  (cons (geo:track-here self) endpt)
                  (geo-track-info info)))
     
-    (geo-bbox-fit! (geo:track-bbox self) endpt)
-    (geo-trail-try-set! (geo:track-trail self) anchor endpt)
+    (geo-track-try-fit! self anchor endpt)
     (set-geo:track-here! self endpt)
     (set-geo:track-footprints! self (cons (gpp:point op endpt) (geo:track-footprints self)))
 
@@ -362,15 +349,3 @@
      (+ (geo:track-here self)
         (make-rectangular (* (gomamon-txradius self) (real->double-flonum xstep) xsgn)
                           (* (gomamon-tyradius self) (real->double-flonum ystep) ysgn)))]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-track-zone : (-> Gomamon Real Real Void)
-  (lambda [self width height]
-    (define init-pos (geo:track-origin self))
-    
-    (set-geo:track-here! self init-pos)
-    (set-geo:track-footprints! self (cons the-Z (geo:track-footprints self)))))
-
-(define geo-track-lane : (-> Gomamon Void)
-  (lambda [self]
-    (void)))

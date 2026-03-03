@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-(require geofun/digitama/richtext/self)
 
 (require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
@@ -56,7 +55,7 @@
      (syntax/loc stx
        (create-geometry-group make-block name #false #false
                               #:outline (geo-outline shape)
-                              #:desc (dia-block-desc-from-caption maybe-caption)
+                              #:desc (geo-group-desc-from-caption maybe-caption)
                               (geo-dsfit-layers shape maybe-caption
                                                 lft% top% hfit% vfit%
                                                 sx% sy% (or tx% sx%) (or ty% sy%)
@@ -87,7 +86,7 @@
 
 (struct dia:block geo:group
   ([phantom-type : Any]
-   [tags : (Listof Symbol)]
+   [tags : (Listof (U Symbol Keyword))]
    [intersect : Dia-Block-Intersect])
   #:type-name Dia:Block
   #:transparent)
@@ -134,11 +133,11 @@
   (lambda [self phantom-type?]
     (and self (phantom-type? (dia:block-phantom-type self)))))
 
-(define dia:block-has-tag? : (-> Dia:Block Symbol Boolean)
+(define dia:block-has-tag? : (-> Dia:Block (U Keyword Symbol) Boolean)
   (lambda [self tag]
     (and (memq tag (dia:block-tags self)) #true)))
 
-(define dia:block*-has-tag? : (-> (Option Dia:Block) Symbol Boolean : #:+ Dia:Block)
+(define dia:block*-has-tag? : (-> (Option Dia:Block) (U Keyword Symbol) Boolean : #:+ Dia:Block)
   (lambda [self tag]
     (and self (dia:block-has-tag? self tag))))
 
@@ -208,16 +207,13 @@
          ((dia:block-intersect g) A B node-pos nlayer))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-block-tags : (-> Any (Listof Symbol))
+(define dia-block-tags : (-> Any (Listof (U Keyword Symbol)))
   (lambda [maybe-tags]
     (cond [(not maybe-tags) null]
+          [(keyword? maybe-tags) (list maybe-tags)]
           [(symbol? maybe-tags) (list maybe-tags)]
-          [(list? maybe-tags) (filter symbol? maybe-tags)]
-          [else null])))
+          [(not (list? maybe-tags)) null]
+          [else (for/list ([t (in-list maybe-tags)]
+                           #:when (or (keyword? t) (symbol? t)))
+                  t)])))
 
-(define dia-block-desc-from-caption : (-> (Option Geo) (Option String))
-  (lambda [maybe-caption]
-    (and maybe-caption
-         (cond [(geo:string? maybe-caption) (geo:string-body maybe-caption)]
-               [(geo:group? maybe-caption) (geo:group-desc maybe-caption)]
-               [else #false]))))

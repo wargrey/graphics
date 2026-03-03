@@ -3,7 +3,6 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-(require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)
@@ -34,7 +33,7 @@
                                 shape-argl ...)])
          (create-geometry-group make-slot name #false #false
                                 #:outline (geo-outline shape)
-                                #:desc (expr-slot-desc-from-term desc maybe-term)
+                                #:desc (geo-group-desc-from-caption desc maybe-term)
                                 (geo-dsfit-layers shape maybe-term lft% top% hfit% vfit%
                                                   sx% sy% (or tx% sx%) (or ty% sy%)
                                                   (default-expr-slot-margin))
@@ -44,12 +43,3 @@
 (struct expr:slot geo:group ()
   #:type-name Expr:Slot
   #:transparent)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define expr-slot-desc-from-term : (-> (Option String) (Option Geo) (Option String))
-  (lambda [desc maybe-term]
-    (or desc
-        (and maybe-term
-             (cond [(geo:string? maybe-term) (geo:string-body maybe-term)]
-                   [(geo:group? maybe-term) (geo:group-desc maybe-term)]
-                   [else #false])))))

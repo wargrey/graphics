@@ -5,6 +5,8 @@
 (provide (all-defined-out))
 
 (require "text.rkt")
+(require "string.rkt")
+
 (require "../../font.rkt")
 
 (require "../self.rkt")

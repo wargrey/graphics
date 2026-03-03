@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (all-from-out "digitama/track/self.rkt"))
+(provide (all-from-out "digitama/track/metadata.rkt"))
 (provide (all-from-out "digitama/track/anchor.rkt"))
 
 (provide Geo:Track Gomamon)
@@ -23,8 +23,6 @@
              [gomamon-jump-leftwards! gomamon-jump-leftward!])
  
  (rename-out [geo-track-close gomamon-close!]
-             [geo-track-zone gomamon-zone!]
-             [geo-track-lane gomamon-lane!]
              [make-sticker make-geo-sticker]))
 
 (require digimon/measure)
@@ -33,7 +31,6 @@
 (require "digitama/convert.rkt")
 (require "digitama/composite.rkt")
 
-(require "digitama/dc/track.rkt")
 (require "digitama/dc/composite.rkt")
 (require "digitama/layer/type.rkt")
 (require "digitama/layer/sticker.rkt")
@@ -42,6 +39,7 @@
 
 (require "digitama/track/dsl.rkt")
 (require "digitama/track/self.rkt")
+(require "digitama/track/metadata.rkt")
 (require "digitama/track/datum.rkt")
 (require "digitama/track/gomamon.rkt")
 (require "digitama/track/sticker.rkt")
@@ -163,6 +161,27 @@
          (geo-track-connect-to goma target argument #false)
          (geo-track-connect-to goma target #false argument))]
     [(goma target anchor info) (geo-track-connect-to goma target anchor info)]))
+
+(define gomamon-move-back! : (case-> [Gomamon (U Geo-Anchor-Name Complex) -> Void]
+                                     [Gomamon Geo-Anchor-Name Any -> Void]
+                                     [Gomamon Complex (Option Geo-Anchor-Name) -> Void]
+                                     [Gomamon Complex (Option Geo-Anchor-Name) Any -> Void])
+  (case-lambda
+    [(goma target)
+     (define here : Float-Complex (geo:track-here goma))
+     (geo-track-jump-to goma target #false)
+     (geo-track-connect-to goma here #false)]
+    [(goma target argument)
+     (define here : Float-Complex (geo:track-here goma))
+     (if (complex? target)
+         (begin (geo-track-jump-to goma target argument)
+                (geo-track-connect-to goma here #false))
+         (begin (geo-track-jump-to goma target #false)
+                (geo-track-connect-to goma here argument)))]
+    [(goma target anchor info)
+     (define here : Float-Complex (geo:track-here goma))
+     (geo-track-jump-to goma target anchor)
+     (geo-track-connect-to goma here info)]))
 
 (define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
   (lambda [goma target [anchor #false]]

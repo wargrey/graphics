@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "digitama/track/base.rkt"))
+(provide (all-from-out "digitama/zone/base.rkt"))
 (provide (all-from-out "digitama/decoration/base.rkt"))
 (provide (all-from-out "digitama/flowchart/self.rkt"))
 (provide (all-from-out "digitama/flowchart/style.rkt"))
@@ -15,6 +16,7 @@
 (require "digitama/block/realize.rkt")
 (require "digitama/block/interface.rkt")
 
+(require "digitama/zone/base.rkt")
 (require "digitama/decoration/base.rkt")
 
 (require "digitama/flowchart/self.rkt")

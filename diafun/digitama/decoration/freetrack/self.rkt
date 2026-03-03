@@ -8,10 +8,10 @@
 (require geofun/font)
 (require geofun/paint)
 
-(require geofun/digitama/dc/path)
-(require geofun/digitama/track/self)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/path/label)
 (require geofun/digitama/path/tip/self)
+(require geofun/digitama/track/metadata)
 (require geofun/digitama/geometry/footprint)
 
 (require "../../track/style.rkt")
@@ -38,6 +38,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia-free-track-style () #:type-name Dia-Free-Track-Style)
+
+(define-type Dia-Zone-Track-Style dia-zone-track-style)
+(struct (T) dia-zone-track-style dia-track-style
+  ([fill-paint : Option-Fill-Paint])
+  #:transparent)
 
 (define default-free-track-theme-adjuster : (Parameterof (Option Dia-Free-Track-Adjuster)) (make-parameter #false))
 
@@ -77,6 +82,19 @@
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (&% -100)]))
+
+(define-phantom-struct dia~zone~track~style : Dia~Zone~Track~Style #:-> dia-free-track-style #:for dia-zone-track-style
+  ([font : (Option Font) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [width : (Option Flonum) #false]
+   [color : Maybe-Color (void)]
+   [dash : (Option Stroke-Dash+Offset) 'solid]
+   [source-tip : Maybe-Geo-Tip #false]
+   [target-tip : Maybe-Geo-Tip #false]
+   [label-rotate? : (U Boolean Void) #true]
+   [label-inline? : (U Boolean Void) #false]
+   [label-distance : (U Void Length+%) (&% -100)]
+   [fill-paint : Option-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter dia-free-track-factory : Dia-Free-Track-Factory

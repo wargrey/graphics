@@ -10,7 +10,7 @@
 (require "unit.rkt")
 
 (require "../self.rkt")
-(require "../dc/text.rkt")
+(require "../dc/string.rkt")
 (require "../dc/composite.rkt")
 
 (require "../layer/type.rkt")

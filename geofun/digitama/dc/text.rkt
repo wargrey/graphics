@@ -5,6 +5,8 @@
 (require racket/string)
 (require racket/math)
 
+(require "string.rkt")
+
 (require "../self.rkt")
 (require "../convert.rkt")
 
@@ -18,13 +20,6 @@
 (require "../unsafe/font.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct geo:string geo
-  ([body : String]
-   [lines : (Listof Geo-Text-Line)]
-   [alignment : Geo-Text-Alignment])
-  #:type-name Geo:String
-  #:transparent)
-
 (struct geo:art-text geo:string ()
   #:type-name Geo:Art-Text
   #:transparent)

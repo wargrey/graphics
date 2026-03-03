@@ -131,7 +131,7 @@
           [else (let* ([aradius (* height 0.5 0.384)]
                        [ar% (/ aradius width)])
                   (create-dia-block #:id block-key subtype
-                                    #:fit-region (- 1.0 ar% ar%) 1.0 0.25 0.0
+                                    #:fit-region (- 1.0 ar%) 1.0 (* ar% 0.5) 0.0
                                     #:create-with style [dia-flow-storage width height aradius]
                                     caption))])))
 
@@ -159,12 +159,12 @@
   (lambda [block-key caption style width height direction subtype]
     (define extra-n : Index 2)
     (define gapsize : Nonnegative-Flonum (* height 0.1))
-    (define ngap : Nonnegative-Flonum (* gapsize (real->double-flonum extra-n)))
-    (define offset% : Flonum (/ ngap width))
+    (define hoffset% : Flonum (/ (* gapsize 2.0) width))
+    (define voffset% : Flonum (/ gapsize height))
     (define wave% : Nonnegative-Flonum 0.25)
     
     (create-dia-block #:id block-key subtype
-                      #:fit-region (- 1.00 offset%) (- 1.00 wave% offset%) 0.0 0.0
+                      #:fit-region (- 1.00 hoffset%) (- 1.00 wave%) 0.0 (* voffset% 3.0)
                       #:create-with style [geo-document #:gapsize gapsize #:extra-n extra-n width height (&: (* wave% 0.5))]
                       caption)))
 

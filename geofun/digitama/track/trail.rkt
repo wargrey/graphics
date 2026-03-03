@@ -46,11 +46,6 @@
     [(self anchor defval)
      (hash-ref (geo-trail-positions self) anchor (λ [] defval))]))
 
-(define geo-trail-try-set! : (-> Geo-Trail (Option Geo-Anchor-Name) Float-Complex Void)
-  (lambda [self anchor pos]
-    (unless (not anchor)
-      (geo-trail-set! self anchor pos))))
-
 (define geo-trail-set! : (-> Geo-Trail Geo-Anchor-Name Float-Complex Void)
   (lambda [self anchor pos]
     (when (hash-has-key? (geo-trail-positions self) anchor)

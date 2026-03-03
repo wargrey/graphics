@@ -3,8 +3,8 @@
 (provide (all-defined-out))
 
 (require geofun/color)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/dc/path)
 
 (require "self.rkt")
 

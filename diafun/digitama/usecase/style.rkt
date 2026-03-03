@@ -22,7 +22,7 @@
 (struct uc-block-style () #:type-name UC-Block-Style)
 (struct uc-track-style () #:type-name UC-Track-Style)
 
-(define-type UC-Block-Metadata (Option Symbol))
+(define-type UC-Block-Metadata (Option Keyword))
 (define-type UC-Block-Theme-Adjuster (Dia-Block-Theme-Adjuster UC-Block-Style UC-Block-Metadata))
 (define-type UC-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster UC-Track-Style))
 

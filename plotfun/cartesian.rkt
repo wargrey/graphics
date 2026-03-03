@@ -11,9 +11,9 @@
 (require racket/case)
 (require digimon/measure)
 
+(require geofun/digitama/path/dc)
 (require geofun/digitama/dc/grid)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/dc/path)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)

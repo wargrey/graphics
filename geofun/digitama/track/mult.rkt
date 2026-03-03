@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require "self.rkt")
+(require "metadata.rkt")
 (require "../path/label.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

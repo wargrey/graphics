@@ -4,7 +4,7 @@
 
 (require racket/keyword)
 
-(require "self.rkt")
+(require "metadata.rkt")
 
 (require "../richtext/self.rkt")
 (require "../path/label.rkt")

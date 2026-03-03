@@ -27,6 +27,7 @@
           [(dia-track-style?? self act~object~flow~style?) (default-act~object~flow~style)]
           [else #false])))
 
+;;; TODO: cascade MIMO object 
 (define default-act-block-linker : (Dia-Block-Link-Root-Style Act-Block-Style)
   (lambda [self]
     (cond [(dia-block-style?? self act-object-node-style?) (default-act-object-style)]
@@ -39,7 +40,8 @@
      style
      [(act-action-style?) (dia-block-rectangle/cr:4th key caption style width height direction maybe-type)]
      [(act-object-style?) (act-block-object key caption style width height direction maybe-type)]
-     [(act-material-style?) (act-block-object key caption style width height direction (or maybe-type 'material))]
+     [(act-material-style?) (act-block-object key caption style width height direction maybe-type)]
+     [(act-data-store-style?) (act-block-data-store key caption style width height direction maybe-type)]
      [(act-central-buffer-style?) (act-block-central-buffer key caption style width height direction maybe-type)]
      
      [(act-decision-style?) (dia-symbol-diamond key style width height direction maybe-type)]
@@ -50,8 +52,8 @@
      [(act-time-event-style?) (act-block-time-event key caption style width height direction maybe-type)]
 
      [(act-initial-style?) (dia-symbol-circle key style height height null maybe-type)]
-     [(act-final-style?) (act-block-final key caption style width height direction maybe-type)]
-     [(act-flow-final-style?) (act-block-flow-final key caption style width height direction maybe-type)]
+     [(act-final-style?) (act-block-done key caption style width height direction maybe-type)]
+     [(act-flow-final-style?) (act-block-terminate key caption style width height direction maybe-type)]
      [(act-connector-style?) (dia-block-circle key caption style width height maybe-type)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

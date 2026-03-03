@@ -5,10 +5,9 @@
 (require digimon/struct)
 
 (require geofun/digitama/geometry/footprint)
-(require geofun/digitama/track/self)
-
+(require geofun/digitama/track/metadata)
 (require geofun/digitama/path/label)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/path/dc)
 
 (require "style.rkt")
 (require "../block/dc.rkt")

@@ -13,6 +13,7 @@
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 
+(require geofun/digitama/dc/composite)
 (require geofun/digitama/geometry/sides)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -42,7 +43,7 @@
                              #:intersect (if (< stickman-width caption-width)
                                              (dia-apothem-intersect (abs (/ stickman-width caption-width 2.0)) 0.5)
                                              dia-default-intersect)
-                             #:with-group style (geo-vc-append #:desc (dia-block-desc-from-caption caption)
+                             #:with-group style (geo-vc-append #:desc (geo-group-desc-from-caption caption)
                                                                #:gapsize (geo-standard-insets-top padding)
                                                                stickman caption))]
           [else ; just in case someone employs a quirk width
@@ -50,6 +51,6 @@
                              #:intersect (if (< stickman-width width)
                                              (dia-apothem-intersect (abs (/ stickman-width width 2.0)) 0.5)
                                              dia-default-intersect)
-                             #:with-group style (geo-vc-append #:desc (dia-block-desc-from-caption caption)
+                             #:with-group style (geo-vc-append #:desc (geo-group-desc-from-caption caption)
                                                                #:gapsize (geo-standard-insets-top padding)
                                                                stickman (geo-scale caption (/ width caption-width))))])))

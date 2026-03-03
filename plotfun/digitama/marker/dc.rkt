@@ -9,18 +9,17 @@
 (require geofun/digitama/self)
 (require geofun/digitama/color)
 (require geofun/digitama/paint/self)
+(require geofun/digitama/dc/composite)
 
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/realize)
-
-(require geofun/digitama/dc/path)
-(require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/layer/sticker)
 (require geofun/digitama/layer/merge)
 
+(require geofun/digitama/path/dc)
 (require geofun/digitama/geometry/footprint)
 
 (require "self.rkt")

@@ -5,9 +5,9 @@
 (require digimon/measure)
 
 (require geofun/track)
-(require geofun/digitama/dc/track)
-(require geofun/digitama/dc/composite)
+(require geofun/digitama/track/self)
 
+(require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/combine)
 (require geofun/digitama/nice/box)
@@ -21,8 +21,8 @@
     [(_ Geo id self (~seq #:frame frame) realize:expr argl ...)
      (syntax/loc stx
        (parameterize ([current-master-track self])
-         (let*-values ([(tracks blocks user-stickers) realize]
-                       [(stickers) (append tracks blocks user-stickers)]
+         (let*-values ([(bands zones tracks blocks user-stickers) realize]
+                       [(stickers) (append bands zones tracks blocks user-stickers)]
                        [(border background margin padding open-sides) (geo-frame-values frame)])
            (create-geometry-group Geo id #false #false
                                   #:border border #:background background

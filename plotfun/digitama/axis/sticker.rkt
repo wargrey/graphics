@@ -10,7 +10,7 @@
 
 (require geofun/digitama/self)
 (require geofun/digitama/dc/text)
-(require geofun/digitama/dc/path)
+(require geofun/digitama/path/dc)
 (require geofun/digitama/path/tick)
 (require geofun/digitama/paint/self)
 

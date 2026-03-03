@@ -23,8 +23,8 @@
            (act-track-adjust source target labels default-act~decision~input~style)]
           [(or (dia:block-typeof? source act-object-node-style?)
                (dia:block*-typeof? target act-object-node-style?))
-           (if (and (or (dia:block-typeof? source act-central-buffer-style?)
-                        (dia:block*-typeof? target act-central-buffer-style?))
+           (if (and (or (dia:block-typeof? source act-mimo-object-node-style?)
+                        (dia:block*-typeof? target act-mimo-object-node-style?))
                     (geo-path-label-has-stereotype? labels))
                (act-track-adjust source target labels default-act~storage~style)
                (act-track-adjust source target labels default-act~object~flow~style))]
@@ -41,17 +41,17 @@
           (act-track-adjust #false target labels default-act~storage~style))]))
 
 (define default-act-block-identify : (Dia-Block-Identifier Act-Block-Style Act-Block-Metadata)
-  (lambda [anchor text size]
+  (lambda [anchor text size stereotype]
     (if (keyword? anchor)
 
         (cond [(eq? anchor '#:home) (act-block-info anchor text default-act-initial-style)]
-              [else (act-object-text-identify anchor text size)])
+              [else (act-object-text-identify anchor text size stereotype)])
 
-        (act-control-text-identify anchor text size))))
+        (act-control-text-identify anchor text size stereotype))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define act-control-text-identify : (-> Symbol String Positive-Index (Option (Dia-Block-Info Act-Block-Style Act-Block-Metadata)))
-  (lambda [anchor text size]
+(define act-control-text-identify : (-> Symbol String Positive-Index (Option Keyword) (Option (Dia-Block-Info Act-Block-Style Act-Block-Metadata)))
+  (lambda [anchor text size stereotype]
     (define-values (idx$ idx$2) (values (- size 1) (- size 2)))
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
 
@@ -60,53 +60,52 @@
           [(eq? ch$ #\?) (act-block-info anchor #false default-act-decision-style)]
           [(eq? ch$ #\$)
            (if (string-suffix? text "~$")
-               (act-block-info anchor #false default-act-flow-final-style 'Flow)
-               (act-block-info anchor #false default-act-final-style 'Activity))]
-          [(eq? ch0 #\λ) (act-block-info anchor (substring text 1 size) default-act-action-style 'Call)]
+               (act-block-info anchor #false default-act-flow-final-style '#:Flow)
+               (act-block-info anchor #false default-act-final-style '#:Activity))]
+          [(eq? ch0 #\λ) (act-block-info anchor (substring text 1 size) default-act-action-style '#:Call)]
           [(eq? ch0 #\-)
            (cond [(eq? ch$ #\=) (act-block-info anchor #false default-act-fork-style)]
                  [(eq? ch$ #\+) (act-block-info anchor #false default-act-decision-style)]
-                 [(eq? ch$ #\<) (act-block-info anchor #false default-act-fork-style 'Compact)]
+                 [(eq? ch$ #\<) (act-block-info anchor #false default-act-fork-style '#:Compact)]
                  [else #false])]
           [(eq? ch0 #\=) (and (eq? ch$ #\-) (act-block-info anchor #false default-act-join-style))]
-          [(eq? ch0 #\>) (and (eq? ch$ #\-) (act-block-info anchor #false default-act-join-style 'Compact))]
+          [(eq? ch0 #\>) (and (eq? ch$ #\-) (act-block-info anchor #false default-act-join-style '#:Compact))]
           [(eq? ch0 #\+)
            (cond [(eq? ch$ #\+) (act-block-info anchor #false default-act-merge-style)]
                  [(eq? ch$ #\-) (act-block-info anchor #false default-act-merge-style)]
                  [else #false])]
           [(eq? ch0 #\@)
            (if (eq? ch$ #\.)
-               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style 'sink)
-               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style 'root))]
+               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style '#:sink)
+               (act-block-info anchor (string (string-ref text 1)) default-act-connector-style '#:root))]
           [(eq? ch0 #\&)
            (if (eq? ch$ #\.)
-               (act-block-info anchor (substring text 1 idx$) default-act-signal-style 'page-sink)
-               (act-block-info anchor (substring text 1 size) default-act-signal-style 'page-root))]
+               (act-block-info anchor (substring text 1 idx$) default-act-signal-style '#:page-sink)
+               (act-block-info anchor (substring text 1 size) default-act-signal-style '#:page-root))]
           [(eq? ch$ #\.)
            (and (string-suffix? text "...")
                 (act-block-info anchor (substring text 0 (- idx$2 1)) default-act-time-event-style))]
           [(eq? ch0 #\\) (act-block-info anchor (substring text 1 size) default-act-action-style)]
-          [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-action-style 'Manual)]
-          [else (act-block-info anchor text default-act-action-style)])))
+          [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-action-style '#:Manual)]
+          [else (act-block-info anchor text default-act-action-style stereotype)])))
 
-(define act-object-text-identify : (-> Keyword String Positive-Index (Option (Dia-Block-Info Act-Block-Style Act-Block-Metadata)))
-  (lambda [anchor text size]
+(define act-object-text-identify : (-> Keyword String Positive-Index (Option Keyword) (Option (Dia-Block-Info Act-Block-Style Act-Block-Metadata)))
+  (lambda [anchor text size stereotype]
     (define-values (idx$ idx$2) (values (- size 1) (- size 2)))
     (define-values (ch0 ch$) (values (string-ref text 0) (string-ref text idx$)))
 
-    (cond [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-material-style)]
+    (cond [(eq? ch0 #\:) (act-block-info anchor (substring text 1 size) default-act-material-style (or stereotype '#:material))]
           [(eq? ch0 #\/)
            (cond [(string-prefix? text "/doc/")
                   (if (eq? ch$ #\/)
-                      (act-block-info anchor (substring text 5 idx$) default-act-central-buffer-style 'Directory)
-                      (act-block-info anchor (substring text 5 size) default-act-central-buffer-style 'File))]
+                      (act-block-info anchor (substring text 5 idx$) default-act-directory-style (or stereotype '#:directory))
+                      (act-block-info anchor (substring text 5 size) default-act-file-style (or stereotype '#:document)))]
                  [(string-prefix? text "/db/")
-                  (act-block-info anchor (substring text 4 size) default-act-central-buffer-style 'Database)]
+                  (act-block-info anchor (substring text 4 size) default-act-data-store-style stereotype)]
                  [(string-prefix? text "/proc/")
-                  (act-block-info anchor (substring text 6 size) default-act-central-buffer-style)]
-                 [else (act-block-info anchor (substring text 1 size) default-act-central-buffer-style)])]
-          [else (let-values ([(name stereotype) (dia-block-caption-split-for-stereotype text)])
-                  (act-block-info anchor name default-act-object-style stereotype))])))
+                  (act-block-info anchor (substring text 6 size) default-act-memory-style stereotype)]
+                 [else (act-block-info anchor (substring text 1 size) default-act-central-buffer-style stereotype)])]
+          [else (act-block-info anchor text default-act-object-style stereotype)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define act-block-info : (->* (Geo-Anchor-Name (Option String) (-> (Dia-Block-Style Act-Block-Style)))

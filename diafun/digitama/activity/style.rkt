@@ -24,8 +24,9 @@
 (struct act-executable-node-style act-block-style () #:type-name Act-Executable-Node-Style)
 (struct act-control-node-style act-block-style () #:type-name Act-Control-Node-Style)
 (struct act-object-node-style act-block-style () #:type-name Act-Object-Node-Style)
+(struct act-mimo-object-node-style act-object-node-style () #:type-name Act-MIMO-Object-Node-Style)
 
-(define-type Act-Block-Metadata (Option Symbol))
+(define-type Act-Block-Metadata (Option Keyword))
 (define-type Act-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster Act-Track-Style))
 (define-type Act-Block-Theme-Adjuster (Dia-Block-Theme-Adjuster Act-Block-Style Act-Block-Metadata))
 
@@ -163,6 +164,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; https://www.uml-diagrams.org/activity-diagrams-objects.html
+; WARNING
+; The central buffer node is just an MIMO storage, tokens in it are removed after being consumed.
+;   Its stereotype can even be omitted, this fact shows that
+;     any normal object node can implicitly become a centeral buffer node
+;     as long as you attach more than one input flow or output flow to it. 
+; The data store node is an MIMO and persistent storage where tokens in it are duplicated before being consumed.
+;   Besides tokens in it must be unique.
+; If you have trouble understanding or accepting this design, blame the OMG who is in charge of the UML and sysML
+;   They declare that a data store *is* a central buffer node.
+;
+; In my design, they are two distinct MIMO storages. 
+
 (define-phantom-struct act-object-style : Act-Object-Style #:-> act-object-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 61.8)]
    [height : Dia-Block-Option-Size (&% 80)]
@@ -172,7 +185,7 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'MediumSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+   [fill-paint : Maybe-Fill-Paint 'Azure]))
 
 (define-phantom-struct act-material-style : Act-Material-Style #:-> act-object-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  #false]
@@ -183,16 +196,60 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'Teal]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Azure]))
+
+(define-phantom-struct act-central-buffer-style : Act-Central-Buffer-Style #:-> act-mimo-object-node-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 240)]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'MediumAquamarine]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'Honeydew]))
 
-(define-phantom-struct act-central-buffer-style : Act-Central-Buffer-Style #:-> act-object-node-style #:for dia-block-style
+(define-phantom-struct act-memory-style : Act-Memory-Style #:-> act-central-buffer-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 100)]
+   [height : Dia-Block-Option-Size (&% 72)]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'MediumAquamarine]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-phantom-struct act-data-store-style : Act-Data-Store-Style #:-> act-mimo-object-node-style #:for dia-block-style
   ([width : Dia-Block-Option-Size  (&% 61.8)]
-   [height : Dia-Block-Option-Size (&% 200)]
+   [height : Dia-Block-Option-Size (&% 240)]
    [padding : Dia-Block-Option-Padding #false]
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color 'SeaGreen]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-phantom-struct act-directory-style : Act-Directory-Style #:-> act-data-store-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 160)]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'MediumSeaGreen]
+   [stroke-dash : (Option Stroke-Dash+Offset) #false]
+   [fill-paint : Maybe-Fill-Paint 'Honeydew]))
+
+(define-phantom-struct act-file-style : Act-File-Style #:-> act-data-store-style #:for dia-block-style
+  ([width : Dia-Block-Option-Size  (&% 61.8)]
+   [height : Dia-Block-Option-Size (&% 100)]
+   [padding : Dia-Block-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color 'DarkSeaGreen]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'MintCream]))
 

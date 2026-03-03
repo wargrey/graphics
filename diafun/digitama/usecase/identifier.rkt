@@ -13,10 +13,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uc-block-identify : (Dia-Block-Identifier UC-Block-Style UC-Block-Metadata)
-  (lambda [anchor text size]
+  (lambda [anchor caption size stereotype]
     (if (symbol? anchor)
-        (uc-block-info anchor text default-uc-case-style)
-        (uc-block-info anchor text default-uc-actor-style))))
+        (uc-block-info anchor caption  default-uc-case-style stereotype)
+        (uc-block-info anchor caption default-uc-actor-style stereotype))))
 
 (define default-uc-track-identify : (Dia-Track-Identifier UC-Track-Style)
   (lambda [source target labels extra-info]

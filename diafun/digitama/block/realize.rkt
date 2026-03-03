@@ -25,7 +25,8 @@
                                                 Geo-Anchor-Name (Option Flonum) (Option Nonnegative-Flonum) (Option Nonnegative-Flonum) 
                                                 (Option Dia:Block))
   (lambda [block-identifier make-block make-caption root-style backstop-style block-desc note-factory note-desc anchor direction scale opacity]
-    (define text : String (geo-anchor->string anchor))
+    (define full-text : String (geo-anchor->string anchor))
+    (define-values (text stereotype) (dia-block-caption-split-for-stereotype full-text))
     (define size : Index (string-length text))
     (define ch0 : (Option Char) (and (> size 0) (string-ref text 0)))
 
@@ -33,7 +34,7 @@
          (let ([ch0 (string-ref text 0)])
            (cond [(eq? ch0 #\.) #false]
                  [(not (and (eq? ch0 #\/) (regexp-match? #px"^//" text)))
-                  (let ([blk-info (block-identifier anchor text size)])
+                  (let ([blk-info (block-identifier anchor text size stereotype)])
                     (and blk-info
                          (let-values ([(text metadata style) (values (car blk-info) (cadr blk-info) (caddr blk-info))])
                            (and style
@@ -51,7 +52,7 @@
                                            [caption (and maybe-caption (make-caption id (if (void? maybe-caption) text maybe-caption) style-spec))]
                                            [block (make-block id caption style-spec width height direction metadata)])
                                       (and (dia:block? block) block))))))))]
-                 [(or note-factory) (dia-note-block-realize anchor text size note-factory note-desc direction scale opacity)]
+                 [(or note-factory) (dia-note-block-realize anchor text stereotype note-factory note-desc direction scale opacity)]
                  [else #false])))))
 
 (define #:forall (S M) dia-block-layer-realize : (-> (Dia-Block-Identifier S M) (Dia-Block-Builder S M) (Dia-Block-Typesetter S)

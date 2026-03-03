@@ -22,8 +22,8 @@
 (define-flowchart! repl.dia [#:start-name "REPL\n(Shell)" #:frame frame] #:-
   ; Portion on Page 1
   (move-down 1 'Initialize!)
-  (move-down 1.2 Create)
-  (move-down 1.2 Wait)
+  (move-down 1 Create)
+  (move-down 1 Wait)
   
   [#:tree (move-down 1 '-type+)
    [=> (move-right 1 #false "Pressed Up/Down")
@@ -35,7 +35,7 @@
        (move-down 0.75 Read)
        (L-step '+expr-)
        (move-down 1.0 Update)
-       (move-down 1.2 'λEvaluate)
+       (move-down 1.0 'λEvaluate)
 
        [#:tree (move-down 1 '#:-+)
         [=> (move-left 1.5 Print-Error "Fatal")
@@ -59,10 +59,10 @@
   ; Portion on the same page, located at Grid (4, 0)
   (jump-to 4 '@E.)
   (move-down 1 Sync)
-  (move-down 1.2 'λ|Call Exit Handler|)
+  (move-down 1 'λ|Call Exit Handler|)
 
   [#:seq
-   [(move-down 1.2 'Byte? "Check Exit Status")
+   [(move-down 1 'Byte? "Check Exit Status")
     [=> (move-left 1 #false "N")
         (move-down 2 'Exit$)]]
    [(move-down 1 'Zero? "Y")
