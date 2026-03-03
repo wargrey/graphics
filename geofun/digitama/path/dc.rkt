@@ -288,9 +288,12 @@
         (define tclr (or alt-trgba color))
 
         (define (tip-pen [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
-          (if (geo-tip-config-fill? cfg)
-              (desc-stroke #:width 1.0 #:color clr #:opacity opacity)
-              (and paint (desc-stroke paint #:color clr #:dash 'solid #:width (geo-tip-config-thickness cfg)))))
+          (cond [(geo-tip-config-fill? cfg) #false]
+                [else (and paint
+                           (desc-stroke #:width (geo-tip-config-thickness cfg)
+                                        #:join 100.0 ; chamfered like a plane wing for wide width or being upscaled
+                                        #:color clr #:dash 'solid
+                                        paint))]))
 
         (define (tip-brush [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Brush)
           (and (geo-tip-config-fill? cfg)

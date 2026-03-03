@@ -33,7 +33,7 @@
                                 shape-argl ...)])
          (create-geometry-group make-slot name #false #false
                                 #:outline (geo-outline shape)
-                                #:desc (geo-group-desc-from-caption desc maybe-term)
+                                #:desc (or desc (geo-group-desc-from-caption maybe-term))
                                 (geo-dsfit-layers shape maybe-term lft% top% hfit% vfit%
                                                   sx% sy% (or tx% sx%) (or ty% sy%)
                                                   (default-expr-slot-margin))

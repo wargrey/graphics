@@ -40,7 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration dia-note-block-backstop-style : Dia-Note-Backstop-Style #:as dia-block-backstop-style
   #:format "default-dia-note-~a"
-  ([width : Nonnegative-Flonum 128.0]
+  ([width : Nonnegative-Flonum 256.0]
    [height : Nonnegative-Flonum +inf.0]
    [padding : Dia-Block-Padding (&L 1.0 'ex)]
    [font : Font dia-preset-note-font]

@@ -71,4 +71,14 @@
 
   (path-examplify (list 368+166i 645+166i +nan.0+nan.0i 645+0i 750+166i)
                   default-bullet-tip default-generalization-tip
-                  pen))
+                  pen)
+
+  (geo-scale (geo-path #:tip-placement 'inside
+                       #:target-tip default-arrow-tip
+                       (list 0 20))
+             8)
+
+  (geo-scale (geo-path #:tip-placement 'inside
+                       #:target-tip (make-geo:tip:arrow #:radius (&% 350) #:wing-angle 3pi/5 #:curved? 0.4)
+                       (list 0 20))
+             8))
