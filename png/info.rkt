@@ -3,7 +3,7 @@
 (define collection 'use-pkg-name)
 (define pkg-desc "PNG: Read and Write Portable Network Graphics")
 
-(define version "0.0.1.0")
+(define version "0.0.0.1")
 (define pkg-authors '(wargrey))
 (define test-omit-paths 'all)
 
