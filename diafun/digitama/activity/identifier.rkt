@@ -19,12 +19,12 @@
 (define default-act-track-identify : (Dia-Track-Identifier Act-Track-Style)
   (lambda [source target labels extra-info]
     (cond [(and (dia:block-typeof? source act-object-node-style?)
-                (dia:block*-typeof? target act-decision-style?))
+                (dia:block-typeof? target act-decision-style?))
            (act-track-adjust source target labels default-act~decision~input~style)]
           [(or (dia:block-typeof? source act-object-node-style?)
-               (dia:block*-typeof? target act-object-node-style?))
+               (dia:block-typeof? target act-object-node-style?))
            (if (and (or (dia:block-typeof? source act-mimo-object-node-style?)
-                        (dia:block*-typeof? target act-mimo-object-node-style?))
+                        (dia:block-typeof? target act-mimo-object-node-style?))
                     (geo-path-label-has-stereotype? labels))
                (act-track-adjust source target labels default-act~storage~style)
                (act-track-adjust source target labels default-act~object~flow~style))]

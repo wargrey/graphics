@@ -37,6 +37,12 @@
   #:type-name Geo:Bullet
   #:transparent)
 
+(struct geo:monitor geo
+  ([width : Nonnegative-Flonum]
+   [height : Nonnegative-Flonum])
+  #:type-name Geo:Monitor
+  #:transparent)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-gear
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)]
@@ -94,6 +100,18 @@
                                        (geo-shape-outline stroke)]
                             flogive flbarrel flradius)))
 
+(define geo-monitor : (->* (Real-Length Length+%)
+                           (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint #:screen-fill Maybe-Fill-Paint)
+                           Geo:Monitor)
+  (lambda [width height #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)] #:screen-fill [screen-fill (void)]]
+    (define-values (flwidth flheight) (~extent width height))
+    
+    (create-geometry-object geo:monitor
+                            #:with [id (geo-draw-monitor stroke pattern screen-fill)
+                                       (geo-shape-extent flwidth flheight 0.0 0.0)
+                                       (geo-shape-outline stroke)]
+                            flwidth flheight)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-draw-gear : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]
@@ -122,6 +140,13 @@
 
 (define geo-draw-bullet : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill]
+    (λ [self cr x0 y0 width height]
+      (when (geo:bullet? self)
+        (dc_bullet cr x0 y0 width height (geo:bullet-ogive-length self)
+                   (geo-select-stroke-paint alt-stroke) (geo-select-fill-source alt-fill))))))
+
+(define geo-draw-monitor : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill scrn-fill]
     (λ [self cr x0 y0 width height]
       (when (geo:bullet? self)
         (dc_bullet cr x0 y0 width height (geo:bullet-ogive-length self)

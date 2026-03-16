@@ -51,7 +51,7 @@
   (move-down 1 'End$)
 
   (note '@A 1 0 "block comment: on-page connector")
-  (note 0+0.5i 1 pi "track comment: control flow")
+  (note 0+0.6i 1 pi "track comment: control flow")
   (note #:stereotype 'decisionInput
         '-+ 1.75 -pi/5
         "block comment: decision block"

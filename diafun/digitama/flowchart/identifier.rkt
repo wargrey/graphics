@@ -29,7 +29,7 @@
              (flow-track-adjust source target labels default-flow~decision~style)]
             [(dia:block-typeof? source flow-extract-style?)
              (flow-track-adjust source target labels default-flow~parallel~style)]
-            [(or (dia:block-typeof? source flow-storage-style?) (dia:block-typeof? source flow-storage-style?))
+            [(or (dia:block-typeof? source flow-storage-style?) (dia:block-typeof? target flow-storage-style?))
              (if (pair? labels)
                  (flow-track-adjust source target labels default-flow~storage~style)
                  (flow-track-adjust source target labels default-flow~line~style))]
