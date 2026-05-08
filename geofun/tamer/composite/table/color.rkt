@@ -21,7 +21,7 @@
       
     (geo-table*
      (append (for/list : (Listof (Listof Geo)) ([lname (in-list (take all-names size))]
-                                                   [rname (in-list (take-right all-names size))])
+                                                [rname (in-list (take-right all-names size))])
                (append (name->row lname) (name->row rname)))
              (if (= mod 0) null (list (name->row (list-ref all-names (add1 size))))))
      'lc 'cc 16.0 4.0)))

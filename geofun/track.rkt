@@ -150,6 +150,13 @@
           [(null? (cdr ctrls)) (geo-track-quadratic-bezier goma endpt (car ctrls) anchor)]
           [else (geo-track-cubic-bezier goma endpt (car ctrls) (cadr ctrls) anchor)])))
 
+(define gomamon-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
+  (lambda [goma length radians [anchor #false] [info #false]]
+    (define here : Float-Complex (geo:track-here goma))
+    (define delta : Complex (make-polar length radians))
+
+    (geo-track-connect-to goma delta anchor info here)))
+
 (define gomamon-move-to! : (case-> [Gomamon (U Geo-Anchor-Name Complex) -> Void]
                                    [Gomamon Geo-Anchor-Name Any -> Void]
                                    [Gomamon Complex (Option Geo-Anchor-Name) -> Void]
@@ -187,12 +194,12 @@
   (lambda [goma target [anchor #false]]
     (geo-track-jump-to goma target anchor)))
 
-(define gomamon-radial-move*! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
-  (lambda [goma length radians [anchor #false] [info #false]]
+(define gomamon-jump! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name)) Void)
+  (lambda [goma length radians [anchor #false]]
     (define here : Float-Complex (geo:track-here goma))
     (define delta : Complex (make-polar length radians))
 
-    (geo-track-connect-to goma delta anchor info here)))
+    (geo-track-jump-to goma (+ here delta) anchor)))
 
 (define gomamon-radial-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma length radians [anchor #false] [info #false]]
