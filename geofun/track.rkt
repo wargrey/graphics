@@ -262,6 +262,10 @@
     [(goma gobj anchor) (gomamon-stamp! goma (make-sticker gobj anchor))]
     [(goma gobj anchor offset) (gomamon-stamp! goma (make-sticker gobj anchor (geo-track-grid-position goma offset)))]))
 
+(define gomamon-focus! : (->* (Gomamon Geo-Anchor-Name) ((Option Geo-Anchor-Name)) Void)
+  (lambda [goma target [anchor #false]]
+    (geo-track-jump-to goma target anchor)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-stick
   (lambda [#:id [id : (Option Symbol) #false]
