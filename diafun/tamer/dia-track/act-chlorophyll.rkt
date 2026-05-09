@@ -38,11 +38,10 @@
           (Spread . "小实验：纸吸水观察墨汁扩展\n模拟物质组成分析")
           (Rote . "在困惑中死记硬背\n化学家的工作包括提取和合成新物质")))
 
-(define pin-stroke (desc-stroke #:color 'Teal #:width 2.0))
-(define material-pin (geo-inset (geo-square 8 #:stroke pin-stroke) 2.0))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-activity-diagram! chlorophyll.dia
+  #:let ([pin-stroke (desc-stroke #:color 'Teal #:width 2.0)]
+         [material-pin (geo-inset (geo-square 8 #:stroke pin-stroke) 2.0)])
   [#:block-desc captions #:frame 'White] #:-
   (move-down 1 'Observe)
 
