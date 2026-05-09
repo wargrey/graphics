@@ -36,14 +36,16 @@
               (~optional (~seq #:path-id pid) #:defaults ([pid #'#false]))
               (~optional (~seq #:start anchor) #:defaults ([anchor #''#:home]))
               (~optional (~seq #:at home) #:defaults ([home #'0.0+0.0i]))
-              (~optional (~seq #:parameterize pexpr) #:defaults ([pexpr #'()])))
+              (~optional (~seq #:parameterize pexpr) #:defaults ([pexpr #'()]))
+              (~optional (~seq (~or #:let #:where) lexpr) #:defaults ([lexpr #'()])))
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-cls-block-width))]
-              [dia (with-gomamon! goma move-expr ...)])
-         (parameterize pexpr
-           (dia-track-class dia args ...))))]))
+       (let* lexpr
+         (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-cls-block-width))]
+                [dia (with-gomamon! goma move-expr ...)])
+           (parameterize pexpr
+             (dia-track-class dia args ...)))))]))
 
 (define-syntax (define-class-diagram! stx)
   (syntax-parse stx #:literals []
