@@ -127,9 +127,9 @@
   
   (jump-to 2)
   [#:tree (jump-down 'Prepare6 '#:/doc/课件)
-   [=> (sidestep-left 2)
+   [=> (shuffle-left 2)
        (L-step 'Watch #false '#:read)]
-   [=> (sidestep-left)
+   [=> (shuffle-left)
        (L-step 'Prepare #false '#:read)]
    [=> (move-to 'Prepare6 '#:read)]]
 
