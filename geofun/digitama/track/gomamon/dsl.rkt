@@ -2,8 +2,10 @@
 
 (provide (all-defined-out))
 
-(require "self.rkt")
-(require "gomamon.rkt")
+(require "../self.rkt")
+(require "../primitive.rkt")
+
+(require "primitive.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -32,7 +34,7 @@
                                           #:defaults [((submove-expr 1) null)])] ...])
      (quasisyntax/loc stx
        (begin (let ()
-                (geo-track-jump-to self pos-expr #false)
+                (geo-track-jump-to self pos-expr #false gomamon-grid-position)
                 (gomamon-dsl self submove-expr) ...)
               ...))]
     [(_ self [#:zone id type

@@ -4,7 +4,7 @@
 (provide (rename-out [gomamon-actor-associate! gomamon-actor-use!]
                      [gomamon-associate! gomamon-use!]))
 
-(require geofun/track)
+(require geofun/digitama/track/gomamon)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gomamon-actor-associate! : (case-> [Gomamon Symbol -> Void]

@@ -2,7 +2,7 @@
 
 (provide (all-defined-out))
 
-(require geofun/track)
+(require geofun/digitama/track/gomamon)
 
 (require racket/string)
 

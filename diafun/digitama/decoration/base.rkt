@@ -5,7 +5,6 @@
 (require geofun/digitama/misc)
 
 (require/provide "gomamon.rkt")
-
 (require/provide "freetrack/self.rkt")
 
 (require/provide "note/self.rkt")

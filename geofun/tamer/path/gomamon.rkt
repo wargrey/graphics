@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require geofun/track)
+(require geofun/digitama/track/gomamon)
 (require geofun/avatar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
