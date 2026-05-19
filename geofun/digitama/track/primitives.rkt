@@ -71,65 +71,65 @@
     [(goma gobj anchor) (geo-track-stamp goma (make-sticker gobj anchor))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (T) geo-track-move-to
-  : (case-> [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (-> T Complex Float-Complex) -> Void]
-            [(∩ T Geo:Track) Geo-Anchor-Name Any (-> T Complex Float-Complex) -> Void]
-            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) (-> T Complex Float-Complex) -> Void]
-            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) Any (-> T Complex Float-Complex) -> Void])
-  (case-lambda
-    [(goma target transform)
-     ((inst geo-track-connect-to T) goma target #false #false transform)]
-    [(goma target argument transform)
-     (if (complex? target)
-         ((inst geo-track-connect-to T) goma target argument #false transform)
-         ((inst geo-track-connect-to T) goma target #false argument transform))]
-    [(goma target anchor info transform)
-     ((inst geo-track-connect-to T) goma target anchor info transform)]))
-
 (define #:forall (T) geo-track-jump-to
-  : (case-> [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) (-> T Complex Float-Complex) -> Void]
-            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) Float-Complex (-> T Complex Float-Complex) -> Void]
-            [Geo:Track Float-Complex -> Void])
+  : (case-> [(∩ T Geo:Track) Geo-Anchor-Name -> Void]
+            [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (-> T Complex Float-Complex) -> Void]
+            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) (-> T Complex Float-Complex) -> Void]
+            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) Float-Complex (-> T Complex Float-Complex) -> Void])
   (case-lambda
-    [(self anchor pos-anchor transform)
-     (define pos : Float-Complex ((inst geo-track-target-position T) self anchor transform))
-     (when (complex? anchor) (geo-track-try-fit! self pos-anchor pos))
-     (geo-track-jump-to self pos)]
-    [(self target anchor offset transform) ; used by the `radial back`
-     (let ([pos ((inst geo-track-target-position T) self target offset transform)])
+    [(self target) (geo-track-jump-to-position self (geo-track-resolve-position self target))]
+    [(self target transform)
+     (let ([pos ((inst geo-track-resolve-position T) self target transform)])
+       (when (complex? target) (geo-track-try-fit! self pos))
+       (geo-track-jump-to-position self pos))]
+    [(self target anchor transform) ((inst geo-track-jump-to T) self target anchor 0.0+0.0i transform)]
+    [(self target anchor offset transform)
+     (let ([pos ((inst geo-track-resolve-position T) self target offset transform)])
        (geo-track-try-fit! self anchor pos)
-       (geo-track-jump-to self pos))]
-    [(self abs-pos) ; used by the `radial move` and `geo-back-jump-to`
-     (set-geo:track-origin! self abs-pos)
-     (set-geo:track-here! self abs-pos)
-     (set-geo:track-footprints! self (cons (gpp:point #\M abs-pos) (geo:track-footprints self)))]))
+       (geo-track-jump-to-position self pos))]))
 
 (define #:forall (T) geo-track-connect-to
-  : (case-> [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any Float-Complex (-> T Complex Float-Complex) -> Void]
-            [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (Option Geo-Anchor-Name) Any (-> T Complex Float-Complex) -> Void]
-            [Geo:Track Float-Complex Any -> Void])
+  : (case-> [(∩ T Geo:Track) Geo-Anchor-Name Any -> Void]
+            [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) Any (-> T Complex Float-Complex) -> Void]
+            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) Any (-> T Complex Float-Complex) -> Void]
+            [(∩ T Geo:Track) Complex (Option Geo-Anchor-Name) Any Float-Complex (-> T Complex Float-Complex) -> Void])
   (case-lambda
-    [(self target pos-anchor info transform) ((inst geo-track-connect-to T) self target pos-anchor info 0.0+0.0i transform)]
-    [(self target pos-anchor info offset transform) ; used by the `radial move`
-     (let ([pos ((inst geo-track-target-position T) self target offset transform)])
-       (when (complex? target) (geo-track-try-fit! self pos-anchor pos))
-       (geo-track-connect-to self pos info))]
-    [(self abs-pos info) ; used by the `radial back` and `geo-track-connect-to`
-     (unless (not info)
-       (hash-set! (geo:track-foot-infos self)
-                  (cons (geo:track-here self) abs-pos)
-                  (geo-track-info info)))
-       
-     (set-geo:track-here! self abs-pos)
-     (set-geo:track-footprints! self (cons (gpp:point #\L abs-pos) (geo:track-footprints self)))]))
+    [(self target info) (geo-track-connect-to-position self (geo-track-resolve-position self target) info)]
+    [(self target info transform)
+     (let ([pos ((inst geo-track-resolve-position T) self target transform)])
+       (when (complex? target) (geo-track-try-fit! self pos))
+       (geo-track-connect-to-position self pos info))]
+    [(self target anchor info transform) ((inst geo-track-connect-to T) self target anchor info 0.0+0.0i transform)]
+    [(self target anchor info offset transform) ; used by the `radial move`
+     (let ([pos ((inst geo-track-resolve-position T) self target offset transform)])
+       (geo-track-try-fit! self anchor pos)
+       (geo-track-connect-to-position self pos info))]))
 
-(define #:forall (T) geo-track-target-position : (case-> [Geo:Track (U Geo-Anchor-Name Complex) -> Float-Complex]
-                                                         [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (-> T Complex Float-Complex) -> Float-Complex]
-                                                         [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) Float-Complex (-> T Complex Float-Complex) -> Float-Complex])
+(define #:forall (T) geo-track-resolve-position : (case-> [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) -> Float-Complex]
+                                                          [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (-> T Complex Float-Complex) -> Float-Complex]
+                                                          [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) Float-Complex (-> T Complex Float-Complex) -> Float-Complex])
   (case-lambda
     [(self target) (if (complex? target) (geo-track-position-identity self target) (geo-trail-ref (geo:track-trail self) target))]
     [(self target transform) (if (complex? target) (transform self target) (geo-trail-ref (geo:track-trail self) target))]
-    [(self target offset transform) (+ offset ((inst geo-track-target-position T) self target transform))]))
+    [(self target offset transform) (+ offset ((inst geo-track-resolve-position T) self target transform))]))
+
+(define geo-track-jump-to-position : (-> Geo:Track Float-Complex Void)
+  (lambda [self abs-pos]
+    (set-geo:track-origin! self abs-pos)
+    (set-geo:track-here! self abs-pos)
+    (set-geo:track-footprints! self (cons (gpp:point #\M abs-pos)
+                                          (geo:track-footprints self)))))
+
+(define geo-track-connect-to-position : (-> Geo:Track Float-Complex Any Void)
+  (lambda [self abs-pos info]
+    (unless (not info)
+      (hash-set! (geo:track-foot-infos self)
+                 (cons (geo:track-here self) abs-pos)
+                 (geo-track-info info)))
+    
+    (set-geo:track-here! self abs-pos)
+    (set-geo:track-footprints! self (cons (gpp:point #\L abs-pos)
+                                          (geo:track-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-bezier-point : (->* (Geo:Track Geo-Bezier-Datum) (Flonum Flonum) Float-Complex)

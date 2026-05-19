@@ -7,12 +7,13 @@
 (require "../self.rkt")
 (require "../convert.rkt")
 (require "../geometry/ink.rkt")
+(require "../geometry/bleed.rkt")
 (require "../dc/composite.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define the-void-geo : Geo
   (let ([one-ext (λ [self] (values 0.0 0.0 geo-zero-ink))])
-    (create-geometry-object geo #:with [(string->unreadable-symbol "the-void-geo") void one-ext geo-zero-pads])))
+    (create-geometry-object geo #:with [(string->unreadable-symbol "the-void-geo") void one-ext geo-zero-bleeds])))
 
 (define the-void-layer : (GLayerof Geo) (glayer the-void-geo 0.0 0.0 0.0 0.0))
 (define the-void-layers : (GLayer-Groupof Geo) (glayer-group 0.0 0.0 (list the-void-layer)))

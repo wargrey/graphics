@@ -8,6 +8,7 @@
 
 (require "../self.rkt")
 (require "../convert.rkt")
+(require "../geometry/bleed.rkt")
 
 (require "../paint/pattern.rkt")
 (require "../unsafe/dc/plain.rkt")
@@ -28,7 +29,7 @@
            [self : Bitmap]] : Geo:Bitmap
     (define-values (w h) (bitmap-flsize self))
     (create-geometry-object geo:bitmap
-                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-bleeds]
                             self filter)))
 
 (define geo-rectangular
@@ -37,7 +38,7 @@
            [width : Real-Length] [height : Length+%] [λargb : XYWH->ARGB]] : Geo:Bitmap
     (define-values (w h) (~extent width height))
     (create-geometry-object geo:bitmap
-                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-pads]
+                            #:with [id (geo-draw-bitmap w h) (geo-shape-extent w h) geo-zero-bleeds]
                             λargb filter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

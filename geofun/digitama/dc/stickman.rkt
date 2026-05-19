@@ -37,7 +37,7 @@
     (create-geometry-object geo:stickman
                             #:with [id (geo-draw-stickman stroke head-pattern body-pattern arm-pattern)
                                        (geo-shape-extent (* flwidth scale) (* flheight scale) 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             self skeleton scale fallback)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

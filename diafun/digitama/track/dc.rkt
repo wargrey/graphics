@@ -2,11 +2,7 @@
 
 (provide (all-defined-out))
 
-(require digimon/measure)
-
-(require geofun/track)
-(require geofun/digitama/track/self)
-
+(require geofun/digitama/track/gomamon)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/combine)

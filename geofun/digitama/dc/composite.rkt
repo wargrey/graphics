@@ -17,6 +17,7 @@
 
 (require "../geometry/ink.rkt")
 (require "../geometry/sides.rkt")
+(require "../geometry/bleed.rkt")
 
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
@@ -33,18 +34,18 @@
 (define-syntax (create-geometry-group stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
-        (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        (~alt (~optional (~seq #:bleed bleed) #:defaults ([bleed #'#false]))
               (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))) ...
         layers0:expr argl:expr ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let ([layers layers0])
            (Geo geo-convert geo-draw-group! (geo-group-extent layers)
-                (or outline (geo-group-outline layers))
+                (or bleed (geo-group-bleed layers))
                 (or name (gensym 'geo-prefix)) base-op sibs-op desc layers
                 argl ...))))]
     [(_ Geo name base-op:expr sibs-op:expr
-        (~alt (~optional (~seq #:outline alt-outline) #:defaults ([alt-outline #'#false]))
+        (~alt (~optional (~seq #:bleed alt-bleed) #:defaults ([alt-bleed #'#false]))
               (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
               (~optional (~seq #:open-sides open-sides) #:defaults ([open-sides #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
@@ -56,21 +57,21 @@
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (let* ([layers layers0]
-                [outline (or alt-outline (geo-group-outline layers))]
+                [bleed (or alt-bleed (geo-group-bleed layers))]
                 [id (or name (gensym 'geo-prefix))])
            (if (or margin inset border bgsource open-sides)
                (Geo geo-convert
                     (geo-draw-framed-group! border bgsource open-sides)
                     (geo-group-frame-extent margin inset layers border)
-                    outline id base-op sibs-op desc layers argl ...)
+                    bleed id base-op sibs-op desc layers argl ...)
                (Geo geo-convert
                     geo-draw-group! (geo-group-extent layers)
-                    outline id base-op sibs-op desc layers argl ...)))))]))
+                    bleed id base-op sibs-op desc layers argl ...)))))]))
 
 (define-syntax (create-geometry-table stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo name base-op:expr sibs-op:expr
-        (~alt (~optional (~seq #:outline outline) #:defaults ([outline #'#false]))
+        (~alt (~optional (~seq #:bleed bleed) #:defaults ([bleed #'#false]))
               (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
               (~optional (~seq #:open-sides open-sides) #:defaults ([open-sides #'#false]))
               (~optional (~seq #:margin margin) #:defaults ([margin #'#false]))
@@ -83,7 +84,7 @@
        (syntax/loc stx
          (let-values ([(layers size anchors gaps) (geo-table-metrics table ncols nrows col-anchors row-anchors col-gaps row-gaps)])
            (create-geometry-group Geo name base-op sibs-op
-                                  #:outline outline #:desc desc #:open-sides open-sides
+                                  #:bleed bleed #:desc desc #:open-sides open-sides
                                   #:margin margin #:padding inset #:border border #:background bgsource
                                   layers size anchors gaps argl ...))))]))
 
@@ -165,7 +166,7 @@
   (case-lambda
     [(id base-op sibs-op desc layers)
      (create-geometry-object geo:group
-                             #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-outline layers)]
+                             #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-bleed layers)]
                              base-op sibs-op desc layers)]
     [(id base-op sibs-op desc layers margin inset border background open-sides)
      (if (or margin inset border background open-sides)
@@ -173,7 +174,7 @@
          (create-geometry-object geo:group
                                  #:with [id (geo-draw-framed-group! border background open-sides)
                                             (geo-group-frame-extent margin inset layers border)
-                                            geo-zero-pads]
+                                            geo-zero-bleeds]
                                  base-op sibs-op desc layers)
 
          (make-geo:group id base-op sibs-op desc layers))]))
@@ -252,12 +253,12 @@
     (define-values (mtop mright mbottom mleft) (geo-inset-values margin))
     (define-values (ptop pright pbottom pleft) (geo-inset-values inset))
 
-    (define frame-outline : Geo-Calculate-Outline (geo-group-outline layers))
+    (define frame-bleed : Geo-Calculate-Bleed (geo-group-bleed layers))
     (define-values (gwidth gheight) (values (glayer-group-width layers) (glayer-group-height layers)))
 
     (λ [[self : Geo<%>]]
-      (define frame-pads : Geo-Pad (frame-outline self (current-stroke-source) (current-border-source)))
-      (define-values (dx dy body-width body-height) (geo-pad-expand frame-pads gwidth gheight))
+      (define frame-pads : Geo-Bleed (frame-bleed self (current-stroke-source) (current-border-source)))
+      (define-values (dx dy body-width body-height) (geo-bleed-expand frame-pads gwidth gheight))
       
       (define-values (W H bx by border-width border-height ox oy)
         (dc_frame_size body-width body-height
@@ -270,12 +271,12 @@
                              (make-rectangular (+ ox dx) (+ oy dy)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-group-outline : (-> Geo-Layer-Group Geo-Calculate-Outline)
+(define geo-group-bleed : (-> Geo-Layer-Group Geo-Calculate-Bleed)
   (lambda [layers]
     (define W (glayer-group-width layers))
     (define H (glayer-group-height layers))
     
-    (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
+    (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
       (let check-boundary ([lx : Flonum 0.0]
                            [ty : Flonum 0.0]
                            [rx : Nonnegative-Flonum W]
@@ -284,10 +285,10 @@
         (cond [(pair? siblings)
                (let*-values ([(self rest) (values (car siblings) (cdr siblings))]
                              [(x y w h) (values (glayer-x self) (glayer-y self) (glayer-width self) (glayer-height self))]
-                             [(outline) (geo-outline* (glayer-master self) stroke border)]
-                             [(l t) (values (geo-pad-left outline) (geo-pad-top outline))]
-                             [(r b) (values (geo-pad-right outline) (geo-pad-bottom outline))])
+                             [(bleed) (geo-bleed* (glayer-master self) stroke border)]
+                             [(l t) (values (geo-bleed-left bleed) (geo-bleed-top bleed))]
+                             [(r b) (values (geo-bleed-right bleed) (geo-bleed-bottom bleed))])
                  (check-boundary (min lx (- x l)) (min ty (- y t)) (max rx (+ x w r)) (max by (+ y h b)) rest))]
               [(or (< lx 0.0) (< ty 0.0) (> rx W) (> by H))
-               (geo-pad (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
-              [else geo-zero-pads])))))
+               (geo-bleed (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
+              [else geo-zero-bleeds])))))

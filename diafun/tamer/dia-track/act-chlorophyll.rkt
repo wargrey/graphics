@@ -134,7 +134,7 @@
    [=> (move-to 'Prepare6 '#:read)]]
 
   (jump-to '.logo)
-  (stamp (bacteriophage-logo 16) 'cb -0.1i)
+  (stick (bacteriophage-logo 16) 'cb -0.1i)
   
   (jump-to 2)
   (move-down '$))

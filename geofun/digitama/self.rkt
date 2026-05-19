@@ -4,30 +4,27 @@
 (provide (rename-out [geo-intrinsic-width  geo-width]
                      [geo-intrinsic-height geo-height]
                      [geo-intrinsic-size   geo-size]
-                     [geo-intrinsic-size   geo-intrinsic-flsize]
-                     [geo<%>-outline       geo-outline]))
+                     [geo-intrinsic-size   geo-intrinsic-flsize]))
 
 (require "paint/self.rkt")
 (require "geometry/ink.rkt")
+(require "geometry/bleed.rkt")
 
 (require "unsafe/visual.rkt")
 (require "unsafe/typed/cairo.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-geometry-density : (Parameterof Positive-Flonum) (make-parameter 1.0))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Surface-Draw! (Cairo-Surface-Draw! Geo<%>))
 (define-type Geo-Calculate-Extent (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum (Option Geo-Ink))))
 (define-type Geo-Calculate-Extent* (-> Geo<%> (Values Nonnegative-Flonum Nonnegative-Flonum Geo-Ink)))
-(define-type Geo-Calculate-Outline (-> Geo<%> Option-Stroke-Paint Option-Stroke-Paint Geo-Pad))
-(define-type Geo-Outline-Datum (U False Geo-Pad Geo-Calculate-Outline))
+(define-type Geo-Calculate-Bleed (-> Geo<%> Option-Stroke-Paint Option-Stroke-Paint Geo-Bleed))
+(define-type Geo-Bleed-Datum (U False Geo-Bleed Geo-Calculate-Bleed))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo<%> visual-object<%>
   ([draw! : Geo-Surface-Draw!]
    [extent : Geo-Calculate-Extent]
-   [outline : Geo-Outline-Datum])
+   [bleed : Geo-Bleed-Datum])
   #:type-name Geo<%>)
 
 (struct geo geo<%>
@@ -66,42 +63,6 @@
       [(self ratio) (let ([% (real->double-flonum ratio)]) (flsize self % %))]
       [(self) (geo-intrinsic-size self)])))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; used in kernel only
-(struct geo-pad
-  ([top : Nonnegative-Flonum]
-   [right : Nonnegative-Flonum]
-   [bottom : Nonnegative-Flonum]
-   [left : Nonnegative-Flonum])
-  #:type-name Geo-Pad
-  #:transparent)
-
-(define geo-zero-pads : Geo-Pad (geo-pad 0.0 0.0 0.0 0.0))
-(define geo-pad-scale : (case-> [Geo-Pad Flonum Flonum -> Geo-Pad]
-                                [Geo-Outline-Datum Geo Flonum Flonum -> Geo-Outline-Datum])
-  (case-lambda
-    [(self sx0 sy0)
-     (cond [(eq? self geo-zero-pads) geo-zero-pads]
-           [else (let-values ([(sx sy) (values (abs sx0) (abs sy0))])
-                   (geo-pad (* (geo-pad-top self)    sy)
-                            (* (geo-pad-right self)  sx)
-                            (* (geo-pad-bottom self) sy)
-                            (* (geo-pad-left self)   sx)))])]
-    [(self target sx0 sy0)
-     (cond [(geo-pad? self) (geo-pad-scale self sx0 sy0)]
-           [else (and self
-                      (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
-                        (geo-pad-scale (self target stroke border) sx0 sy0)))])]))
-
-(define geo-pad-expand : (-> Geo-Pad Nonnegative-Flonum Nonnegative-Flonum (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum))
-  (lambda [self width height]
-    (define toff (geo-pad-top self))
-    (define loff (geo-pad-left self))
-    
-    (values loff toff
-            (+ width loff (geo-pad-right self))
-            (+ height toff (geo-pad-bottom self)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (define geo-shape-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
                                    [Nonnegative-Flonum Nonnegative-Flonum -> Geo-Calculate-Extent]
@@ -128,33 +89,45 @@
                  (* (abs sy) oheight)
                  (and ?oink (geo-ink-scale ?oink sx sy)))))]))
 
-(define geo-shape-outline : (case-> [Maybe-Stroke-Paint -> (Option Geo-Pad)]
-                                    [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Pad)])
-  (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])
-    (case-lambda
-      [(stroke)
-       (cond [(void? stroke) #false]
-             [(not stroke) geo-zero-pads]
-             [(pen? stroke) (geo-pen->outline stroke)]
-             [else #false])]
-      [(stroke x? y?)
-       (cond [(void? stroke) #false]
-             [(not stroke) geo-zero-pads]
-             [(not (pen? stroke)) #false]
-             [(and x? y?) (geo-pen->outline stroke)]
-             [(or x? y?)
-              (let* ([thickness (pen-width stroke)]
-                     [offset (* thickness 0.5)]
-                     [hoff (if (and x?) offset 0.0)]
-                     [voff (if (and y?) offset 0.0)])
-                (geo-pad voff hoff voff hoff))]
-             [else geo-zero-pads])])))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-bleed-scale* : (case-> [Geo-Bleed Flonum Flonum -> Geo-Bleed]
+                                   [Geo-Bleed-Datum Geo Flonum Flonum -> Geo-Bleed-Datum])
+  (case-lambda
+    [(self sx0 sy0) (geo-bleed-scale self sx0 sy0)]
+    [(self target sx0 sy0)
+     (cond [(geo-bleed? self) (geo-bleed-scale self sx0 sy0)]
+           [else (and self
+                      (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
+                        (geo-bleed-scale (self target stroke border) sx0 sy0)))])]))
 
-(define geo-pen->outline : (-> Pen Geo-Pad)
-  (let ([insets : (HashTable Flonum Geo-Pad) (make-weak-hasheq)])
+(define geo-shape-bleed : (case-> [Maybe-Stroke-Paint -> (Option Geo-Bleed)]
+                                  [Option-Stroke-Paint Option-Stroke-Paint -> (Option Geo-Bleed)]
+                                  [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Bleed)])
+  (case-lambda
+    [(stroke)
+     (cond [(void? stroke) #false]
+           [(not stroke) geo-zero-bleeds]
+           [(pen? stroke) (geo-pen->bleed stroke)]
+           [else #false])]
+    [(stroke border) (geo-shape-bleed (or border stroke))]
+    [(stroke x? y?)
+     (cond [(void? stroke) #false]
+           [(not stroke) geo-zero-bleeds]
+           [(not (pen? stroke)) #false]
+           [(and x? y?) (geo-pen->bleed stroke)]
+           [(or x? y?)
+            (let* ([thickness (pen-width stroke)]
+                   [offset (* thickness 0.5)]
+                   [hoff (if (and x?) offset 0.0)]
+                   [voff (if (and y?) offset 0.0)])
+              (geo-bleed voff hoff voff hoff))]
+           [else geo-zero-bleeds])]))
+
+(define geo-pen->bleed : (-> Pen Geo-Bleed)
+  (let ([bleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)])
     (lambda [stroke]
       (define thickness (pen-width stroke))
 
-      (hash-ref! insets thickness
+      (hash-ref! bleeds thickness
                  (λ [] (let ([offset (* thickness 0.5)])
-                         (geo-pad offset offset offset offset)))))))
+                         (geo-bleed offset offset offset offset)))))))

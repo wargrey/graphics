@@ -14,10 +14,10 @@
                                [#:stroke Maybe-Stroke-Paint]
                                [#:fill Maybe-Fill-Paint]
                                Geo:Polygon)
-  (lambda [width height #:id [id #false] #:stroke [outline (void)] #:fill [pattern (void)]]
+  (lambda [width height #:id [id #false] #:stroke [stroke (void)] #:fill [pattern (void)]]
     (define-values (flwidth flheight) (~extent width height))
     
-    (geo-polygon #:id (or id (gensym 'geo:polygon:hexagon:)) #:stroke outline #:fill pattern #:window +nan.0+nan.0i
+    (geo-polygon #:id (or id (gensym 'geo:polygon:hexagon:)) #:stroke stroke #:fill pattern #:window +nan.0+nan.0i
                  (geo-hexagon-tile-vertices flwidth flheight))))
 
   

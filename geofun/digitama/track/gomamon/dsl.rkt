@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../self.rkt")
-(require "../primitive.rkt")
+(require "../primitives.rkt")
 
 (require "primitive.rkt")
 
@@ -14,6 +14,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (gomamon-dsl stx)
   (syntax-parse stx #:datum-literals [=> <- --]
+    [(_ self [(~or #:tree #:fork #:cond #:case)
+              move-expr
+              [(~or => #:=>) submove-expr ...] ...])
+     (quasisyntax/loc stx
+       (begin (gomamon-dsl self move-expr)
+              (gomamon-dsl self [=> submove-expr ...])
+              ...))]
     [(_ self [#:seq [move-expr (~optional (~or (~seq (~or => #:=>) submove-expr ...)
                                                [(~or => #:=>) submove-expr ...])
                                           #:defaults [((submove-expr 1) null)])] ...])
@@ -21,13 +28,6 @@
        (begin (let ()
                 (gomamon-dsl self move-expr)
                 (gomamon-dsl self [=> submove-expr ...]))
-              ...))]
-    [(_ self [(~or #:tree #:fork #:cond #:case)
-              move-expr
-              [(~or => #:=>) submove-expr ...] ...])
-     (quasisyntax/loc stx
-       (begin (gomamon-dsl self move-expr)
-              (gomamon-dsl self [=> submove-expr ...])
               ...))]
     [(_ self [#:jump [pos-expr (~optional (~or (~seq (~or => #:=>) submove-expr ...)
                                                [(~or => #:=>) submove-expr ...])
@@ -46,8 +46,7 @@
      (quasisyntax/loc stx
        (parameterize ([current-flex-zone (geo-create-flex-zone! self id type desc anchor sotype)])
          (gomamon-dsl self internal-move-expr) ...))]
-    [(_ self [#:with-zone id
-              [internal-move-expr ...]])
+    [(_ self [#:with-zone id [internal-move-expr ...]])
      (quasisyntax/loc stx
        (parameterize ([current-flex-zone (geo-flex-zone-ref self id)])
          (gomamon-dsl self internal-move-expr) ...))]
@@ -56,7 +55,7 @@
        (quasisyntax/loc stx
          (let ([here (geo:track-here self)])
            (gomamon-dsl self submove-expr) ...
-           (geo-track-jump-to self here))))]
+           (geo-track-jump-to-position self here))))]
     [(_ self (move:id argl ...))
      (with-syntax ([goma-move! (format-id #'move "gomamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx

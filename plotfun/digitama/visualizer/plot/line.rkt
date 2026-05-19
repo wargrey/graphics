@@ -64,7 +64,7 @@
         (create-visualizer plot:lines
                            #:with [id (geo-draw-lines pen)
                                       (geo-shape-extent width height 0.0 0.0)
-                                      (geo-shape-outline pen #true #true)
+                                      (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)

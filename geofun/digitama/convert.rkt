@@ -6,6 +6,7 @@
 (require "paint.rkt")
 (require "composite.rkt")
 (require "geometry/ink.rkt")
+(require "geometry/bleed.rkt")
 
 (require "unsafe/visual.rkt")
 (require "unsafe/typed/cairo.rkt")
@@ -23,10 +24,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-object stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo #:with [name draw!:expr extent:expr insets:expr] argl ...)
+    [(_ Geo #:with [name draw!:expr extent:expr bleeds:expr] argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
-         (Geo geo-convert draw! extent insets
+         (Geo geo-convert draw! extent bleeds
               (or name (gensym 'geo-prefix)) argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,20 +41,20 @@
           (values width height (make-geo-ink ink-x ink-y ink-width ink-height)))
         (values width height ink))))
 
-(define geo-outline* : (->* (Geo<%>) (Option-Stroke-Paint Option-Stroke-Paint) Geo-Pad)
+(define geo-bleed* : (->* (Geo<%>) (Option-Stroke-Paint Option-Stroke-Paint) Geo-Bleed)
   (lambda [self [stroke (current-stroke-source)] [border (current-border-source)]]
-    (define outline (geo<%>-outline self))
+    (define bleed (geo<%>-bleed self))
 
-    (cond [(geo-pad? outline) outline]
-          [(procedure? outline) (outline self stroke border)]
-          [(pen? stroke) (geo-pen->outline stroke)]
-          [else geo-zero-pads])))
+    (cond [(geo-bleed? bleed) bleed]
+          [(procedure? bleed) (bleed self stroke border)]
+          [(pen? stroke) (geo-pen->bleed stroke)]
+          [else geo-zero-bleeds])))
 
 (define geo-surface-region : (->* (Geo<%>) (Option-Stroke-Paint Option-Stroke-Paint)
                                   (Values Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self [stroke (current-stroke-source)] [border (current-border-source)]]
     (define-values (width height) (geo-flsize self))
-    (define-values (xoff yoff Width Height) (geo-pad-expand (geo-outline* self stroke border) width height))
+    (define-values (xoff yoff Width Height) (geo-bleed-expand (geo-bleed* self stroke border) width height))
 
     (values xoff yoff width height Width Height)))
 

@@ -50,6 +50,21 @@
   (lambda [self [fallback-width 0.0]]
     (if (pen? self) (pen-width self) fallback-width)))
 
+(define pen-select-thickest : (case-> [(Listof Any) -> (Option Pen)]
+                                      [Pen (Listof Pen) -> Pen])
+  (case-lambda
+    [(selves)
+     (let ([pens (filter pen? selves)])
+       (and (pair? pens)
+            (pen-select-thickest (car pens) (cdr pens))))]
+    [(self extras)
+     (let select ([pen : Pen self]
+                  [extras : (Listof Pen) extras])
+       (cond [(null? extras) pen]
+             [else (let-values ([(head tail) (values (car extras) (cdr extras))])
+                     (cond [(>= (pen-width pen) (pen-width head)) (select pen tail)]
+                           [else (select head tail)]))]))]))
+
 (define #:forall (T) pen-adjust-color : (-> Pen (-> FlRGBA FlRGBA) Pen)
   (lambda [self adjust]
     (define oc (pen-color self))

@@ -18,21 +18,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-freeze
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)]
+           #:border [border : Maybe-Stroke-Paint (default-border-paint)]
            #:fill [fill : Option-Fill-Paint (default-fill-paint)]
-           #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
+           #:font [font : Font (default-font)]
+           #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
-           #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
+           #:filter [gfilter : Geo-Pattern-Filter (default-pattern-filter)]
            #:density [density : Positive-Flonum (default-bitmap-density)]
            [self : Geo<%>]] : Bitmap
-    (define s : (Option Pen) (stroke-paint->source* stroke))
-    (define b : (Option Pen) (border-paint->source* border))
-    (parameterize ([default-stroke-source s]
-                   [default-border-source b]
+    (parameterize ([default-stroke-source (stroke-paint->source* stroke)]
+                   [default-border-source (border-paint->source* border)]
                    [default-font-source (font-paint->source fgc)]
                    [default-background-source (fill-paint->source* bgc)]
                    [default-fill-source (fill-paint->source* fill)]
-                   [default-pattern-filter filter]
+                   [default-pattern-filter gfilter]
                    [default-font font])
       (define-values (xoff yoff width height Width Height) (geo-surface-region self))
       (define-values (bmp cr) (create-argb-bitmap Width Height density #true))
@@ -42,9 +42,11 @@
       bmp)))
 
 (define geo-freeze!
-  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)] #:border [border : Maybe-Stroke-Paint (default-border-paint)]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (default-stroke-paint)]
+           #:border [border : Maybe-Stroke-Paint (default-border-paint)]
            #:fill [fill : Option-Fill-Paint (default-fill-paint)]
-           #:font [font : Font (default-font)] #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
+           #:font [font : Font (default-font)]
+           #:font-paint [fgc : Option-Fill-Paint (default-font-paint)]
            #:background [bgc : Option-Fill-Paint (default-background-paint)]
            #:filter [filter : Geo-Pattern-Filter (default-pattern-filter)]
            #:density [density : Positive-Flonum (default-bitmap-density)]

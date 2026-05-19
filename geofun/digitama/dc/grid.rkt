@@ -36,7 +36,7 @@
     (create-geometry-object geo:grid
                             #:with [id (geo-draw-grid major-stroke minor-stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       (geo-shape-outline major-stroke)]
+                                       (geo-shape-bleed major-stroke)]
                             (for/list ([x (in-list major-xs)] #:when (<= -epsilon x (+ flwidth +epsilon)))
                               (~clamp x 0.0 flwidth))
                             (for/list ([y (in-list major-ys)] #:when (<= -epsilon y (+ flheight +epsilon)))

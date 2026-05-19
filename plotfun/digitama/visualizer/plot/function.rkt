@@ -69,7 +69,7 @@
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
                                       (geo-shape-extent width height 0.0 0.0)
-                                      (geo-shape-outline pen #true #true)
+                                      (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
@@ -133,7 +133,7 @@
         (create-visualizer plot:function
                            #:with [id (geo-draw-function pen)
                                       (geo-shape-extent width height 0.0 0.0)
-                                      (geo-shape-outline pen #true #true)
+                                      (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular (min (real-part lft) (real-part rgt))
                                                                    (min (imag-part lft) (imag-part rgt)))

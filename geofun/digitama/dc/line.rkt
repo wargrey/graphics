@@ -6,6 +6,7 @@
 
 (require "../self.rkt")
 (require "../convert.rkt")
+(require "../geometry/bleed.rkt")
 
 (require "../paint.rkt")
 (require "../unsafe/dc/shape.rkt")
@@ -27,7 +28,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       geo-zero-pads]
+                                       geo-zero-bleeds]
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real-Length Length+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -37,7 +38,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       geo-zero-pads]
+                                       geo-zero-bleeds]
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 (define geo-diagonal : (->* (Real-Length Length+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -47,7 +48,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             0.0 0.0 flwidth flheight)))
 
 (define geo-anti-diagonal : (->* (Real-Length Length+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -57,7 +58,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             0.0 flheight flwidth (- flheight))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

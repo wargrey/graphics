@@ -86,7 +86,7 @@
     (create-geometry-object geo:path:self
                             #:with [id (geo-draw-path-self! stroke fill (or src-clr tip-clr) (or tgt-clr tip-clr) s.cfg t.cfg)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
+                                       (geo-shape-bleed stroke x-stroke? y-stroke?)]
                             type footprints
                             (cons spt srad) (cons ept erad)
                             (make-rectangular lx ty) (make-rectangular xoff yoff)

@@ -4,6 +4,7 @@
 
 (require "../self.rkt")
 (require "../convert.rkt")
+(require "../geometry/bleed.rkt")
 
 (require "../paint.rkt")
 (require "../paint/source.rkt")
@@ -14,27 +15,27 @@
   #:type-name Geo:Adjuster)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-try-repaint : (-> Geo [#:id (Option Symbol)]
-                              [#:stroke Maybe-Stroke-Paint]
-                              [#:border Maybe-Stroke-Paint]
-                              [#:fill Maybe-Fill-Paint]
-                              Geo:Adjuster)
-  (lambda [geo #:id [id #false] #:stroke [stroke (void)] #:fill [fill (void)] #:border [border (void)]]
+(define geo-try-repaint
+  (lambda [#:id [id : (Option Symbol) #false]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:border [border : Maybe-Stroke-Paint (void)]
+           #:fill [fill : Maybe-Fill-Paint (void)]
+           [geo : Geo]]
     (define body (if (geo:adjuster? geo) (geo:adjuster-body geo) geo))
     
     (create-geometry-object geo:adjuster
                             #:with [id (geo-draw-adjuster! body stroke border fill)
                                        (geo-delegate-expand body)
-                                       (geo-adjuster-outline body stroke border)]
+                                       (geo-adjuster-bleed body stroke border)]
                             body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-adjuster-outline : (-> Geo Maybe-Stroke-Paint Maybe-Stroke-Paint Geo-Calculate-Outline)
+(define geo-adjuster-bleed : (-> Geo Maybe-Stroke-Paint Maybe-Stroke-Paint Geo-Calculate-Bleed)
   (lambda [body alt-stroke alt-border]
-    (λ [[self : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Pad
-      (geo-outline* body
-                    (stroke-paint->source* alt-stroke)
-                    (border-paint->source* alt-border)))))
+    (λ [[self : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
+      (geo-bleed* body
+                  (stroke-paint->source* alt-stroke)
+                  (border-paint->source* alt-border)))))
 
 (define geo-draw-adjuster! : (-> Geo Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
   (lambda [body alt-stroke alt-border alt-fill]

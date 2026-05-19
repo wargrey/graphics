@@ -64,7 +64,7 @@
     (create-geometry-object geo:gear
                             #:with [id (geo-draw-gear stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             z α Rt Rr (~clamp ref-ratio 0.0 1.0)
                             Ri (real->double-flonum rotation))))
 
@@ -83,7 +83,7 @@
     (create-geometry-object geo:sandglass
                             #:with [id (geo-draw-sandglass stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             neck-flwidth neck-flheight tube-flheight)))
 
 (define geo-bullet : (->* (Real-Length Length+%)
@@ -97,7 +97,7 @@
     (create-geometry-object geo:bullet
                             #:with [id (geo-draw-bullet stroke pattern)
                                        (geo-shape-extent (+ flogive flbarrel) d 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flogive flbarrel flradius)))
 
 (define geo-monitor : (->* (Real-Length Length+%)
@@ -109,7 +109,7 @@
     (create-geometry-object geo:monitor
                             #:with [id (geo-draw-monitor stroke pattern screen-fill)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

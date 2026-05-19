@@ -73,7 +73,7 @@
     (create-geometry-object geo:stadium
                             #:with [id (geo-draw-stadium stroke pattern)
                                        (geo-shape-extent (+ d flength) d 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flength flradius)))
 
 (define geo-file
@@ -98,7 +98,7 @@
     (create-geometry-object geo:file
                             #:with [id (geo-draw-file stroke line-stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight xdgr-size ydgr-size corner
                             (for/list ([l (in-list lines)]) (~placement l ctxt-zone-height))
                             (~clamp (~dimension span flwidth) 0.0 flwidth)
@@ -119,7 +119,7 @@
     (create-geometry-object geo:document
                             #:with [id (geo-draw-document stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight flwave (~dimension gapsize flwave) extra-n)))
 
 (define geo-database
@@ -137,7 +137,7 @@
     (create-geometry-object geo:database
                             #:with [id (geo-draw-database stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight flb (~dimension gapsize flb) extra-n)))
 
 (define geo-bucket
@@ -157,7 +157,7 @@
     (create-geometry-object geo:bucket
                             #:with [id (geo-draw-bucket stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight flbase flbr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

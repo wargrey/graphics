@@ -58,7 +58,7 @@
     (create-geometry-object geo:rectangle
                             #:with [id (geo-draw-rectangle stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight
                             (for/list ([v (in-list vlines)]) (~placement v flwidth))
                             (for/list ([h (in-list hlines)]) (~placement h flheight)))))
@@ -83,7 +83,7 @@
     (create-geometry-object geo:rounded-rectangle
                             #:with [id (geo-draw-rounded-rectangle stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight
                             (for/list ([v (in-list vlines)]) (~placement v flwidth))
                             (for/list ([h (in-list hlines)]) (~placement h flheight))
@@ -114,7 +114,7 @@
     (create-geometry-object geo:chamfered-rectangle
                             #:with [id (geo-draw-chamfered-rectangle stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight
                             (for/list ([v (in-list vlines)]) (~placement v flwidth))
                             (for/list ([h (in-list hlines)]) (~placement h flheight))
@@ -142,7 +142,7 @@
     (create-geometry-object geo:open-rectangle
                             #:with [id (geo-draw-open-rectangle stroke line-stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight
                             (for/list ([v (in-list vlines)]) (~placement v flwidth))
                             (for/list ([h (in-list hlines)]) (~placement h flheight))

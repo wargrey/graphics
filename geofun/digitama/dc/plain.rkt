@@ -9,6 +9,7 @@
 
 (require "../paint/self.rkt")
 (require "../geometry/ink.rkt")
+(require "../geometry/bleed.rkt")
 (require "../unsafe/dc/plain.rkt")
 
 (require "../../fill.rkt")
@@ -32,21 +33,21 @@
       (define-values (flwidth flheight) (~extent width height))
       (hash-ref! blank-db (cons flwidth flheight)
                  (λ [] (create-geometry-object geo:blank
-                                               #:with [id void (geo-blank-extent flwidth flheight) geo-zero-pads]
+                                               #:with [id void (geo-blank-extent flwidth flheight) geo-zero-bleeds]
                                                #false))))))
 
 (define geo-ghost : (-> Geo [#:id (Option Symbol)] Geo:Blank)
   (lambda [geo #:id [id #false]]
     (define-values (flwidth flheight) (geo-flsize geo))
     (create-geometry-object geo:blank
-                            #:with [id void (geo-ghost-extent geo) geo-zero-pads]
+                            #:with [id void (geo-ghost-extent geo) geo-zero-bleeds]
                             geo)))
 
 (define geo-solid : (->* () (Color Real-Length #:id (Option Symbol)) Geo:Solid)
   (lambda [[color transparent] [size 1] #:id [id #false]]
     (define edge-size : Nonnegative-Flonum (~dimension size))
     (create-geometry-object geo:solid
-                            #:with [id geo-draw-solid (geo-shape-extent edge-size) geo-zero-pads]
+                            #:with [id geo-draw-solid (geo-shape-extent edge-size) geo-zero-bleeds]
                             (desc-brush #:color color))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

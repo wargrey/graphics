@@ -32,7 +32,7 @@
                                 #:fill (dia-zone-resolve-fill-paint style)
                                 shape-argl ...)])
          (create-geometry-group make-zone name #false #false
-                                #:outline (geo-outline shape)
+                                #:bleed (geo<%>-bleed shape)
                                 #:desc (geo-group-desc-from-caption maybe-caption)
                                 (geo-dsfit-layers shape maybe-caption
                                                   lft% top% hfit% vfit%

@@ -21,9 +21,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (draw-bitmap stx)
   (syntax-case stx []
-    [(_ dc #:with [width height density scale? outline] [args ...] [paint-args ...])
+    [(_ dc #:with [width height density scale? stroke] [args ...] [paint-args ...])
      (syntax/loc stx
-       (let*-values ([(s) (values outline)]
+       (let*-values ([(s) (values stroke)]
                      [(linewidth) (pen-maybe-width s)]
                      [(offset) (* linewidth 0.5)]
                      [(sfc png-cr fxwidth fxheight) (cairo-create-argb-image-surface* (+ linewidth width) (+ linewidth height) density scale?)])

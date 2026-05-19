@@ -2,13 +2,11 @@
 
 (provide (all-defined-out))
 
-(require digimon/measure)
 (require geofun/font)
-(require geofun/track)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/position)
-(require geofun/digitama/track/anchor)
+(require geofun/digitama/track/gomamon)
 
 (require "dc.rkt")
 (require "style.rkt")

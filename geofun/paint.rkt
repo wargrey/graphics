@@ -20,6 +20,7 @@
 (define default-background-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
 (define default-stroke-paint : (Parameterof Maybe-Stroke-Paint) (make-parameter (void)))
 (define default-border-paint : (Parameterof Maybe-Stroke-Paint) (make-parameter (void)))
+(define default-extra-stroke-paints : (Parameterof (Listof Maybe-Stroke-Paint)) (make-parameter null))
 (define default-font-paint : (Parameterof Fill-Paint) (make-parameter black))
 (define default-fill-paint : (Parameterof Option-Fill-Paint) (make-parameter #false))
 (define default-pattern-filter : (Parameterof Geo-Pattern-Filter) (make-parameter 'bilinear))

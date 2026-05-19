@@ -8,6 +8,7 @@
 (require "../convert.rkt")
 (require "../paint.rkt")
 (require "../geometry/radius.rkt")
+(require "../geometry/bleed.rkt")
 (require "../unsafe/dc/icosahedron.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,7 +41,7 @@
     (create-geometry-object geo:icosahedron:side
                             #:with [id (geo-draw-side-projection border edge pattern)
                                        (geo-shape-extent (icosahedron-edge-length->side-outline-size sidelength))
-                                       (geo-side-projection-outline edge border)]
+                                       (geo-side-projection-bleed edge border)]
                             r radius-type sidelength)))
 
 (define geo-icosahedron-over-projection
@@ -57,7 +58,7 @@
     (create-geometry-object geo:icosahedron:over
                             #:with [id (geo-draw-over-projection border edge pattern)
                                        (geo-shape-extent (* 2.0 R))
-                                       (geo-side-projection-outline edge border)]
+                                       (geo-side-projection-bleed edge border)]
                             r radius-type R (~rad rotation unit))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,11 +80,11 @@
                                   (geo-select-border-paint alt-bdr))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-side-projection-outline : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Geo-Calculate-Outline)
+(define geo-side-projection-bleed : (-> Maybe-Stroke-Paint Maybe-Stroke-Paint Geo-Calculate-Bleed)
   (lambda [alt-edge alt-bdr]
     (λ [self cur-edge cur-bdr]
       (define edge   (if (void? alt-edge) cur-edge alt-edge))
       (define border (if (void? alt-bdr) cur-bdr alt-bdr))
       
-      (or (geo-shape-outline (or border edge))
-          geo-zero-pads))))
+      (or (geo-shape-bleed edge border)
+          geo-zero-bleeds))))

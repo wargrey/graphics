@@ -65,7 +65,7 @@
     (create-geometry-object geo:circle
                             #:with [id (geo-draw-ellipse stroke pattern)
                                        (geo-shape-extent (* 2.0 r) 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             r (for/list : (Listof Flonum) ([d (in-list diameters)])
                                 (real->double-flonum d)))))
 
@@ -80,7 +80,7 @@
     (create-geometry-object geo:ring
                             #:with [id (geo-draw-ring stroke pattern)
                                        (geo-shape-extent (* 2.0 R) 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             R r)))
 
 (define geo-ellipse
@@ -97,10 +97,10 @@
     
     (if (= w h)
         (create-geometry-object geo:circle
-                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-outline stroke)]
+                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-bleed stroke)]
                                 (* w 0.5) rads)
         (create-geometry-object geo:ellipse
-                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-outline stroke)]
+                                #:with [id (geo-draw-ellipse stroke pattern) ellipse-extent (geo-shape-bleed stroke)]
                                 (* w 0.5) (* h 0.5) rads))))
 
 (define geo-sector
@@ -115,7 +115,7 @@
     (create-geometry-object geo:sector
                             #:with [id (geo-draw-sector stroke pattern)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             ar br (~rad start unit) (~rad end unit))))
 
 (define geo-arc
@@ -129,7 +129,7 @@
     (create-geometry-object geo:arc
                             #:with [id (geo-draw-arc stroke)
                                        (geo-shape-extent (* 2.0 ar) (* 2.0 br))
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             ar br (~rad start unit) (~rad end unit))))
 
 (define geo-bullseye*
@@ -144,7 +144,7 @@
     (create-geometry-object geo:bullseye
                             #:with [id (geo-draw-bullseye stroke pattern eye-stroke eye-pattern)
                                        (geo-shape-extent (* 2.0 R) 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             R r
                             (for/list : (Listof Nonnegative-Flonum) ([r (in-list rings)])
                               (abs (/ (~placement r R) R))))))

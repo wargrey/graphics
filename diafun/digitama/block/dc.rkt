@@ -54,7 +54,7 @@
         #:with style shape maybe-caption extra-argl ...)
      (syntax/loc stx
        (create-geometry-group make-block name #false #false
-                              #:outline (geo-outline shape)
+                              #:bleed (geo<%>-bleed shape)
                               #:desc (geo-group-desc-from-caption maybe-caption)
                               (geo-dsfit-layers shape maybe-caption
                                                 lft% top% hfit% vfit%
@@ -72,7 +72,7 @@
        (let ([g shape])
          (with-asserts ([g geo:group?])
            (create-geometry-group make-block (if (not name) (dia-block-shape-id name) (geo-id g)) #false #false
-                                  #:outline (geo-outline g)
+                                  #:bleed (geo<%>-bleed g)
                                   #:desc (geo:group-desc g)
                                   (geo:group-selves g)
                                   (dia-block-style-type-object style)

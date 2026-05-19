@@ -5,7 +5,7 @@
 (require "../self.rkt")
 (require "../trail.rkt")
 (require "../anchor.rkt")
-(require "../primitive.rkt")
+(require "../primitives.rkt")
 
 (require "../../geometry/footprint.rkt")
 
@@ -158,11 +158,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct gomamon geo:track
-  ([xstepsize : Nonnegative-Flonum]
-   [ystepsize : Nonnegative-Flonum]
+  ([xstepsize : Positive-Flonum]
+   [ystepsize : Positive-Flonum]
    [txradius : Nonnegative-Flonum]
    [tyradius : Nonnegative-Flonum])
-  #:type-name Gomamon)
+  #:type-name Gomamon
+  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gomamon-turn : (-> Geo:Track Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum Flonum
@@ -191,7 +192,7 @@
      (geo-track-do-move self (gomamon-target-position self xstep ystep xsgn ysgn) #\L anchor info #false)]))
 
 (define gomamon-approach : (case-> [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Flonum -> Void]
-                                     [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Flonum  Any -> Void])
+                                   [Gomamon Geo-Step-Datum Geo-Step-Datum Flonum Flonum (Option Geo-Anchor-Name) Flonum  Any -> Void])
   (case-lambda
     [(self xstep ystep xsgn ysgn anchor clearance-sgn)
      (geo-track-do-move self (gomamon-near-position self xstep ystep xsgn ysgn clearance-sgn) #\M anchor #false #true)]

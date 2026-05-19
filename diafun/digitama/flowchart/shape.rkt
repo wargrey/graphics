@@ -42,7 +42,7 @@
     (create-geometry-object dia:flow:storage
                             #:with [id (dia-flow-draw-storage stroke pattern)
                                        (geo-shape-extent flwidth flheight 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             flwidth flheight fla)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -59,7 +59,7 @@
     (create-geometry-object geo:regular-polygon
                             #:with [id (geo-draw-regular-polygon stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             N 1 R rtype (real->double-flonum rotation))))
 
 (define geo-star-polygon
@@ -80,7 +80,7 @@
     (create-geometry-object geo:regular-polygon
                             #:with [id (geo-draw-regular-polygon stroke pattern)
                                        (geo-shape-extent d d 0.0 0.0)
-                                       (geo-shape-outline stroke)]
+                                       (geo-shape-bleed stroke)]
                             N K R rtype (real->double-flonum rotation))))
 
 (define geo-polygon
@@ -98,7 +98,7 @@
     (create-geometry-object geo:polygon
                             #:with [id (geo-draw-polygon stroke pattern)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
+                                       (geo-shape-bleed stroke x-stroke? y-stroke?)]
                             prints xoff yoff)))
 
 ;;; @see `geo-polycurve*` for filled polylines 
@@ -117,7 +117,7 @@
     (create-geometry-object geo:polyline
                             #:with [id (geo-draw-polyline stroke)
                                        (geo-shape-extent width height 0.0 0.0)
-                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
+                                       (geo-shape-bleed stroke x-stroke? y-stroke?)]
                             prints xoff yoff close?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

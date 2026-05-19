@@ -42,7 +42,7 @@
     (create-geometry-object geo:polycurve
                             #:with [id (geo-draw-bezier stroke pattern)
                                        (geo-shape-extent width height (+ inkx xoff) (+ inky yoff) inkw inkh)
-                                       (geo-shape-outline stroke x-stroke? y-stroke?)]
+                                       (geo-shape-bleed stroke x-stroke? y-stroke?)]
                             clean-prints xoff yoff close?)))
 
 (define geo-bezier

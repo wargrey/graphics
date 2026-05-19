@@ -12,8 +12,9 @@
 (require "../self.rkt")
 (require "../paint.rkt")
 (require "../convert.rkt")
-(require "../richtext/markup.rkt")
 
+(require "../geometry/bleed.rkt")
+(require "../richtext/markup.rkt")
 (require "../unsafe/dc/text-layout.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,12 +37,12 @@
                (create-geometry-object geo:text
                                        #:with [id (geo-draw-text font fgsource bgsource)
                                                   (geo-text-extent font)
-                                                  geo-zero-pads]
+                                                  geo-zero-bleeds]
                                        plain lines align #false #false #false #false #false)
                (create-geometry-object geo:markup
                                        #:with [id (geo-draw-markup font fgsource bgsource)
                                                   (geo-markup-extent font)
-                                                  geo-zero-pads]
+                                                  geo-zero-bleeds]
                                        plain lines align markup))]
           [(or errfg errbg)
            (geo-text (bytes-append plain #"\n" markup) font #:id id #:color errfg #:background errbg #:alignment align)]

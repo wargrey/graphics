@@ -32,7 +32,7 @@
                                 #:fill (expr-slot-resolve-fill-paint style)
                                 shape-argl ...)])
          (create-geometry-group make-slot name #false #false
-                                #:outline (geo-outline shape)
+                                #:bleed (geo<%>-bleed shape)
                                 #:desc (or desc (geo-group-desc-from-caption maybe-term))
                                 (geo-dsfit-layers shape maybe-term lft% top% hfit% vfit%
                                                   sx% sy% (or tx% sx%) (or ty% sy%)

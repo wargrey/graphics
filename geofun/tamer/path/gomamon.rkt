@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(require geofun/digitama/track/gomamon)
+(require geofun/track)
 (require geofun/avatar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,14 +17,14 @@
   (jump-up 2 '#:z)
   [=> (drift '#:home '())]
   
-  (move-left)
+  (move-left 1)
   (move-down)
   (move-left 1 'lx)
   (close)
   
   (jump-right-down 2 1 '#:diamond)
   [=> (drift '#:home '(-0.5+i -0.5-i))
-      (stamp (bacteriophage-logo 20.0) 'ct)]
+      (stick (bacteriophage-logo 20.0) 'ct)]
   
   (move-right-up)
   (move-right-down)
@@ -71,7 +71,7 @@
   (require geofun/vector)
   (require bitmap)
 
-  (default-stroke-paint (desc-stroke #:color 'Crimson #:width 4.0))
+  (default-stroke-paint (desc-stroke #:color 'Crimson #:width 2.0))
   (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
 
   (define make-anchor-sticker : Geo-Track-Anchor->Sticker
@@ -91,9 +91,15 @@
         [else (make-sticker sticker 'cc)])))
   
   (reverse (geo:track-footprints goma))
-  (geo-frame (geo-track-stick goma make-anchor-sticker #:truncate? #false))
-  (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.618))
+  (geo:track-bbox goma)
 
+  (bitmap-hc-append #:gapsize 32.0
+                    (parameterize ([default-halo-paints (list (desc-stroke #:color (rgb* 'Crimson 0.1) #:width 12.0)
+                                                              (desc-stroke #:color (rgb* 'Crimson 0.2) #:width 8.0))])
+                      (geo-freeze (geo-frame (geo-track-stick goma make-anchor-sticker #:truncate? #false))))
+                    
+                    (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.2)))
+  
   (let ([bmp (bitmap-solid 'azure 512)])
     (geo-freeze! bmp goma -32 -32 #:stroke (desc-stroke #:color 'Orange #:dash 'long-dash))
     bmp)

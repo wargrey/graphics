@@ -4,7 +4,7 @@
 
 (require geofun/digitama/misc)
 
-(require/provide geofun/track)
 (require/provide geofun/digitama/path/tips)
+(require/provide geofun/digitama/track/gomamon)
 
 (require/provide "../base.rkt")

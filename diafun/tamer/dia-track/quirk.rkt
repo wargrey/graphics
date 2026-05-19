@@ -30,7 +30,7 @@
   (T-step 2-3i)
   (T-step '.outside #false "label outside")
 
-  (jump-to 'collate '#:/doc/whatever)
+  (jump-to 'collate)
   [#:tree (jump-right 1.5 '#:/doc/pptx)
    [=> (sidestep-left 2)
        (L-step 'step1 #false '#:horizon)]

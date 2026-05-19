@@ -1,12 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (all-from-out digimon/measure))
 (provide (all-from-out "base.rkt"))
 
 (provide Gomamon gomamon?)
+(provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
+(provide Geo-Track-Halo-Datum default-halo-paints default-halo-round?)
 
 (provide
- (rename-out [geo-track-close gomamon-close!])
+ (rename-out [geo-track-close gomamon-close!]
+             [gomamon-jump-to! gomamon-focus!])
  
  (rename-out [gomamon-move-upwards! gomamon-move-upward!]
              [gomamon-move-rightwards! gomamon-move-rightward!]
@@ -27,7 +31,7 @@
 (require "self.rkt")
 (require "trail.rkt")
 (require "anchor.rkt")
-(require "primitive.rkt")
+(require "primitives.rkt")
 
 (require "../self.rkt")
 (require "../convert.rkt")
@@ -63,25 +67,27 @@
 (define make-gomamon : (->* (Real-Length)
                             (Length+% #:turn-radius% Geo-Print-Datum
                                       #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
-                                      #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint)
+                                      #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
+                                      #:halo-strokes Geo-Track-Halo-Datum
+                                      #:halo-round? (U Void Boolean))
                             Gomamon)
   (lambda [#:turn-radius% [t-radius% +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
+           #:halo-strokes [halo-stroke (void)] #:halo-round? [halo-round? (void)]
            xstepsize0 [ystepsize (&% 100.0)]]
-    (define xstepsize (~dimension xstepsize0))
-    (define xstep : Nonnegative-Flonum
-      (cond [(<= xstepsize 0.0) 1.0]
-            [else (max (real->double-flonum xstepsize) 0.0)]))
-    
-    (define ystep : Nonnegative-Flonum (~dimension ystepsize xstep))
+    (define xstepsize : Nonnegative-Flonum (~dimension xstepsize0))
+    (define xstep : Positive-Flonum (if (> xstepsize 0.0) xstepsize 1.0))
+    (define ystep : Positive-Flonum (let ([ysize (~dimension ystepsize xstep)]) (if (> ysize 0.0) ysize 1.0)))
     
     (define loc : Float-Complex (~point2d home))
     (define home-pos : Float-Complex (make-rectangular (* (real-part loc) xstep) (* (imag-part loc) ystep)))
     (define-values (tsx tsy) (gomamon-turn-scales t-radius% 0.25))
     
     (create-geometry-object gomamon
-                            #:with [name (geo-draw-track! stroke fill) geo-track-extent (geo-shape-outline stroke)]
+                            #:with [name (geo-draw-track! stroke fill halo-stroke halo-round?)
+                                         geo-track-extent
+                                         (geo-track-bleed stroke halo-stroke)]
                             ; track fields
                             (make-geo-trail home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
@@ -137,9 +143,11 @@
     (geo-track-jump-to goma (make-polar length radians) anchor
                        (geo:track-here goma) gomamon-grid-position)))
 
-(define gomamon-jump-to! : (->* (Gomamon (U Geo-Anchor-Name Complex)) ((Option Geo-Anchor-Name)) Void)
-  (lambda [goma target [anchor #false]]
-    (geo-track-jump-to goma target anchor gomamon-grid-position)))
+(define gomamon-jump-to! : (case-> [Gomamon (U Geo-Anchor-Name Complex) -> Void]
+                                   [Gomamon Complex (Option Geo-Anchor-Name) -> Void])
+  (case-lambda
+    [(goma target) (geo-track-jump-to goma target gomamon-grid-position)]
+    [(goma target anchor) (geo-track-jump-to goma target anchor gomamon-grid-position)]))
 
 (define gomamon-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma length radians [anchor #false] [info #false]]
@@ -151,11 +159,11 @@
                                    [Gomamon Complex (Option Geo-Anchor-Name) -> Void]
                                    [Gomamon Complex (Option Geo-Anchor-Name) Any -> Void])
   (case-lambda
-    [(goma target) (geo-track-connect-to goma target #false #false gomamon-grid-position)]
+    [(goma target) (geo-track-connect-to goma target #false gomamon-grid-position)]
     [(goma target argument)
      (if (complex? target)
          (geo-track-connect-to goma target argument #false gomamon-grid-position)
-         (geo-track-connect-to goma target #false argument gomamon-grid-position))]
+         (geo-track-connect-to goma target argument))]
     [(goma target anchor info) (geo-track-connect-to goma target anchor info gomamon-grid-position)]))
 
 (define gomamon-move-back! : (case-> [Gomamon (U Geo-Anchor-Name Complex) -> Void]
@@ -164,18 +172,18 @@
                                      [Gomamon Complex (Option Geo-Anchor-Name) Any -> Void])
   (case-lambda
     [(goma target)
-     (geo-track-jump-to goma target #false gomamon-grid-position)
-     (geo-track-connect-to goma (geo:track-here goma) #false)]
+     (geo-track-jump-to goma target gomamon-grid-position)
+     (geo-track-connect-to-position goma (geo:track-here goma) #false)]
     [(goma target argument)
      (define here : Float-Complex (geo:track-here goma))
      (if (complex? target)
          (begin (geo-track-jump-to goma target argument gomamon-grid-position)
-                (geo-track-connect-to goma here #false))
-         (begin (geo-track-jump-to goma target #false gomamon-grid-position)
-                (geo-track-connect-to goma here argument)))]
+                (geo-track-connect-to-position goma here #false))
+         (begin (geo-track-jump-to goma target)
+                (geo-track-connect-to-position goma here argument)))]
     [(goma target anchor info)
      (geo-track-jump-to goma target anchor gomamon-grid-position)
-     (geo-track-connect-to goma (geo:track-here goma) info)]))
+     (geo-track-connect-to-position goma (geo:track-here goma) info)]))
 
 (define gomamon-radial-move! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma length radians [anchor #false] [info #false]]
@@ -183,7 +191,7 @@
     (define delta : Complex (make-polar length radians))
 
     (geo-track-connect-to goma delta anchor info here gomamon-grid-position)
-    (geo-track-jump-to goma here)))
+    (geo-track-jump-to-position goma here)))
 
 (define gomamon-radial-back! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name) Any) Void)
   (lambda [goma length radians [anchor #false] [info #false]]
@@ -191,7 +199,7 @@
     (define delta : Complex (make-polar length radians))
 
     (geo-track-jump-to goma delta anchor here gomamon-grid-position)
-    (geo-track-connect-to goma here info)))
+    (geo-track-connect-to-position goma here info)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gomamon-T-step! : (->* (Gomamon (U Geo-Anchor-Name Complex)) (Any Any) Void)
@@ -214,7 +222,7 @@
     (gomamon-move-down!  goma vstep #false info1)
     (gomamon-move-right! goma hstep #false info2)))
 
-(define gomamon-stamp! : (case-> [Gomamon Geo-Sticker -> Void]
+(define gomamon-stick! : (case-> [Gomamon Geo-Sticker -> Void]
                                  [Gomamon Geo -> Void]
                                  [Gomamon Geo Geo-Pin-Anchor -> Void]
                                  [Gomamon Geo Geo-Pin-Anchor Complex -> Void])
@@ -222,7 +230,3 @@
     [(goma gobj) (geo-track-stamp goma gobj)]
     [(goma gobj anchor) (geo-track-stamp goma gobj anchor)]
     [(goma gobj anchor offset) (geo-track-stamp goma (make-sticker gobj anchor (gomamon-grid-position goma offset)))]))
-
-(define gomamon-focus! : (->* (Gomamon Geo-Anchor-Name) ((Option Geo-Anchor-Name)) Void)
-  (lambda [goma target [anchor #false]]
-    (geo-track-jump-to goma target anchor gomamon-grid-position)))

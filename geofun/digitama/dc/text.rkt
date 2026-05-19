@@ -9,6 +9,7 @@
 
 (require "../self.rkt")
 (require "../convert.rkt")
+(require "../geometry/bleed.rkt")
 
 (require "../paint.rkt")
 (require "../paint/source.rkt")
@@ -45,7 +46,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-art-text
-  (lambda [#:stroke [outline : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
+  (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
     (define body : String
@@ -53,9 +54,9 @@
             [else (format "~a" text)]))
     
     (create-geometry-object geo:art-text
-                            #:with [id (geo-draw-art-text font outline fill bgsource)
+                            #:with [id (geo-draw-art-text font stroke fill bgsource)
                                        (geo-art-text-extent font)
-                                       (geo-shape-outline outline)]
+                                       (geo-shape-bleed stroke)]
                             body lines align)))
 
 (define geo-text
@@ -71,7 +72,7 @@
     (create-geometry-object geo:text
                             #:with [id (geo-draw-text font fgsource bgsource)
                                        (geo-text-extent font)
-                                       geo-zero-pads]
+                                       geo-zero-bleeds]
                             body lines align alsource dlsource clsource mlsource blsource)))
 
 (define geo-paragraph
@@ -90,7 +91,7 @@
     (create-geometry-object geo:para
                             #:with [id (geo-draw-paragraph font fgsource bgsource)
                                        (geo-paragraph-extent font)
-                                       geo-zero-pads]
+                                       geo-zero-bleeds]
                             body lines align smart-width smart-height
                             (real->double-flonum indent) (real->double-flonum spacing)
                             (paragraph-wrap-mode->integer wrap-mode raise-argument-error)
