@@ -62,8 +62,35 @@
          ...
          self))]))
 
+(define-syntax (define-renamon-script! stx)
+  (syntax-parse stx #:datum-literals []
+    [(_ id (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])) ...
+        #:- move-expr ...)
+     (syntax/loc stx
+       (define (id [self : Renamon] argv-expr ... #:order [order : Byte (current-renamon-order)]) : Void
+         (parameterize ([current-renamon-order order])
+           (renamon-dsl self move-expr) ...)))]))
+
 (define-syntax (define-renamon-primitive! stx)
   (syntax-parse stx #:datum-literals []
+    [(_ name
+        (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
+              (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
+              (~optional (~seq #:abbr abbr) #:defaults ([abbr #'#false])))
+        ...
+        #:= rule-expand-expr ...
+        #:- terminate-expr ...)
+     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
+       (syntax/loc stx
+         (define (rena-move! [self : Renamon] argv-expr ...) : Void
+           (define order (current-renamon-order))
+
+           (parameterize* ([current-renamon-anchor-format fmt]
+                           [current-renamon-primitive-name (renamon-anchor-prefix (or 'abbr 'name))])
+                 (if (> order 0)
+                     (parameterize ([current-renamon-order (- order 1)])
+                       (renamon-dsl self rule-expand-expr) ... (void))
+                     (begin (renamon-dsl self terminate-expr) ... (void)))))))]
     [(_ name
         (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
               (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
