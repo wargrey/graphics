@@ -28,7 +28,8 @@
   #:type-name Geo<%>)
 
 (struct geo geo<%>
-  ([id : Symbol])
+  ([id : Symbol]
+   [desc : (Option String)])
   #:type-name Geo
   #:transparent)
 

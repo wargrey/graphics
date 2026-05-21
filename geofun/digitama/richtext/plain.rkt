@@ -25,26 +25,25 @@
   (lambda [v]
     (cond [(string? v) v]
           [(geo-markup-datum? v) (hash-ref! maybedb v (λ [] (geo-markup-extract-plain-text v)))]
-          [(geo:string? v) (geo:string-body v)]
-          [(geo:group? v)
-           (or (geo:group-desc v)
-               (let concatenate : (Option String) ([g : (GLayer-Groupof Geo) (geo:group-selves v)])
-                 (hash-ref! maybedb g
-                            (λ [] (let cat : (Option String) ([selves : (Listof (GLayerof Geo)) (glayer-group-layers g)]
-                                                              [snialp : (Listof String) null])
-                                    (if (pair? selves)
-                                        (let-values ([(self rest) (values (glayer-master (car selves)) (cdr selves))])
-                                          (define maybe-plain : (Option String)
-                                            (cond [(geo:string? self) (geo:string-body self)]
-                                                  [(geo:group? self) (or (geo:group-desc self) (concatenate (geo:group-selves self)))]
-                                                  [else #false]))
-                                          (cat rest
-                                               (cond [(not maybe-plain) snialp]
-                                                     [else (cons maybe-plain snialp)])))
-                                        (and (pair? snialp)
-                                             (string-join #:before-first "{" #:after-last "}"
-                                                          (reverse snialp)
-                                                          ", "))))))))]
+          [(geo? v)
+           (let geo-cat ([this : Geo v])
+             (cond [(geo:string? this) (geo:string-body this)]
+                   [(geo:group? this)
+                    (or (geo-desc this)
+                        (let ([g (geo:group-selves this)])
+                          (hash-ref! maybedb g
+                                     (λ [] (let cat : (Option String) ([selves : (Listof (GLayerof Geo)) (glayer-group-layers g)]
+                                                                       [snialp : (Listof String) null])
+                                             (if (pair? selves)
+                                                 (let-values ([(self rest) (values (glayer-master (car selves)) (cdr selves))])
+                                                   (define maybe-plain : (Option String) (geo-cat self))
+                                                   (cat rest
+                                                        (cond [(not maybe-plain) snialp]
+                                                              [else (cons maybe-plain snialp)])))
+                                                 (and (pair? snialp)
+                                                      (string-join #:before-first "{" #:after-last "}"
+                                                                   (reverse snialp) ", "))))))))]
+                   [else (geo-desc this)]))]
           [(complex? v) (number->string v)]
           [(geo:rich:dimension? v)
            (hash-ref! plaindb v

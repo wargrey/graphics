@@ -14,13 +14,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-dia-track stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo id self (~seq #:frame frame) realize:expr argl ...)
+    [(_ Geo id self #:with frame desc realize:expr argl ...)
      (syntax/loc stx
        (parameterize ([current-master-track self])
          (let*-values ([(bands zones tracks blocks user-stickers) realize]
                        [(stickers) (append bands zones tracks blocks user-stickers)]
                        [(border background margin padding open-sides) (geo-frame-values frame)])
            (create-geometry-group Geo id #false #false
+                                  #:desc desc
                                   #:border border #:background background
                                   #:margin margin #:padding padding
                                   #:open-sides open-sides
@@ -30,12 +31,18 @@
                                   self argl ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Track-Datum (U Geo:Track Dia:Track))
+(define-type Dia-Track-Datum (U Geo:Track Geo:Trail Dia:Track))
 
 (struct dia:track geo:group
   ([self : Geo:Track])
   #:type-name Dia:Track
   #:transparent)
+
+(define dia-track-unbox : (-> Dia-Track-Datum Geo:Track)
+  (lambda [master]
+    (cond [(geo:track? master) master]
+          [(geo:trail? master) (geo:trail-self master)]
+          [else (dia:track-self master)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-initial-track : (-> (Option Symbol) Length+% Length+% Real

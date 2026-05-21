@@ -57,6 +57,7 @@
 (define dia-track-class
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
            #:track-factory [track-factory : Cls-Track-Factory (default-cls-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -66,17 +67,18 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Class
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (parameterize ([default-cls-relationship-identifier class-type])
       (create-dia-track dia:class id self
-                        #:frame frame
+                        #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory #false
                                            note-factory note-desc scale opacity #false)))))
 
 (define #:forall (TS BS BM) dia-track-class*
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -86,11 +88,11 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Class
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (parameterize ([default-cls-relationship-identifier class-type])
       (create-dia-track dia:class id self
-                        #:frame frame
+                        #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory #false
                                            note-factory note-desc scale opacity #false)))))           
 

@@ -73,7 +73,7 @@
          (with-asserts ([g geo:group?])
            (create-geometry-group make-block (if (not name) (dia-block-shape-id name) (geo-id g)) #false #false
                                   #:bleed (geo<%>-bleed g)
-                                  #:desc (geo:group-desc g)
+                                  #:desc (geo-desc g)
                                   (geo:group-selves g)
                                   (dia-block-style-type-object style)
                                   (dia-block-tags tags)

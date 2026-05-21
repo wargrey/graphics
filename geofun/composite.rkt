@@ -222,6 +222,7 @@
 (define geo-frame
   (lambda [#:id [id : (Option Symbol) #false]
            #:desc [desc : (Option String) #false]
+           #:desc-format [desc-fmt : String "[~a]"]
            #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
            #:operator [operator : (Option Geo-Pin-Operator) #false]
            #:margin [margin : Geo-Insets-Datum 0.0]
@@ -230,7 +231,10 @@
            #:background [bg-fill : Maybe-Fill-Paint (void)]
            #:open-sides [open-sides : (Option Geo-Open-Sides) #false]
            [geo : Geo]] : Geo:Group
-    (make-geo:group id base-op operator desc (geo-own-layers geo) margin inset border bg-fill open-sides)))
+    (make-geo:group id base-op operator
+                    (or desc (let ([d (geo-group-desc-from-caption geo)])
+                               (and d (format desc-fmt d))))
+                    (geo-own-layers geo) margin inset border bg-fill open-sides)))
 
 ;;; NOTE
 ; As a lower-level compositor, 

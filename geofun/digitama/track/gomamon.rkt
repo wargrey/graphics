@@ -29,7 +29,7 @@
 (require "gomamon/primitive.rkt")
 
 (require "self.rkt")
-(require "trail.rkt")
+(require "trace.rkt")
 (require "anchor.rkt")
 (require "primitives.rkt")
 
@@ -66,13 +66,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-gomamon : (->* (Real-Length)
                             (Length+% #:turn-radius% Geo-Print-Datum
-                                      #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol)
+                                      #:anchor Geo-Anchor-Name #:at Geo-Print-Datum
+                                      #:id (Option Symbol) #:desc (Option String)
                                       #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
                                       #:halo-strokes Geo-Track-Halo-Datum
                                       #:halo-round? (U Void Boolean))
                             Gomamon)
   (lambda [#:turn-radius% [t-radius% +nan.0]
-           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false]
+           #:anchor [anchor '#:home] #:at [home 0] #:id [name #false] #:desc [desc #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
            #:halo-strokes [halo-stroke (void)] #:halo-round? [halo-round? (void)]
            xstepsize0 [ystepsize (&% 100.0)]]
@@ -88,8 +89,10 @@
                             #:with [name (geo-draw-track! stroke fill halo-stroke halo-round?)
                                          geo-track-extent
                                          (geo-track-bleed stroke halo-stroke)]
+                            #:desc desc
+                            
                             ; track fields
-                            (make-geo-trail home-pos anchor)
+                            (make-geo-trace home-pos anchor)
                             (make-geo-bbox home-pos) home-pos home-pos
                             (list (gpp:point #\M home-pos)) (make-hash)
                             null null

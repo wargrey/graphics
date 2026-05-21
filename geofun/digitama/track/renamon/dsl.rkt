@@ -16,26 +16,28 @@
   (syntax-parse stx #:datum-literals [=> +> @ ~]
     [(_ self [(~or #:tree #:fork #:cond #:case)
               move-expr
-              [(~or => #:=> +> #:+>) submove-expr ...] ...])
+              [(~optional (~and (~or => #:=> +> #:+>) >) #:defaults ([> #'=>])) submove-expr ...] ...])
      (quasisyntax/loc stx
        (begin (renamon-dsl self move-expr)
-              (renamon-dsl self [=> submove-expr ...])
+              (renamon-dsl self [> submove-expr ...])
               ...))]
-    [(_ self [#:seq [move-expr (~optional (~or (~seq (~or => #:=> +> #:+>) submove-expr ...)
-                                               [(~or => #:=> +> #:+>) submove-expr ...])
-                                          #:defaults [((submove-expr 1) null)])] ...])
+    [(_ self [#:seq [move-expr (~optional (~or (~seq (~and (~or => #:=> +> #:+>) >) submove-expr ...)
+                                               [(~and (~or => #:=> +> #:+>) >) submove-expr ...])
+                                          #:defaults ([(submove-expr 1) null]
+                                                      [> #'=>]))] ...])
      (quasisyntax/loc stx
        (begin (let ()
                 (renamon-dsl self move-expr)
-                (renamon-dsl self [=> submove-expr ...]))
+                (renamon-dsl self [> submove-expr ...]))
               ...))]
-    [(_ self [#:jump [pos-expr (~optional (~or (~seq (~or => #:=> +> #:+>) submove-expr ...)
-                                               [(~or => #:=> +> #:+>) submove-expr ...])
-                                          #:defaults [((submove-expr 1) null)])] ...])
+    [(_ self [#:jump [pos-expr (~optional (~or (~seq (~and (~or => #:=> +> #:+>) >) submove-expr ...)
+                                               [(~and (~or => #:=> +> #:+>) >) submove-expr ...])
+                                          #:defaults ([(submove-expr 1) null]
+                                                      [> #'=>]))] ...])
      (quasisyntax/loc stx
        (begin (let ()
                 (geo-track-jump-to self pos-expr #false renamon-position)
-                [=> (renamon-dsl self submove-expr) ...])
+                [> (renamon-dsl self submove-expr) ...])
               ...))]
     [(_ self [#:zone id type
               (~alt (~optional (~seq #:anchor anchor) #:defaults ([anchor #''ct]))
@@ -73,5 +75,9 @@
     [(_ self (move:id argl ...))
      (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx
-         (rena-move! self argl ...)))]))
+         (rena-move! self argl ...)))]
+    [(_ self move:id)
+     (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
+       (quasisyntax/loc stx
+         (rena-move! self)))]))
 

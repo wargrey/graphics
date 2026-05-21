@@ -15,7 +15,7 @@
 
 (require geofun/digitama/path/dc)
 (require geofun/digitama/track/self)
-(require geofun/digitama/track/trail)
+(require geofun/digitama/track/trace)
 (require geofun/digitama/track/anchor)
 
 (require "style.rkt")
@@ -48,8 +48,8 @@
                                                             (Listof (GLayerof Geo))
                                                             (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
   (lambda [self track-factory free-factory block-factory block-desc0 note-factory note-desc scale opacity0 home-name]
-    (define gpath : Geo-Trail (geo:track-trail self))
-    (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trail-anchored-positions gpath))
+    (define gpath : Geo-Trace (geo:track-trace self))
+    (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trace-anchored-positions gpath))
     (define block-scale (and (> scale 0.0) (not (= scale 1.0)) (real->double-flonum scale)))
     (define opacity (and opacity0 (< opacity0 1.0) (real->double-flonum opacity0)))
 
@@ -150,7 +150,7 @@
      (reverse tracks)
      
      (let collect-blocks : (Listof (GLayerof Geo)) ([ordered-blocks : (Listof (GLayerof Geo)) null]
-                                                    [srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath)])
+                                                    [srohcna : (Listof Geo-Anchor-Name) (geo-trace-ranchors gpath)])
        (if (pair? srohcna)
            (let ([block (hash-ref blockdb (car srohcna) (λ [] #false))])
              (collect-blocks (cond [(not block) ordered-blocks]
@@ -251,10 +251,10 @@
                     (geo-path-attach-label path labels))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S M) dia-register-home-name : (-> Geo-Trail (Option Geo-Rich-Text) (Option (Dia-Block-Describer S M))
+(define #:forall (S M) dia-register-home-name : (-> Geo-Trace (Option Geo-Rich-Text) (Option (Dia-Block-Describer S M))
                                                     (Option (Dia-Block-Describer S M)))
   (lambda [self name block-desc]
-    (define home (geo-trail-home-anchor self))
+    (define home (geo-trace-home-anchor self))
     
     (cond [(not name) block-desc]
           [(not block-desc) (make-immutable-hash (list (cons home name)))]

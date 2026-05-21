@@ -3,7 +3,7 @@
 (provide (all-defined-out))
 
 (require "../self.rkt")
-(require "../trail.rkt")
+(require "../trace.rkt")
 (require "../anchor.rkt")
 (require "../primitives.rkt")
 
@@ -214,12 +214,12 @@
      (if (real? xstep)
          (+ (real-part (geo:track-here self))
             (* (gomamon-xstepsize self) (real->double-flonum xstep) xsgn))
-         (real-part (geo-trail-ref (geo:track-trail self) xstep)))
+         (real-part (geo-trace-ref (geo:track-trace self) xstep)))
      
      (if (real? ystep)
          (+ (imag-part (geo:track-here self))
             (* (gomamon-ystepsize self) (real->double-flonum ystep) ysgn))
-         (imag-part (geo-trail-ref (geo:track-trail self) ystep))))))
+         (imag-part (geo-trace-ref (geo:track-trace self) ystep))))))
 
 (define gomamon-grid-position : (-> Gomamon Complex Float-Complex)
   (lambda [self pos]

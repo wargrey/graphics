@@ -4,7 +4,7 @@
 
 (require "self.rkt")
 (require "datum.rkt")
-(require "trail.rkt")
+(require "trace.rkt")
 (require "anchor.rkt")
 
 (require "../base.rkt")
@@ -109,8 +109,8 @@
                                                           [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) (-> T Complex Float-Complex) -> Float-Complex]
                                                           [(∩ T Geo:Track) (U Geo-Anchor-Name Complex) Float-Complex (-> T Complex Float-Complex) -> Float-Complex])
   (case-lambda
-    [(self target) (if (complex? target) (geo-track-position-identity self target) (geo-trail-ref (geo:track-trail self) target))]
-    [(self target transform) (if (complex? target) (transform self target) (geo-trail-ref (geo:track-trail self) target))]
+    [(self target) (if (complex? target) (geo-track-position-identity self target) (geo-trace-ref (geo:track-trace self) target))]
+    [(self target transform) (if (complex? target) (transform self target) (geo-trace-ref (geo:track-trace self) target))]
     [(self target offset transform) (+ offset ((inst geo-track-resolve-position T) self target transform))]))
 
 (define geo-track-jump-to-position : (-> Geo:Track Float-Complex Void)
@@ -140,7 +140,7 @@
           [(list? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cadr dpos)) sy)))]
           [(pair? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cdr dpos)) sy)))]
           [(complex? dpos) (+ cpos (make-rectangular (* (real->double-flonum (real-part dpos)) sx) (* (real->double-flonum (imag-part dpos)) sy)))]
-          [else (geo-trail-ref (geo:track-trail self) dpos)])))
+          [else (geo-trace-ref (geo:track-trace self) dpos)])))
 
 (define geo-track-linear-bezier : (-> Geo:Track Float-Complex (Option Geo-Anchor-Name) Void)
   (lambda [self endpt anchor]

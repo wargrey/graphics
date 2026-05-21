@@ -20,7 +20,9 @@
 
 (define current-renamon-primitive-name : (Parameterof (Option String)) (make-parameter #false))
 (define current-renamon-anchor-format : (Parameterof (Option String)) (make-parameter #false))
-(define current-renamon-order : (Parameterof Byte) (make-parameter 0))
+
+(define default-renamon-description-format : (Parameterof String) (make-parameter "~a (order = ~a)"))
+(define default-renamon-order : (Parameterof Byte) (make-parameter 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct renamon-info : Renamon-Info

@@ -6,7 +6,6 @@
 (require digimon/digitama/unsafe/ops)
 
 (require racket/list)
-(require racket/math)
 
 (require "bezier.rkt")
 

@@ -62,6 +62,7 @@
 (define dia-track-activate
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:track-factory [track-factory : Act-Track-Factory (default-act-track-factory)]
            #:block-factory [block-factory : Act-Block-Factory (default-act-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -71,16 +72,17 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Activity
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (create-dia-track dia:activity id self
-                      #:frame frame
+                      #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
                                          note-factory note-desc scale opacity #false))))
 
 (define #:forall (TS BS BM) dia-track-activate*
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:block-desc [block-desc : (Option (Dia-Block-Describer BS BM)) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
@@ -90,10 +92,10 @@
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [master : Dia-Track-Datum]] : Dia:Activity
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (create-dia-track dia:activity id self
-                      #:frame frame
+                      #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
                                          note-factory note-desc scale opacity #false))))
 

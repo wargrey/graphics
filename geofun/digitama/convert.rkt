@@ -24,11 +24,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (create-geometry-object stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ Geo #:with [name draw!:expr extent:expr bleeds:expr] argl ...)
+    [(_ Geo
+        #:with [name draw!:expr extent:expr bleeds:expr]
+        (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
+        argl ...)
      (with-syntax ([geo-prefix (datum->syntax #'Geo (format "~a:" (syntax->datum #'Geo)))])
        (syntax/loc stx
          (Geo geo-convert draw! extent bleeds
-              (or name (gensym 'geo-prefix)) argl ...)))]))
+              (or name (gensym 'geo-prefix)) desc
+              argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-extent* : Geo-Calculate-Extent*

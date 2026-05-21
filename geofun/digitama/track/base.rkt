@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 (provide (all-from-out "metadata.rkt"))
+(provide (all-from-out "trail.rkt"))
 (provide (all-from-out "anchor.rkt"))
 
 (provide Geo:Track geo:track?)
@@ -14,11 +15,13 @@
 
 (require "self.rkt")
 (require "metadata.rkt")
+(require "trail.rkt")
 (require "datum.rkt")
 (require "sticker.rkt")
 (require "anchor.rkt")
-(require "trail.rkt")
+(require "trace.rkt")
 
+(require "../self.rkt")
 (require "../composite.rkt")
 (require "../dc/composite.rkt")
 (require "../layer/sticker.rkt")
@@ -34,13 +37,13 @@
            #:truncate? [truncate? : Boolean #true]
            #:offset [offset : Float-Complex 0.0+0.0i]
            [self : Geo:Track]
-           [anchor->sticker : Geo-Track-Anchor->Sticker default-track-anchor->sticker]] : (U Geo:Group Geo:Track)
+           [anchor->sticker : Geo-Track-Anchor->Sticker default-track-anchor->sticker]] : Geo:Trail
     (geo:track-stick self anchor->sticker trusted-anchors truncate?
-                     id desc base-op sibs-op offset)))
+                     id (or desc (geo-desc self)) base-op sibs-op offset)))
 
 (define geo-track-anchor-position : (->* (Geo:Track Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
-    (define abspos : Float-Complex (geo-trail-ref (geo:track-trail self) anchor))
+    (define abspos : Float-Complex (geo-trace-ref (geo:track-trace self) anchor))
     
     (cond [(not translate?) abspos]
           [else (- abspos (geo-bbox-position (geo:track-bbox self)))])))

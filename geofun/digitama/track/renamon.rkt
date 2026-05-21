@@ -5,8 +5,10 @@
 (provide (all-from-out "base.rkt"))
 
 (provide Renamon renamon?)
-(provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum Geo-Track-Halo-Datum)
+(provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
+(provide Geo-Track-Halo-Datum Option-Track-Halo-Paint Maybe-Track-Halo-Paint)
 (provide default-halo-paints default-halo-round? renamon-heading)
+(provide default-renamon-description-format default-renamon-order)
 
 (provide
  (rename-out [geo-track-close renamon-close!]
@@ -26,7 +28,7 @@
 (require "renamon/primitive.rkt")
 
 (require "self.rkt")
-(require "trail.rkt")
+(require "trace.rkt")
 (require "anchor.rkt")
 (require "primitives.rkt")
 
@@ -35,10 +37,13 @@
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../paint/self.rkt")
+(require "../paint/source.rkt")
 
 (require "../geometry/dot.rkt")
 (require "../geometry/bbox.rkt")
 (require "../geometry/footprint.rkt")
+
+(require "../dc/composite.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
@@ -62,39 +67,69 @@
          ...
          self))]))
 
-(define-syntax (define-renamon-script! stx)
-  (syntax-parse stx #:datum-literals []
-    [(_ id (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])) ...
+(define-syntax (define-renamon-generator! stx)
+  (syntax-parse stx #:datum-literals [:]
+    [(_ id
+        (~alt (~optional (~seq #:desc description) #:defaults ([description #'#false]))
+              (~optional (~seq #:with [(argv-expr : Type defval ...) ...])
+                         #:defaults ([(argv-expr 1) null]
+                                     [(Type 1) null]
+                                     [(defval 2) null])))
+        ...
         #:- move-expr ...)
-     (syntax/loc stx
-       (define (id [self : Renamon] argv-expr ... #:order [order : Byte (current-renamon-order)]) : Void
-         (parameterize ([current-renamon-order order])
-           (renamon-dsl self move-expr) ...)))]))
+     (with-syntax ([id! (format-id #'id "~a!" (syntax->datum #'id))]
+                   [id: (format-id #'id "~a:" (syntax->datum #'id))]
+                   [id*! (format-id #'id "~a*!" (syntax->datum #'id))])
+       (syntax/loc stx
+         (begin (define (id! #:order [order : Byte (default-renamon-order)]
+                             [self : Renamon] (argv-expr : Type defval ...) ...) : Renamon
+                  (parameterize ([default-renamon-order order])
+                    (renamon-dsl self move-expr) ...)
+                  self)
+                
+                (define (id*! #:order [order : Byte (default-renamon-order)]
+                              #:id [name : (Option Symbol) #false]
+                              #:desc [desc : (Option String) #false]
+                              #:desc-format [desc-fmt : String (default-renamon-description-format)]
+                              #:trusted-anchors [trusted-anchors : (Option Geo-Trusted-Anchors) #false]
+                              #:truncate? [truncate? : Boolean #true]
+                              #:anchor->sticker [anchor->sticker : Geo-Track-Anchor->Sticker void]
+                              [self : Renamon] (argv-expr : Type defval ...) ...) : (U Geo:Group Geo:Track)
+                  (geo-track-stick #:id (or name (gensym 'id:))
+                                   #:desc (format desc-fmt (or desc description (geo-desc self) name 'id) order)
+                                   #:trusted-anchors trusted-anchors #:truncate? truncate?
+                                   (id! self argv-expr ... #:order order)
+                                   anchor->sticker)))))]))
 
 (define-syntax (define-renamon-primitive! stx)
   (syntax-parse stx #:datum-literals []
     [(_ name
         (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
               (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
-              (~optional (~seq #:abbr abbr) #:defaults ([abbr #'#false])))
+              (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
         ...
         #:= rule-expand-expr ...
         #:- terminate-expr ...)
      (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
        (syntax/loc stx
          (define (rena-move! [self : Renamon] argv-expr ...) : Void
-           (define order (current-renamon-order))
+           (define order (default-renamon-order))
 
            (parameterize* ([current-renamon-anchor-format fmt]
-                           [current-renamon-primitive-name (renamon-anchor-prefix (or 'abbr 'name))])
+                           [current-renamon-primitive-name (renamon-anchor-prefix (or abbr 'name))])
                  (if (> order 0)
-                     (parameterize ([current-renamon-order (- order 1)])
+                     (parameterize ([default-renamon-order (- order 1)])
                        (renamon-dsl self rule-expand-expr) ... (void))
                      (begin (renamon-dsl self terminate-expr) ... (void)))))))]
+    [(_ name alt-expr ... #:= rule-expand-expr ...)
+     (syntax/loc stx
+       (define-renamon-primitive! name alt-expr ...
+         #:= rule-expand-expr ...
+         #:-))]
     [(_ name
         (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
               (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
-              (~optional (~seq #:abbr abbr) #:defaults ([abbr #'#false])))
+              (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
         ...
         #:- move-expr ...)
      (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
@@ -108,15 +143,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-renamon : (->* (Real-Length Nonnegative-Real)
                             (Real Angle-Unit
-                                  #:anchor Geo-Anchor-Name #:at Geo-Print-Datum #:id (Option Symbol) #:avatar (Option Geo)
+                                  #:anchor Geo-Anchor-Name #:at Geo-Print-Datum
+                                  #:id (Option Symbol) #:desc (Option String) #:avatar (Option Geo)
                                   #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                                  #:halo-strokes Geo-Track-Halo-Datum
+                                  #:halo-strokes Maybe-Track-Halo-Paint
                                   #:halo-round? (U Void Boolean))
                             Renamon)
-  (lambda [#:anchor [anchor '#:home] #:at [home 0] #:id [name #false] #:avatar [avatar #false]
+  (lambda [#:anchor [anchor '#:_] #:at [home 0] #:id [name #false] #:desc [desc #false] #:avatar [avatar #false]
            #:stroke [stroke (void)] #:fill [fill (void)]
            #:halo-strokes [halo-strokes (void)] #:halo-round? [round? (void)]
-           stepsize0 delta0 [heading0 0.0] [angle-unit 'rad]]
+           stepsize0 delta0 [heading0 pi/2] [angle-unit 'rad]]
     (define stepsize : Positive-Flonum (let ([size (~dimension stepsize0)]) (if (> size 0.0) size 1.0)))
     (define angle-delta : Flonum (~rad delta0 angle-unit))
     (define heading : Flonum (~wrap (~rad heading0 angle-unit) 2pi))
@@ -126,8 +162,9 @@
       (create-geometry-object renamon
                               #:with [name (geo-draw-track! stroke fill halo-strokes round?)
                                            geo-track-extent (geo-track-bleed stroke halo-strokes)]
+                              #:desc desc
                               ; track fields
-                              (make-geo-trail home-pos anchor)
+                              (make-geo-trace home-pos anchor)
                               (make-geo-bbox home-pos) home-pos home-pos
                               (list (gpp:point #\M home-pos)) (make-hash)
                               null null

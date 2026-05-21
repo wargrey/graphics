@@ -42,7 +42,7 @@
          (let ([layers layers0])
            (Geo geo-convert geo-draw-group! (geo-group-extent layers)
                 (or bleed (geo-group-bleed layers))
-                (or name (gensym 'geo-prefix)) base-op sibs-op desc layers
+                (or name (gensym 'geo-prefix)) desc base-op sibs-op layers
                 argl ...))))]
     [(_ Geo name base-op:expr sibs-op:expr
         (~alt (~optional (~seq #:bleed alt-bleed) #:defaults ([alt-bleed #'#false]))
@@ -63,10 +63,10 @@
                (Geo geo-convert
                     (geo-draw-framed-group! border bgsource open-sides)
                     (geo-group-frame-extent margin inset layers border)
-                    bleed id base-op sibs-op desc layers argl ...)
+                    bleed id desc base-op sibs-op layers argl ...)
                (Geo geo-convert
                     geo-draw-group! (geo-group-extent layers)
-                    bleed id base-op sibs-op desc layers argl ...)))))]))
+                    bleed id desc base-op sibs-op layers argl ...)))))]))
 
 (define-syntax (create-geometry-table stx)
   (syntax-parse stx #:datum-literals [:]
@@ -92,7 +92,6 @@
 (struct geo:group geo
   ([base-operator : (Option Symbol)]
    [sibs-operator : (Option Symbol)]
-   [desc : (Option String)]
    [selves : Geo-Layer-Group])
   #:type-name Geo:Group
   #:transparent)
@@ -118,11 +117,11 @@
         (geo-frame-ink-body-origin ink)
         0.0+0.0i)))
 
-(define geo-group-desc-from-caption : (-> (Option Geo) (Option String))
+(define geo-group-desc-from-caption : (-> (Option Geo<%>) (Option String))
   (lambda [maybe-caption]
     (and maybe-caption
-         (cond [(geo:string? maybe-caption) (geo:string-body maybe-caption)]
-               [(geo:group? maybe-caption) (geo:group-desc maybe-caption)]
+         (cond [(geo:string? maybe-caption) (or (geo-desc maybe-caption) (geo:string-body maybe-caption))]
+               [(geo? maybe-caption) (geo-desc maybe-caption)]
                [else #false]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -167,7 +166,8 @@
     [(id base-op sibs-op desc layers)
      (create-geometry-object geo:group
                              #:with [id geo-draw-group! (geo-group-extent layers) (geo-group-bleed layers)]
-                             base-op sibs-op desc layers)]
+                             #:desc desc
+                             base-op sibs-op layers)]
     [(id base-op sibs-op desc layers margin inset border background open-sides)
      (if (or margin inset border background open-sides)
 
@@ -175,7 +175,8 @@
                                  #:with [id (geo-draw-framed-group! border background open-sides)
                                             (geo-group-frame-extent margin inset layers border)
                                             geo-zero-bleeds]
-                                 base-op sibs-op desc layers)
+                                 #:desc desc
+                                 base-op sibs-op layers)
 
          (make-geo:group id base-op sibs-op desc layers))]))
 

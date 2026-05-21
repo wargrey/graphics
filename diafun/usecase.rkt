@@ -57,6 +57,7 @@
 (define dia-track-use-case
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:block-factory [block-factory : UC-Block-Factory (default-uc-block-factory)]
            #:track-factory [track-factory : UC-Track-Factory (default-uc-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -67,16 +68,18 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Use-Case
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
+    
     (parameterize ([current-master-track self])
       (create-dia-track dia:use-case id self
-                        #:frame frame
+                        #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory block-desc
                                            note-factory note-desc scale opacity home-name)))))
 
 (define #:forall (TS BS BM) dia-track-use-case*
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -87,10 +90,11 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:Use-Case
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
+
     (parameterize ([current-master-track self])
       (create-dia-track dia:use-case id self
-                        #:frame frame
+                        #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory block-desc
                                            note-factory note-desc scale opacity home-name)))))
 

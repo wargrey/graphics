@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require "self.rkt")
+(require "trail.rkt")
 
 (require "../self.rkt")
 (require "../composite.rkt")
@@ -14,8 +15,9 @@
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../layer/merge.rkt")
+(require "../layer/combine.rkt")
 
-(require "../track/trail.rkt")
+(require "../track/trace.rkt")
 (require "../track/anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,6 +27,7 @@
 
 (define current-master-track : (Parameterof (Option Geo:Track)) (make-parameter #false))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-track-anchor->sticker : Geo-Track-Anchor->Sticker
   (lambda [anchor pos Width Height]
     (if (symbol? anchor)
@@ -33,20 +36,22 @@
 
 (define geo:track-stick : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
                               (Option Symbol) (Option String) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
-                              (U Geo:Group Geo:Track))
+                              Geo:Trail)
   (lambda [self anchor->sticker trusted-anchors truncate? id desc base-op sibs-op offset]
     (parameterize ([current-master-track self])
       (define layers : (Option (GLayer-Groupof Geo)) (geo-track-stick/list self anchor->sticker trusted-anchors offset truncate?))
       (define gp-id : Symbol (or id (gensym 'geo:track:)))
 
-      (cond [(not layers) self]
-            [else (make-geo:group gp-id base-op sibs-op desc layers)]))))
+      (create-geometry-group geo:trail gp-id base-op sibs-op
+                             #:desc desc
+                             (if (not layers) (geo-own-layers self) layers)
+                             self))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-stick/list : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Float-Complex Boolean (Option (GLayer-Groupof Geo)))
   (lambda [self anchor->sticker trusted-anchors offset truncate?]
-    (define gpath : Geo-Trail (geo:track-trail self))
-    (define srohcna : (Listof Geo-Anchor-Name) (geo-trail-ranchors gpath))
+    (define gpath : Geo-Trace (geo:track-trace self))
+    (define srohcna : (Listof Geo-Anchor-Name) (geo-trace-ranchors gpath))
     (define origin : Float-Complex (geo-bbox-position (geo:track-bbox self)))
     (define-values (Width Height) (geo-flsize self))
 
@@ -59,7 +64,7 @@
       (cond [(pair? srohcna)
              (let-values ([(anchor rest) (values (car srohcna) (cdr srohcna))])
                (if (geo-anchor-trusted? anchor trusted-anchors)
-                   (let ([slayer (geo-track-sticker-layer anchor->sticker anchor (- (geo-trail-ref gpath anchor) origin) offset Width Height)])
+                   (let ([slayer (geo-track-sticker-layer anchor->sticker anchor (- (geo-trace-ref gpath anchor) origin) offset Width Height)])
                      (stick rest (if (not slayer) stickers (cons slayer stickers))))
                    (stick rest stickers)))]
             [(pair? stickers)

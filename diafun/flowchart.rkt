@@ -55,6 +55,7 @@
 (define dia-track-flow
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:track-factory [track-factory : Flow-Track-Factory (default-flow-track-factory)]
            #:block-factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
@@ -65,10 +66,10 @@
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            [master : Dia-Track-Datum]] : Dia:FlowChart
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (create-dia-track dia:flowchart id self
-                      #:frame frame
+                      #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
                                          note-factory note-desc
                                          scale opacity home-name))))
@@ -76,6 +77,7 @@
 (define #:forall (TS BS BM) dia-track-flow*
   (lambda [#:id [id : (Option Symbol) #false]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:desc [desc : (Option String) #false]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
            #:block-desc [block-desc : (Option (Dia-Block-Describer BS BM)) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
@@ -86,10 +88,10 @@
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
            #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            [master : Dia-Track-Datum]] : Dia:FlowChart
-    (define self (if (geo:track? master) master (dia:track-self master)))
+    (define self (dia-track-unbox master))
 
     (create-dia-track dia:flowchart id self
-                      #:frame frame
+                      #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
                                          note-factory note-desc
                                          scale opacity home-name))))
