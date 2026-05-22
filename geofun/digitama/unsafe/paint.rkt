@@ -16,6 +16,9 @@
   (require "cairo.rkt")
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define current-stroke-scale⁻¹ (make-parameter 1.0))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-set-fill-rule
     (lambda [cr fill-rule]
       (if (eq? fill-rule 'even-odd)
@@ -73,14 +76,14 @@
     (case-lambda
       [(cr stroke)
        (cairo-set-rgba cr (unsafe-struct*-ref stroke 0) (unsafe-struct*-ref stroke 7))
-       (cairo_set_line_width cr (unsafe-struct*-ref stroke 1))
+       (cairo-set-stroke-width cr (unsafe-struct*-ref stroke 1) (unsafe-struct*-ref stroke 8))
        (cairo_set_line_cap cr (unsafe-struct*-ref stroke 2))
        (cairo_set_line_join cr (unsafe-struct*-ref stroke 3))
        (cairo_set_miter_limit cr (unsafe-struct*-ref stroke 4))
        (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))]
       [(cr stroke alt-width color-scale round?)
        (cairo-set-rgba cr (unsafe-struct*-ref stroke 0) (unsafe-struct*-ref stroke 7) color-scale)
-       (cairo_set_line_width cr (or alt-width (unsafe-struct*-ref stroke 1)))
+       (cairo-set-stroke-width cr (or alt-width (unsafe-struct*-ref stroke 1)) (unsafe-struct*-ref stroke 8))
        (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))
        (if (or round?)
            (let ()
@@ -93,8 +96,9 @@
 
   (define cairo-set-source-as-stroke
     (lambda [cr src width color-scale round?]
+      ; TODO: how to describe the `scalable?` for a source used as the stroke
       (cairo-set-source cr src color-scale)
-      (cairo_set_line_width cr width)
+      (cairo_set_line_width cr width) 
       (when (or round?)
         (cairo_set_line_cap cr CAIRO_LINE_CAP_ROUND)
         (cairo_set_line_join cr CAIRO_LINE_JOIN_ROUND))))
@@ -103,6 +107,12 @@
     (lambda [cr stroke src width color-scale round?]
       (cond [(or stroke) (cairo-set-stroke cr stroke width 1.0 round?)]
             [(or src) (cairo-set-source-as-stroke cr src width color-scale round?)])))
+
+  (define cairo-set-stroke-width
+    (lambda [cr width scalable?]
+      (if (not scalable?)
+          (cairo_set_line_width cr (unsafe-fl* width (current-stroke-scale⁻¹)))
+          (cairo_set_line_width cr width))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-render-with-stroke
@@ -191,6 +201,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
+ [current-stroke-scale⁻¹ (Parameterof Flonum)]
+ 
  [cairo-render (->* (Cairo-Ctx (Option Pen)) ((Option Brush)) Void)]
  [cairo-render/evenodd (-> Cairo-Ctx (Option Pen) (Option Brush) Void)]
 

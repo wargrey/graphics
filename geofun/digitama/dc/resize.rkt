@@ -54,6 +54,7 @@
                                       #:with [(geo-id self) geo-draw/scale!
                                                             (geo-delegate-expand self sx sy)
                                                             (geo-bleed-scale* (geo<%>-bleed self) self sx sy)]
+                                      #:desc (geo-desc self)
                                       self sx sy)]
              [else (geo-scale (geo:transform-source self) (* sx (geo:scale-sx self)) (* sy (geo:scale-sy self)))]))]))
 
@@ -66,6 +67,7 @@
              [(geo:rotation? self) (geo-rotate (geo:transform-source self) (+ fltheta (geo:rotation-theta self)))]
              [else (create-geometry-object geo:rotation
                                            #:with [(geo-id self) geo-draw/rotation! geo-rotation-extent (geo<%>-bleed self)]
+                                           #:desc (geo-desc self)
                                            self fltheta)]))]
     [(self theta unit) (geo-rotate self (~rad theta unit))]))
 
@@ -84,6 +86,7 @@
           [(geo:shear? self) (geo-shear (geo:transform-source self) (+ fx (geo:shear-shx self)) (+ fy (geo:shear-shy self)))]
           [else (create-geometry-object geo:shear
                                         #:with [(geo-id self) geo-draw/shear! geo-shear-extent (geo<%>-bleed self)]
+                                        #:desc (geo-desc self)
                                         self fx fy)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,6 +99,7 @@
 
     (create-geometry-object geo:region
                             #:with [(geo-id self) geo-draw/region! (geo-shape-extent flw flh) (geo<%>-bleed self)]
+                            #:desc (geo-desc self)
                             self flx fly flw flh)))
 
 (define geo-draw/region! : Geo-Surface-Draw!

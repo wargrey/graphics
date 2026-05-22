@@ -4,10 +4,13 @@
 
 (require "self.rkt")
 (require "trail.rkt")
+(require "trace.rkt")
+(require "anchor.rkt")
 
 (require "../self.rkt")
 (require "../composite.rkt")
 (require "../geometry/bbox.rkt")
+(require "../nice/box.rkt")
 
 (require "../dc/text.rkt")
 (require "../dc/composite.rkt")
@@ -16,9 +19,6 @@
 (require "../layer/sticker.rkt")
 (require "../layer/merge.rkt")
 (require "../layer/combine.rkt")
-
-(require "../track/trace.rkt")
-(require "../track/anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Track-Anchor->Sticker
@@ -36,14 +36,18 @@
 
 (define geo:track-stick : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
                               (Option Symbol) (Option String) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
+                              Geo-Frame-Datum
                               Geo:Trail)
-  (lambda [self anchor->sticker trusted-anchors truncate? id desc base-op sibs-op offset]
+  (lambda [self anchor->sticker trusted-anchors truncate? id desc base-op sibs-op offset frame]
     (parameterize ([current-master-track self])
+      (define-values (border background margin padding open-sides) (geo-frame-values frame))
       (define layers : (Option (GLayer-Groupof Geo)) (geo-track-stick/list self anchor->sticker trusted-anchors offset truncate?))
       (define gp-id : Symbol (or id (gensym 'geo:track:)))
-
+      
       (create-geometry-group geo:trail gp-id base-op sibs-op
-                             #:desc desc
+                             #:desc desc #:open-sides open-sides
+                             #:border border #:background background
+                             #:margin margin #:padding padding
                              (if (not layers) (geo-own-layers self) layers)
                              self))))
 

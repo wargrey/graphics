@@ -54,7 +54,6 @@
   ([custom : (Dia-Track-Style S)]
    [backstop : Dia-Track-Backstop-Style]
    [root : (Option (Dia-Track-Style S)) #false]
-   [scale : (Option Nonnegative-Flonum) #false]
    [opacity : (Option Nonnegative-Flonum) #false]))
 
 (define #:forall (S) dia-track-style-type-object : (-> (Dia-Track-Style-Spec S) S)
@@ -79,7 +78,6 @@
                   #:dash dash #:offset offset
                   #:color (if (void? c) #false c)
                   #:opacity (dia-track-style-spec-opacity self)
-                  #:scale (dia-track-style-spec-scale self)
                   (stroke-paint->source
                    (dia-track-backstop-style-line-paint
                     (dia-track-style-spec-backstop self))))))

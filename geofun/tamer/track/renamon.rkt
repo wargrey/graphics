@@ -23,7 +23,7 @@
    [=> (- @ head2) (F @)]])
 
 (define-renamon-primitive! K #:= K + K - - K + K #:- F)
-(define-renamon-generator! koch-snowflake #:- K - - K - - K)
+(define-renamon-generator! koch-snowflake #:- K - - K - - K close)
 
 (define-renamon-primitive! X #:= X + Y F +)
 (define-renamon-primitive! Y #:= - F X - Y)
@@ -34,7 +34,7 @@
 (define-renamon-generator! hexagonal-osper-curve #:- Fl)
 
 (define-renamon-primitive! W #:= W W - [=> - W + W + W] + [=> + W - W - W] #:- F)
-(define-renamon-generator! tree-in-wind #:desc "风中之树" #:- W)
+(define-renamon-generator! tree-in-the-wind #:- W)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
@@ -42,27 +42,34 @@
   (require geofun/vector)
   (require bitmap)
 
-  (default-halo-paints (list (desc-stroke #:color (rgb* 'Lime 0.1) #:width 8.0)))
+  (default-halo-paints (desc-stroke #:color (rgb* 'Lime 0.1) #:width 10.0 #:scalable? #false))
   (default-stroke-paint (desc-stroke #:color 'Orange #:dash 'long-dash))
-  (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618) #:width 2.0))
+  (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.1)))
+  
+  (define white-halos
+    (list (desc-stroke #:color (rgb* 'GhostWhite 0.8) #:width 12.0 #:scalable? #false)
+          (desc-stroke #:color (rgb* 'White 0.9) #:width 6.0  #:scalable? #false)))
 
-  (default-renamon-description-format "~a(~a阶)")
-
+  (define snowflake-pen (desc-stroke #:color 'Silver #:scalable? #false))
+  
   (define renamon-label : (-> Geo Geo)
     (lambda [rena]
       (geo-vc-append #:gapsize 4.0
-                     (geo-frame rena)
+                     (geo-frame rena #:background 'WhiteSmoke)
                      (geo-text (geo->string rena)))))
 
   (geo-hb-append #:gapsize 4.0
                  (renamon-label (geo-track-stick rena))
-                 (renamon-label (tree-in-wind*! (make-renamon 10 pi/6 pi/2 #:halo-strokes null) #:order 4)))
+                 (renamon-label (tree-in-the-wind*! (make-renamon 10 pi/6 pi/2 #:halo-strokes white-halos) #:order 4)))
   
   (geo-hb-append* #:gapsize 4.0
-                  (for/list : (Listof Geo) ([order (in-range 5)])
-                    (renamon-label (koch-snowflake*! #:desc "科赫雪花" #:order (assert order byte?)
-                                                     (make-renamon (/ 100 (expt (add1 order) 2)) pi/3 0.0 #:stroke 'SeaGreen)))))
+                  (for/list : (Listof Geo) ([order (in-range 0 6)])
+                    (define snowflake
+                      (koch-snowflake*! #:order (assert order byte?)
+                                        (make-renamon #:halo-strokes white-halos #:stroke snowflake-pen #:fill 'Snow
+                                                      10 pi/3 0.0)))
+                    (renamon-label (geo-scale snowflake (/ 256 (geo-height snowflake))))))
 
   (geo-hb-append #:gapsize 4.0
-                 (renamon-label (dragon-curve*! (make-renamon 10 pi/2 #:stroke 'ForestGreen) #:order 10 #:desc "龙分形"))
-                 (renamon-label (hexagonal-osper-curve*! (make-renamon 10 pi/3 #:halo-strokes null #:fill 'Snow) #:order 4 #:desc "高斯帕曲线"))))
+                 (renamon-label (dragon-curve*! (make-renamon 10 pi/2 #:stroke 'Green) #:order 10))
+                 (renamon-label (hexagonal-osper-curve*! (make-renamon 8 pi/3 #:halo-strokes null) #:order 4))))

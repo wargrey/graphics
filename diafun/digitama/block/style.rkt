@@ -177,7 +177,7 @@
     (define maybe-width (or (dia-block-style-width  (dia-block-style-spec-custom style)) (and rt (dia-block-style-width  rt))))
     (define Width (dia-block-backstop-style-width (dia-block-style-spec-backstop style)))
     (define width (* (if (or maybe-width) (~dimension maybe-width Width) Width)
-         (or (dia-block-style-spec-scale style) 1.0)))
+                     (or (dia-block-style-spec-scale style) 1.0)))
 
     (cond [(rational? width) width]
           [else (raise-user-error 'dia-block-resolve-width

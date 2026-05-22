@@ -20,7 +20,7 @@
 (require "../geometry/bleed.rkt")
 (require "../geometry/footprint.rkt")
 
-(require "../unsafe/dc/path.rkt")
+(require "../unsafe/dc/track.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Print-Datum Point2D)
@@ -168,7 +168,7 @@
     (λ [self cr x0 y0 width height]
       (when (geo:track? self)
         (define-values (xoff yoff) (geo-bbox-offset-values (geo:track-bbox self)))
-        (dc_path* cr (+ x0 xoff) (+ y0 yoff) width height (reverse (geo:track-footprints self))
+        (dc_track cr (+ x0 xoff) (+ y0 yoff) width height (reverse (geo:track-footprints self))
                   (geo-select-stroke-paint* alt-stroke)
                   (geo-select-fill-source alt-fill)
                   (if (void? alt-halo-strokes) (default-halo-paints) alt-halo-strokes)

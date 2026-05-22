@@ -278,18 +278,25 @@
     (define H (glayer-group-height layers))
     
     (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
-      (let check-boundary ([lx : Flonum 0.0]
-                           [ty : Flonum 0.0]
-                           [rx : Nonnegative-Flonum W]
-                           [by : Nonnegative-Flonum H]
+      (let check-boundary ([lx : Flonum 0.0] [ls? : Boolean (geo-bleed-left-scalable? geo-zero-bleeds)]
+                           [ty : Flonum 0.0] [ts? : Boolean (geo-bleed-top-scalable? geo-zero-bleeds)]
+                           [rx : Nonnegative-Flonum W] [rs? : Boolean (geo-bleed-right-scalable? geo-zero-bleeds)]
+                           [by : Nonnegative-Flonum H] [bs? : Boolean (geo-bleed-bottom-scalable? geo-zero-bleeds)]
                            [siblings : (Listof (GLayerof Geo)) (glayer-group-layers layers)])
         (cond [(pair? siblings)
                (let*-values ([(self rest) (values (car siblings) (cdr siblings))]
                              [(x y w h) (values (glayer-x self) (glayer-y self) (glayer-width self) (glayer-height self))]
                              [(bleed) (geo-bleed* (glayer-master self) stroke border)]
                              [(l t) (values (geo-bleed-left bleed) (geo-bleed-top bleed))]
-                             [(r b) (values (geo-bleed-right bleed) (geo-bleed-bottom bleed))])
-                 (check-boundary (min lx (- x l)) (min ty (- y t)) (max rx (+ x w r)) (max by (+ y h b)) rest))]
+                             [(r b) (values (geo-bleed-right bleed) (geo-bleed-bottom bleed))]
+                             [(l? t?) (values (geo-bleed-left-scalable? bleed) (geo-bleed-top-scalable? bleed))]
+                             [(r? b?) (values (geo-bleed-right-scalable? bleed) (geo-bleed-bottom-scalable? bleed))]
+                             [(nl nt nr nb) (values (- x l) (- y t) (+ x w r) (+ y h b))]
+                             [(nlx nls?) (if (<= nl lx) (values nl l?) (values lx ls?))]
+                             [(nty nts?) (if (<= nt ty) (values nt t?) (values ty ts?))]
+                             [(nrx nrs?) (if (>= nr rx) (values nr r?) (values rx rs?))]
+                             [(nby nbs?) (if (>= nb by) (values nb b?) (values by bs?))])
+                 (check-boundary nlx nls? nty nts? nrx nrs? nby nbs? rest))]
               [(or (< lx 0.0) (< ty 0.0) (> rx W) (> by H))
-               (geo-bleed (abs ty) (abs (- rx W)) (abs (- by H)) (abs lx))]
+               (geo-bleed (abs ty) ts? (abs (- rx W)) rs? (abs (- by H)) bs? (abs lx) ls?)]
               [else geo-zero-bleeds])))))

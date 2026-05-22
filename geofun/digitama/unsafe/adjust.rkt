@@ -22,13 +22,21 @@
   (lambda [cr x0 y0 width height xscale yscale draw! master owidth oheight]
     (define tx (if (< xscale 0.0) (+ x0 width)  x0))
     (define ty (if (< yscale 0.0) (+ y0 height) y0))
+    (define sx (abs xscale))
+    (define sy (abs yscale))
+    (define ss⁻¹ (current-stroke-scale⁻¹))
+    (define ds
+      (cond [(= sx sy) sx]
+            [else ; Root Mean Square
+             (sqrt (* (+ (* sx sx) (* sy sy)) 0.5))]))
 
-    (cairo_save cr)
-    ; order matters
-    (cairo_translate cr tx ty)
-    (cairo_scale cr xscale yscale)
-    (draw! master cr 0.0 0.0 owidth oheight)
-    (cairo_restore cr)))
+    (parameterize ([current-stroke-scale⁻¹ (/ ss⁻¹ ds)])
+      (cairo_save cr)
+      ; order matters
+      (cairo_translate cr tx ty)
+      (cairo_scale cr xscale yscale)
+      (draw! master cr 0.0 0.0 owidth oheight)
+      (cairo_restore cr))))
 
 (define #:forall (Master) geo_rotate : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Flonum
                                            (Cairo-Surface-Draw! Master) Master Nonnegative-Flonum Nonnegative-Flonum

@@ -72,7 +72,8 @@
   (require bitmap)
 
   (default-stroke-paint (desc-stroke #:color 'Crimson #:width 2.0))
-  (default-border-paint (desc-border #:color (rgb* 'RoyalBlue 0.618)))
+  
+  (define frame (make-geo-box #:border (desc-border #:color (rgb* 'RoyalBlue 0.618)) #:background 'Snow))
 
   (define make-anchor-sticker : Geo-Track-Anchor->Sticker
     (lambda [anchor pos Width Height]
@@ -92,11 +93,10 @@
   
   (reverse (geo:track-footprints goma))
   (geo:track-bbox goma)
-
-  (bitmap-hc-append #:gapsize 32.0
-                    (parameterize ([default-halo-paints (list (desc-stroke #:color (rgb* 'Crimson 0.1) #:width 12.0)
+  
+  (bitmap-hc-append (parameterize ([default-halo-paints (list (desc-stroke #:color (rgb* 'Crimson 0.1) #:width 12.0)
                                                               (desc-stroke #:color (rgb* 'Crimson 0.2) #:width 8.0))])
-                      (geo-freeze (geo-frame (geo-track-stick goma make-anchor-sticker #:truncate? #false))))
+                      (geo-freeze (geo-track-stick goma make-anchor-sticker #:truncate? #false #:frame frame)))
                     
                     (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.2)))
   

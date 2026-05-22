@@ -110,7 +110,8 @@
            [(not stroke) geo-zero-bleeds]
            [(pen? stroke) (geo-pen->bleed stroke)]
            [else #false])]
-    [(stroke border) (geo-shape-bleed (or border stroke))]
+    [(stroke border)
+     (geo-shape-bleed (or border stroke))]
     [(stroke x? y?)
      (cond [(void? stroke) #false]
            [(not stroke) geo-zero-bleeds]
@@ -118,17 +119,23 @@
            [(and x? y?) (geo-pen->bleed stroke)]
            [(or x? y?)
             (let* ([thickness (pen-width stroke)]
+                   [scalable? (pen-scalable? stroke)]
                    [offset (* thickness 0.5)]
                    [hoff (if (and x?) offset 0.0)]
                    [voff (if (and y?) offset 0.0)])
-              (geo-bleed voff hoff voff hoff))]
+              (geo-bleed voff scalable? hoff scalable? voff scalable? hoff scalable?))]
            [else geo-zero-bleeds])]))
 
 (define geo-pen->bleed : (-> Pen Geo-Bleed)
-  (let ([bleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)])
+  (let ([sbleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)]
+        [fbleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)])
     (lambda [stroke]
       (define thickness (pen-width stroke))
 
-      (hash-ref! bleeds thickness
-                 (λ [] (let ([offset (* thickness 0.5)])
-                         (geo-bleed offset offset offset offset)))))))
+      (if (pen-scalable? stroke)
+          (hash-ref! sbleeds thickness
+                     (λ [] (let ([offset (* thickness 0.5)])
+                             (geo-bleed offset #true offset #true offset #true offset #true))))
+          (hash-ref! fbleeds thickness
+                     (λ [] (let ([offset (* thickness 0.5)])
+                             (geo-bleed offset #false offset #false offset #false offset #false))))))))

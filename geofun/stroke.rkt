@@ -16,7 +16,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; the default values follow the SVG specification 
 (define default-stroke : (Parameterof Pen)
-  (make-parameter (pen black 1.0 (line-cap->integer 'butt) (line-join->integer 'miter) 4.0 solid-dash 0.0 1.0)))
+  (make-parameter (pen black 1.0
+                       (line-cap->integer 'butt)
+                       (line-join->integer 'miter)
+                       4.0
+                       solid-dash 0.0 1.0
+                       #true)))
 
 ; the default values follow the CSS specification
 (define default-border : (Parameterof Pen)
@@ -24,23 +29,23 @@
                        (line-cap->integer 'butt)
                        (line-join->integer 'miter)
                        10.0 ; <- cairo default value, usually useless for borders in the box model
-                       solid-dash 0.0 1.0)))
+                       solid-dash 0.0 1.0
+                       #true)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define desc-stroke : (->* ()
-                           (Pen #:color (Option Color) #:opacity (Option Real) #:width (Option Length+%)
-                                #:cap (Option Symbol) #:join (U Symbol Real False)
-                                #:dash (Option Stroke-Dash-Datum) #:offset (Option Real)
-                                #:scale (Option Nonnegative-Flonum))
-                           Pen)
-  (lambda [[base (default-stroke)] #:color [color #false] #:opacity [opacity #false] #:width [width #false]
-                                   #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]
-                                   #:scale [scale #false]]
+(define desc-stroke
+  (lambda [#:color [color : (Option Color) #false]
+           #:opacity [opacity : (Option Real) #false]
+           #:width [width : (Option Length+%) #false]
+           #:cap [cap : (Option Symbol) #false]
+           #:join [join : (U Symbol Real False) #false]
+           #:dash [dash : (Option Stroke-Dash-Datum) #false]
+           #:offset [offset : (Option Real) #false]
+           #:scalable? [scalable? : (U Boolean Void) (void)]
+           [base : Pen (default-stroke)]] : Pen
     (define :color (if (not color) (pen-color base) (rgb* color)))
     (define :opacity (if (not opacity) (pen-opacity base) (real->alpha opacity)))
-    (define :linewidth
-      (* (if (not width) (pen-width base) (~dimension width (pen-width base)))
-         (or scale 1.0)))
+    (define :linewidth (if (not width) (pen-width base) (~dimension width (pen-width base))))
 
     (define :linecap
       (cond [(not cap) (pen-linecap base)]
@@ -60,27 +65,33 @@
             [else (values (pen-offset base) (dasharray-normalize (pen-dash base) :linewidth (pen-width base)))]))
 
     (define :dashoffset (if (not offset) :preoffset (real->double-flonum offset)))
+    (define :scalable? (if (void? scalable?) (pen-scalable? base) scalable?))
 
-    (pen :color :linewidth :linecap :linejoin :miterlimit :dasharray :dashoffset :opacity)))
+    (pen :color :linewidth :linecap :linejoin :miterlimit :dasharray :dashoffset :opacity :scalable?))) 
 
-(define desc-stroke* : (->* ()
-                            (Pen #:color (Option Color) #:opacity (Option Real) #:width (Option Length+%)
-                                 #:cap (Option Symbol) #:join (U Symbol Real False)
-                                 #:dash (Option Stroke-Dash-Datum) #:offset (Option Real)
-                                 #:scale (Option Nonnegative-Flonum))
-                            Pen)
-  (lambda [[base (default-stroke)] #:color [color #false] #:opacity [opacity #false] #:width [width #false]
-                                   #:cap [cap #false] #:join [join #false] #:dash [dash #false] #:offset [offset #false]
-                                   #:scale [scale #false]]
-    (if (or color opacity width cap join dash offset scale)
+(define desc-stroke*
+  (lambda [#:color [color : (Option Color) #false]
+           #:opacity [opacity : (Option Real) #false]
+           #:width [width : (Option Length+%) #false]
+           #:cap [cap : (Option Symbol) #false]
+           #:join [join : (U Symbol Real False) #false]
+           #:dash [dash : (Option Stroke-Dash-Datum) #false]
+           #:offset [offset : (Option Real) #false]
+           #:scalable? [scalable? : (U Boolean Void) (void)]
+           [base : Pen (default-stroke)]] : Pen
+    (if (or color opacity width cap join dash offset (boolean? scalable?))
         (desc-stroke #:color color #:opacity opacity #:width width
                      #:cap cap #:join join #:dash dash #:offset offset
-                     #:scale scale
+                     #:scalable? scalable?      
                      base)
         base)))
 
-(define desc-border : (->* () (Pen #:color (Option Color) #:opacity (Option Real) #:width (U Length+% Symbol False) #:style (Option Symbol)) Pen)
-  (lambda [[base (default-border)] #:color [color #false] #:opacity [alpha #false] #:width [width #false] #:style [dash #false]]
+(define desc-border
+  (lambda [#:color [color : (Option Color) #false]
+           #:opacity [alpha : (Option Real) #false]
+           #:width [width : (U Length+% Symbol False) #false]
+           #:style [dash : (Option Symbol) #false]
+           [base : Pen (default-border)]] : Pen
     (define no-border? (or (eq? dash 'none) (eq? dash 'hidden)))
     (define linewidth
       (cond [(and no-border?) 0.0]
@@ -101,10 +112,15 @@
          (pen-linejoin base)
          (pen-miterlimit base)
          dasharray dashoffset
-         (if (not alpha) (pen-opacity base) (real->alpha alpha)))))
+         (if (not alpha) (pen-opacity base) (real->alpha alpha))
+         (pen-scalable? base))))
 
-(define desc-border* : (->* () (Pen #:color (Option Color) #:opacity (Option Real) #:width (U Length+% Symbol False) #:style (Option Symbol)) Pen)
-  (lambda [[base (default-border)] #:color [color #false] #:opacity [opacity #false] #:width [width #false] #:style [dash #false]]
+(define desc-border*
+  (lambda [#:color [color : (Option Color) #false]
+           #:opacity [opacity : (Option Real) #false]
+           #:width [width : (U Length+% Symbol False) #false]
+           #:style [dash : (Option Symbol) #false]
+           [base : Pen (default-border)]]
     (if (or color opacity width dash)
         (desc-border #:color color #:opacity opacity #:width width #:style dash
                      base)

@@ -37,7 +37,6 @@
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../paint/self.rkt")
-(require "../paint/source.rkt")
 
 (require "../geometry/dot.rkt")
 (require "../geometry/bbox.rkt")
@@ -48,6 +47,9 @@
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 (require (for-syntax syntax/parse))
+
+(require (for-syntax racket/string))
+(require (for-syntax racket/symbol))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-renamon! stx)
@@ -79,7 +81,8 @@
         #:- move-expr ...)
      (with-syntax ([id! (format-id #'id "~a!" (syntax->datum #'id))]
                    [id: (format-id #'id "~a:" (syntax->datum #'id))]
-                   [id*! (format-id #'id "~a*!" (syntax->datum #'id))])
+                   [id*! (format-id #'id "~a*!" (syntax->datum #'id))]
+                   [fallback-desc (datum->syntax #'id (string-titlecase (string-replace (symbol->immutable-string (syntax-e #'id)) #px"[-_]" " ")))])
        (syntax/loc stx
          (begin (define (id! #:order [order : Byte (default-renamon-order)]
                              [self : Renamon] (argv-expr : Type defval ...) ...) : Renamon
@@ -91,12 +94,13 @@
                               #:id [name : (Option Symbol) #false]
                               #:desc [desc : (Option String) #false]
                               #:desc-format [desc-fmt : String (default-renamon-description-format)]
+                              #:frame [frame : Geo-Frame-Datum #false]
                               #:trusted-anchors [trusted-anchors : (Option Geo-Trusted-Anchors) #false]
                               #:truncate? [truncate? : Boolean #true]
                               #:anchor->sticker [anchor->sticker : Geo-Track-Anchor->Sticker void]
-                              [self : Renamon] (argv-expr : Type defval ...) ...) : (U Geo:Group Geo:Track)
-                  (geo-track-stick #:id (or name (gensym 'id:))
-                                   #:desc (format desc-fmt (or desc description (geo-desc self) name 'id) order)
+                              [self : Renamon] (argv-expr : Type defval ...) ...) : Geo:Trail
+                  (geo-track-stick #:id (or name (gensym 'id:)) #:frame frame
+                                   #:desc (format desc-fmt (or desc description (geo-desc self) fallback-desc) order)
                                    #:trusted-anchors trusted-anchors #:truncate? truncate?
                                    (id! self argv-expr ... #:order order)
                                    anchor->sticker)))))]))
@@ -141,18 +145,20 @@
              (void)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define make-renamon : (->* (Real-Length Nonnegative-Real)
-                            (Real Angle-Unit
-                                  #:anchor Geo-Anchor-Name #:at Geo-Print-Datum
-                                  #:id (Option Symbol) #:desc (Option String) #:avatar (Option Geo)
-                                  #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                                  #:halo-strokes Maybe-Track-Halo-Paint
-                                  #:halo-round? (U Void Boolean))
-                            Renamon)
-  (lambda [#:anchor [anchor '#:_] #:at [home 0] #:id [name #false] #:desc [desc #false] #:avatar [avatar #false]
-           #:stroke [stroke (void)] #:fill [fill (void)]
-           #:halo-strokes [halo-strokes (void)] #:halo-round? [round? (void)]
-           stepsize0 delta0 [heading0 pi/2] [angle-unit 'rad]]
+(define make-renamon
+  (lambda [#:id [name : (Option Symbol) #false]
+           #:desc [desc : (Option String) #false]
+           #:avatar [avatar : (Option Geo) #false]
+           #:anchor [anchor : Geo-Anchor-Name '#:_]
+           #:at [home : Geo-Print-Datum 0]
+           #:stroke [stroke : Maybe-Stroke-Paint (void)]
+           #:fill [fill : Maybe-Fill-Paint (void)]
+           #:halo-strokes [halo-strokes : Maybe-Track-Halo-Paint (void)]
+           #:halo-round? [round? : (U Void Boolean) (void)]
+           [stepsize0 : Real-Length]
+           [delta0 : Nonnegative-Real]
+           [heading0 : Real pi/2]
+           [angle-unit : Angle-Unit 'rad]]
     (define stepsize : Positive-Flonum (let ([size (~dimension stepsize0)]) (if (> size 0.0) size 1.0)))
     (define angle-delta : Flonum (~rad delta0 angle-unit))
     (define heading : Flonum (~wrap (~rad heading0 angle-unit) 2pi))

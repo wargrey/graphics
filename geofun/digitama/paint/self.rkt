@@ -33,7 +33,8 @@
    [miterlimit : Flonum]
    [dash : (Immutable-Vectorof Nonnegative-Flonum)]
    [offset : Flonum]
-   [opacity : Flonum])
+   [opacity : Flonum]
+   [scalable? : Boolean])
   #:type-name Pen
   #:transparent)
 
@@ -74,7 +75,8 @@
           [else (pen ac (pen-width self)
                      (pen-linecap self) (pen-linejoin self) (pen-miterlimit self)
                      (pen-dash self) (pen-offset self)
-                     (pen-opacity self))])))
+                     (pen-opacity self)
+                     (pen-scalable? self))])))
 
 (define #:forall (T) brush-adjust-color : (-> Brush (-> FlRGBA FlRGBA) Brush)
   (lambda [self adjust]

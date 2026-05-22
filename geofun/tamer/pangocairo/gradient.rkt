@@ -20,7 +20,7 @@
   (cairo_fill cr)
   (cairo_pattern_destroy background)
 
-  (define ball (cairo_pattern_create_radial 115.2 102.4 25.6 102.4 102.4 128.0))
+  (define ball (cairo_pattern_create_radial 115.2 102.4 25.6 115.2 102.4 128.0))
   (apply cairo_pattern_add_color_stop_rgba ball 0.0 light)
   (apply cairo_pattern_add_color_stop_rgba ball 1.0 shadow)
   (cairo_set_source cr ball)

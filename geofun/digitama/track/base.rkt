@@ -4,6 +4,7 @@
 (provide (all-from-out "metadata.rkt"))
 (provide (all-from-out "trail.rkt"))
 (provide (all-from-out "anchor.rkt"))
+(provide (all-from-out "../nice/box.rkt"))
 
 (provide Geo:Track geo:track?)
 (provide Geo-Track-Anchor->Sticker)
@@ -26,6 +27,7 @@
 (require "../dc/composite.rkt")
 (require "../layer/sticker.rkt")
 (require "../geometry/bbox.rkt")
+(require "../nice/box.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-stick
@@ -33,13 +35,14 @@
            #:desc [desc : (Option String) #false]
            #:base-operator [base-op : (Option Geo-Pin-Operator) #false]
            #:operator [sibs-op : (Option Geo-Pin-Operator) #false]
+           #:frame [frame : Geo-Frame-Datum #false]
            #:trusted-anchors [trusted-anchors : (Option Geo-Trusted-Anchors) #false]
            #:truncate? [truncate? : Boolean #true]
            #:offset [offset : Float-Complex 0.0+0.0i]
            [self : Geo:Track]
            [anchor->sticker : Geo-Track-Anchor->Sticker default-track-anchor->sticker]] : Geo:Trail
     (geo:track-stick self anchor->sticker trusted-anchors truncate?
-                     id (or desc (geo-desc self)) base-op sibs-op offset)))
+                     id (or desc (geo-desc self)) base-op sibs-op offset frame)))
 
 (define geo-track-anchor-position : (->* (Geo:Track Geo-Anchor-Name) (#:translate? Boolean) Float-Complex)
   (lambda [self anchor #:translate? [translate? #false]]
