@@ -33,6 +33,9 @@
                        #true)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define default-halo-stroke : (Parameterof Halo-Pen) (make-parameter (halo-pen null 8.0 #true 1.0 #false)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define desc-stroke
   (lambda [#:color [color : (Option Color) #false]
            #:opacity [opacity : (Option Real) #false]
@@ -125,6 +128,31 @@
         (desc-border #:color color #:opacity opacity #:width width #:style dash
                      base)
         base)))
+
+(define desc-halo-stroke
+  (lambda [#:colors [colors : (Option (U Color (Listof (U Color (Pairof Color Real))))) #false]
+           #:width [width : (Option Length+%) #false]
+           #:round? [round? : (U Boolean Void) (void)]
+           #:opacity [opacity : (Option Real) #false]
+           #:scalable? [scalable? : (U Boolean Void) (void)]
+           [base : Halo-Pen (default-halo-stroke)]] : Halo-Pen
+    (define :width (if (not width) (halo-pen-width base) (~dimension width (halo-pen-width base))))
+    (define :opacity (if (not opacity) (halo-pen-opacity base) (real->alpha opacity)))
+    (define :round? (if (void? round?) (halo-pen-round? base) round?))
+    (define :scalable? (if (void? scalable?) (halo-pen-scalable? base) scalable?))
+
+    (define :colors
+      (cond [(not colors) (halo-pen-colors base)]
+            [(null? colors) null]
+            [(not (list? colors)) (list (cons (rgb* colors) 1.0))]
+            [else (let ([delta (/ -1.0 (length colors))])
+                    (for/list : (Listof (Pairof FlRGBA Nonnegative-Flonum)) ([c (in-list colors)]
+                                                                             [pos (in-range 1.0 delta delta)])
+                      (cond [(pair? c) (cons (rgb* (car c)) (~clamp (cdr c) 0.0 1.0))]
+                            [else (cons (rgb* c) (~clamp pos 0.0 1.0))])))]))
+
+    (halo-pen ((inst sort (Pairof FlRGBA Nonnegative-Flonum) Nonnegative-Flonum) :colors >= #:key cdr)
+              :width :round? :opacity :scalable?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define stroke-maybe-rgba : (-> Any (Option FlRGBA))

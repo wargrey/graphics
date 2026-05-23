@@ -6,7 +6,7 @@
 
 (provide Gomamon gomamon?)
 (provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
-(provide Geo-Track-Halo-Datum default-halo-paints default-halo-round?)
+(provide default-track-halo-stroke)
 
 (provide
  (rename-out [geo-track-close gomamon-close!]
@@ -69,13 +69,11 @@
                                       #:anchor Geo-Anchor-Name #:at Geo-Print-Datum
                                       #:id (Option Symbol) #:desc (Option String)
                                       #:stroke Maybe-Stroke-Paint #:fill Maybe-Fill-Paint
-                                      #:halo-strokes Geo-Track-Halo-Datum
-                                      #:halo-round? (U Void Boolean))
+                                      #:halo-stroke Maybe-Track-Halo-Paint)
                             Gomamon)
   (lambda [#:turn-radius% [t-radius% +nan.0]
            #:anchor [anchor '#:home] #:at [home 0] #:id [name #false] #:desc [desc #false]
-           #:stroke [stroke (void)] #:fill [fill (void)]
-           #:halo-strokes [halo-stroke (void)] #:halo-round? [halo-round? (void)]
+           #:stroke [stroke (void)] #:fill [fill (void)] #:halo-stroke [halo-stroke (void)]
            xstepsize0 [ystepsize (&% 100.0)]]
     (define xstepsize : Nonnegative-Flonum (~dimension xstepsize0))
     (define xstep : Positive-Flonum (if (> xstepsize 0.0) xstepsize 1.0))
@@ -86,7 +84,7 @@
     (define-values (tsx tsy) (gomamon-turn-scales t-radius% 0.25))
     
     (create-geometry-object gomamon
-                            #:with [name (geo-draw-track! stroke fill halo-stroke halo-round?)
+                            #:with [name (geo-draw-track! stroke fill halo-stroke)
                                          geo-track-extent
                                          (geo-track-bleed stroke halo-stroke)]
                             #:desc desc

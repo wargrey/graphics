@@ -85,14 +85,17 @@
        (cairo-set-rgba cr (unsafe-struct*-ref stroke 0) (unsafe-struct*-ref stroke 7) color-scale)
        (cairo-set-stroke-width cr (or alt-width (unsafe-struct*-ref stroke 1)) (unsafe-struct*-ref stroke 8))
        (cairo_set_dash cr (unsafe-struct*-ref stroke 5) (unsafe-struct*-ref stroke 6))
-       (if (or round?)
-           (let ()
+       (cairo-set-stroke-style cr stroke round?)]))
+
+  (define cairo-set-stroke-style
+    (lambda [cr master round?]
+      (cond [(or round?)
              (cairo_set_line_cap cr CAIRO_LINE_CAP_ROUND)
-             (cairo_set_line_join cr CAIRO_LINE_JOIN_ROUND))
-           (let ()
-             (cairo_set_line_cap cr (unsafe-struct*-ref stroke 2))
-             (cairo_set_line_join cr (unsafe-struct*-ref stroke 3))
-             (cairo_set_miter_limit cr (unsafe-struct*-ref stroke 4))))]))
+             (cairo_set_line_join cr CAIRO_LINE_JOIN_ROUND)]
+            [(or master)
+             (cairo_set_line_cap cr (unsafe-struct*-ref master 2))
+             (cairo_set_line_join cr (unsafe-struct*-ref master 3))
+             (cairo_set_miter_limit cr (unsafe-struct*-ref master 4))])))
 
   (define cairo-set-source-as-stroke
     (lambda [cr src width color-scale round?]
@@ -103,16 +106,16 @@
         (cairo_set_line_cap cr CAIRO_LINE_CAP_ROUND)
         (cairo_set_line_join cr CAIRO_LINE_JOIN_ROUND))))
 
-  (define cairo-set-thickline-stroke
-    (lambda [cr stroke src width color-scale round?]
-      (cond [(or stroke) (cairo-set-stroke cr stroke width 1.0 round?)]
-            [(or src) (cairo-set-source-as-stroke cr src width color-scale round?)])))
-
   (define cairo-set-stroke-width
     (lambda [cr width scalable?]
       (if (not scalable?)
           (cairo_set_line_width cr (unsafe-fl* width (current-stroke-scale⁻¹)))
           (cairo_set_line_width cr width))))
+
+  (define cairo-set-thickline-stroke
+    (lambda [cr stroke src width color-scale round?]
+      (cond [(or stroke) (cairo-set-stroke cr stroke width 1.0 round?)]
+            [(or src) (cairo-set-source-as-stroke cr src width color-scale round?)])))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define cairo-render-with-stroke
@@ -123,6 +126,27 @@
       [(cr stroke alt-width color-scale round?)
        (cairo-set-stroke cr stroke alt-width color-scale round?)
        (cairo_stroke_preserve cr)]))
+
+  (define cairo-render-with-halo-stroke
+    (lambda [cr master halo]
+      (define colors (unsafe-struct*-ref halo 0))
+
+      (when (pair? colors)
+        (define halo-width (unsafe-struct*-ref halo 1))
+        (define opacity (unsafe-struct*-ref halo 3))
+        (define scalable? (unsafe-struct*-ref halo 4))
+      
+        (cairo-set-stroke-style cr master (unsafe-struct*-ref halo 2))
+
+        (let render ([cs colors])
+          (when (pair? cs)
+            (define cw (unsafe-car cs))
+
+            (cairo-set-rgba cr (unsafe-car cw) opacity)
+            (cairo-set-stroke-width cr (unsafe-fl* halo-width (unsafe-cdr cw)) scalable?)
+            (cairo_stroke_preserve cr)
+            
+            (render (unsafe-cdr cs)))))))
 
   (define cairo-render-with-source-as-stroke
     (lambda [cr src width color-scale round?]
@@ -216,6 +240,7 @@
  [cairo-set-source (->* (Cairo-Ctx Brush) (Flonum) Void)]
  [cairo-set-stroke (->* (Cairo-Ctx Pen) ((Option Flonum) Flonum Boolean) Void)]
  [cairo-render-with-stroke (->* (Cairo-Ctx Pen) ((Option Flonum) Flonum Boolean) Void)]
+ [cairo-render-with-halo-stroke (-> Cairo-Ctx (Option Pen) Halo-Pen Void)]
  
  [cairo-composite
   (-> Cairo-Ctx Cairo-Surface

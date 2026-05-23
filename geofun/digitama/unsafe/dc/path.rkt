@@ -17,6 +17,17 @@
     (cairo_path cr footprints x0 y0 #false)
     (cairo-render cr stroke brush)))
 
+(define dc_track : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
+                       Geo-Path-Prints (Option Pen) (Option Brush) (Option Halo-Pen)
+                       Any)
+  (lambda [cr x0 y0 width height footprints stroke brush halo-stroke]
+    (cairo_path cr footprints x0 y0 #false)
+
+    (and halo-stroke
+         (cairo-render-with-halo-stroke cr stroke halo-stroke))
+
+    (cairo-render cr stroke brush)))
+
 (define dc_polyline : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Pen Boolean Any)
   (lambda [cr x0 y0 flwidth flheight vertices stroke close?]
     (cairo_new_path cr)

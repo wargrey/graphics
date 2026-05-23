@@ -101,7 +101,7 @@
                       (λ [[master : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
                         (geo-bleed-scale (self target stroke border) sx0 sy0)))])]))
 
-(define geo-shape-bleed : (case-> [Maybe-Stroke-Paint -> (Option Geo-Bleed)]
+(define geo-shape-bleed : (case-> [(U Maybe-Stroke-Paint Halo-Pen) -> (Option Geo-Bleed)]
                                   [Option-Stroke-Paint Option-Stroke-Paint -> (Option Geo-Bleed)]
                                   [Maybe-Stroke-Paint Boolean Boolean -> (Option Geo-Bleed)])
   (case-lambda
@@ -109,6 +109,7 @@
      (cond [(void? stroke) #false]
            [(not stroke) geo-zero-bleeds]
            [(pen? stroke) (geo-pen->bleed stroke)]
+           [(halo-pen? stroke) (geo-pen->bleed stroke)]
            [else #false])]
     [(stroke border)
      (geo-shape-bleed (or border stroke))]
@@ -126,16 +127,16 @@
               (geo-bleed voff scalable? hoff scalable? voff scalable? hoff scalable?))]
            [else geo-zero-bleeds])]))
 
-(define geo-pen->bleed : (-> Pen Geo-Bleed)
+(define geo-pen->bleed : (-> (U Pen Halo-Pen) Geo-Bleed)
   (let ([sbleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)]
         [fbleeds : (HashTable Flonum Geo-Bleed) (make-weak-hasheq)])
     (lambda [stroke]
-      (define thickness (pen-width stroke))
+      (define-values (thickness scalable?)
+        (if (pen? stroke)
+            (values (pen-width stroke) (pen-scalable? stroke))
+            (values (halo-pen-width stroke) (halo-pen-scalable? stroke))))
 
-      (if (pen-scalable? stroke)
-          (hash-ref! sbleeds thickness
-                     (λ [] (let ([offset (* thickness 0.5)])
-                             (geo-bleed offset #true offset #true offset #true offset #true))))
-          (hash-ref! fbleeds thickness
-                     (λ [] (let ([offset (* thickness 0.5)])
-                             (geo-bleed offset #false offset #false offset #false offset #false))))))))
+      (hash-ref! (if scalable? sbleeds fbleeds) thickness
+                 (λ [] (let ([offset (* thickness 0.5)])
+                         (geo-bleed offset scalable? offset scalable?
+                                    offset scalable? offset scalable?)))))))

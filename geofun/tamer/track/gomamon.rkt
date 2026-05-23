@@ -67,6 +67,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
+  (require racket/list)
+  
   (require geofun/digitama/track/self)
   (require geofun/vector)
   (require bitmap)
@@ -94,8 +96,7 @@
   (reverse (geo:track-footprints goma))
   (geo:track-bbox goma)
   
-  (bitmap-hc-append (parameterize ([default-halo-paints (list (desc-stroke #:color (rgb* 'Crimson 0.1) #:width 12.0)
-                                                              (desc-stroke #:color (rgb* 'Crimson 0.2) #:width 8.0))])
+  (bitmap-hc-append (parameterize ([default-track-halo-stroke (desc-halo-stroke #:colors (make-list 4 'Crimson) #:width 12.0 #:opacity 0.1)])
                       (geo-freeze (geo-track-stick goma make-anchor-sticker #:truncate? #false #:frame frame)))
                     
                     (geo-freeze goma #:stroke 'ForestGreen #:fill (rgb* 'RoyalBlue 0.2)))

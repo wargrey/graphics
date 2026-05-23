@@ -6,9 +6,10 @@
 
 (provide Renamon renamon?)
 (provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
-(provide Geo-Track-Halo-Datum Option-Track-Halo-Paint Maybe-Track-Halo-Paint)
-(provide default-halo-paints default-halo-round? renamon-heading)
-(provide default-renamon-description-format default-renamon-order)
+(provide Option-Track-Halo-Paint Maybe-Track-Halo-Paint)
+(provide default-track-halo-stroke renamon-heading)
+(provide default-renamon-description-format)
+(provide default-renamon-angle default-renamon-order default-renamon-terminal-order)
 
 (provide
  (rename-out [geo-track-close renamon-close!]
@@ -22,6 +23,7 @@
              [renamon-backward! renamon-B!]))
 
 (require digimon/measure)
+(require racket/format)
 
 (require "base.rkt")
 (require "renamon/dsl.rkt")
@@ -71,12 +73,14 @@
 
 (define-syntax (define-renamon-generator! stx)
   (syntax-parse stx #:datum-literals [:]
-    [(_ id
-        (~alt (~optional (~seq #:desc description) #:defaults ([description #'#false]))
-              (~optional (~seq #:with [(argv-expr : Type defval ...) ...])
-                         #:defaults ([(argv-expr 1) null]
-                                     [(Type 1) null]
-                                     [(defval 2) null])))
+    [(_ id (~alt (~optional (~seq #:desc description) #:defaults ([description #'#false]))
+                 (~optional (~seq #:order n:nat) #:defaults ([n #'(default-renamon-order)]))
+                 (~optional (~seq #:terminal-order terminal-order:nat) #:defaults ([terminal-order #'(default-renamon-terminal-order)]))
+                 (~optional (~seq #:angle delta) #:defaults ([delta #'(default-renamon-angle)]))
+                 (~optional (~seq #:with [(argv-expr : Type defval ...) ...])
+                            #:defaults ([(argv-expr 1) null]
+                                        [(Type 1) null]
+                                        [(defval 2) null])))
         ...
         #:- move-expr ...)
      (with-syntax ([id! (format-id #'id "~a!" (syntax->datum #'id))]
@@ -84,13 +88,17 @@
                    [id*! (format-id #'id "~a*!" (syntax->datum #'id))]
                    [fallback-desc (datum->syntax #'id (string-titlecase (string-replace (symbol->immutable-string (syntax-e #'id)) #px"[-_]" " ")))])
        (syntax/loc stx
-         (begin (define (id! #:order [order : Byte (default-renamon-order)]
+         (begin (define (id! #:order [order : Byte n]
+                             #:angle [angle : Flonum delta]
                              [self : Renamon] (argv-expr : Type defval ...) ...) : Renamon
-                  (parameterize ([default-renamon-order order])
+                  (parameterize ([default-renamon-order order]
+                                 [default-renamon-angle angle]
+                                 [default-renamon-terminal-order terminal-order])
                     (renamon-dsl self move-expr) ...)
                   self)
                 
-                (define (id*! #:order [order : Byte (default-renamon-order)]
+                (define (id*! #:order [order : Byte n]
+                              #:angle [angle : Flonum delta]
                               #:id [name : (Option Symbol) #false]
                               #:desc [desc : (Option String) #false]
                               #:desc-format [desc-fmt : String (default-renamon-description-format)]
@@ -100,9 +108,12 @@
                               #:anchor->sticker [anchor->sticker : Geo-Track-Anchor->Sticker void]
                               [self : Renamon] (argv-expr : Type defval ...) ...) : Geo:Trail
                   (geo-track-stick #:id (or name (gensym 'id:)) #:frame frame
-                                   #:desc (format desc-fmt (or desc description (geo-desc self) fallback-desc) order)
+                                   #:desc (format desc-fmt
+                                            (or desc description (geo-desc self) fallback-desc)
+                                            (min order terminal-order)
+                                            (~r (~deg (or (renamon-angle-delta self) angle) 'rad) #:precision 1))
                                    #:trusted-anchors trusted-anchors #:truncate? truncate?
-                                   (id! self argv-expr ... #:order order)
+                                   (id! self argv-expr ... #:order order #:angle angle)
                                    anchor->sticker)))))]))
 
 (define-syntax (define-renamon-primitive! stx)
@@ -117,7 +128,7 @@
      (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
        (syntax/loc stx
          (define (rena-move! [self : Renamon] argv-expr ...) : Void
-           (define order (default-renamon-order))
+           (define order (min (default-renamon-order) (default-renamon-terminal-order)))
 
            (parameterize* ([current-renamon-anchor-format fmt]
                            [current-renamon-primitive-name (renamon-anchor-prefix (or abbr 'name))])
@@ -149,25 +160,24 @@
   (lambda [#:id [name : (Option Symbol) #false]
            #:desc [desc : (Option String) #false]
            #:avatar [avatar : (Option Geo) #false]
+           #:angle [angle0 : (Option Real) #false]
            #:anchor [anchor : Geo-Anchor-Name '#:_]
            #:at [home : Geo-Print-Datum 0]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [fill : Maybe-Fill-Paint (void)]
-           #:halo-strokes [halo-strokes : Maybe-Track-Halo-Paint (void)]
-           #:halo-round? [round? : (U Void Boolean) (void)]
+           #:halo-stroke [halo-stroke : Maybe-Track-Halo-Paint (void)]
            [stepsize0 : Real-Length]
-           [delta0 : Nonnegative-Real]
            [heading0 : Real pi/2]
            [angle-unit : Angle-Unit 'rad]]
     (define stepsize : Positive-Flonum (let ([size (~dimension stepsize0)]) (if (> size 0.0) size 1.0)))
-    (define angle-delta : Flonum (~rad delta0 angle-unit))
     (define heading : Flonum (~wrap (~rad heading0 angle-unit) 2pi))
+    (define angle : (Option Flonum) (and angle0 (~rad angle0 angle-unit)))
     (define home-pos : Float-Complex (* (~point2d home) stepsize))
 
     (define rena : Renamon
       (create-geometry-object renamon
-                              #:with [name (geo-draw-track! stroke fill halo-strokes round?)
-                                           geo-track-extent (geo-track-bleed stroke halo-strokes)]
+                              #:with [name (geo-draw-track! stroke fill halo-stroke)
+                                           geo-track-extent (geo-track-bleed stroke halo-stroke)]
                               #:desc desc
                               ; track fields
                               (make-geo-trace home-pos anchor)
@@ -176,9 +186,8 @@
                               null null
                               
                               ; renamon fields
-                              (box (make-renamon-info #:heading heading
-                                                      #:avatar avatar))
-                              stepsize angle-delta -1.0))
+                              (box (make-renamon-info #:heading heading #:avatar avatar))
+                              stepsize angle -1.0))
 
     (when (and avatar) (renamon-stamp rena avatar))
     rena))
@@ -223,11 +232,17 @@
   
 (define renamon-turn-left! : (->* (Renamon) (Real) Void)
   (lambda [rena [steps 1.0]]
-    (renamon-turn rena (+ (* (real->double-flonum steps) (renamon-angle-delta rena))))))
+    (renamon-turn rena
+                  (+ (* (real->double-flonum steps)
+                        (or (renamon-angle-delta rena)
+                            (default-renamon-angle)))))))
 
 (define renamon-turn-right! : (->* (Renamon) (Real) Void)
   (lambda [rena [steps 1.0]]
-    (renamon-turn rena (- (* (real->double-flonum steps) (renamon-angle-delta rena))))))
+    (renamon-turn rena
+                  (- (* (real->double-flonum steps)
+                        (or (renamon-angle-delta rena)
+                            (default-renamon-angle)))))))
 
 (define renamon-teleport! : (case-> [Renamon (U Geo-Anchor-Name Complex) -> Void]
                                     [Renamon Complex (Option Geo-Anchor-Name) -> Void])

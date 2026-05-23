@@ -10,6 +10,7 @@
 
 (require "../self.rkt")
 (require "../paint.rkt")
+(require "../paint/self.rkt")
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
 (require "../richtext/self.rkt")
@@ -20,18 +21,17 @@
 (require "../geometry/bleed.rkt")
 (require "../geometry/footprint.rkt")
 
-(require "../unsafe/dc/track.rkt")
+(require "../unsafe/dc/path.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Print-Datum Point2D)
 (define-type Geo-Track-Infobase (HashTable (Pairof Float-Complex Float-Complex) Geo:Track:Info))
-(define-type Geo-Track-Halo-Datum (U Pen (Listof Pen)))
-(define-type Option-Track-Halo-Paint (U False Geo-Track-Halo-Datum))
+
+(define-type Option-Track-Halo-Paint (U False Halo-Pen))
 (define-type Maybe-Track-Halo-Paint (U Void Option-Track-Halo-Paint))
 
 (define current-flex-zone : (Parameterof (Option Geo:Track:Zone:Flex)) (make-parameter #false))
-(define default-halo-paints : (Parameterof Geo-Track-Halo-Datum) (make-parameter null))
-(define default-halo-round? : (Parameterof Boolean) (make-parameter #true))
+(define default-track-halo-stroke : (Parameterof Option-Track-Halo-Paint) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:track:zone
@@ -143,33 +143,22 @@
       (values width height (make-geo-ink pos width height)))))
 
 (define geo-track-bleed : (-> Maybe-Stroke-Paint Maybe-Track-Halo-Paint Geo-Calculate-Bleed)
-  (lambda [alt-stroke alt-halo-strokes]
+  (lambda [alt-stroke alt-halo-stroke]
     (λ [[self : Geo<%>] [stroke : Option-Stroke-Paint] [border : Option-Stroke-Paint]] : Geo-Bleed
-      (define main-stroke : (Option Option-Stroke-Paint)
-        (cond [(void? alt-stroke) stroke]
-              [(not alt-stroke) #false]
-              [else alt-stroke]))
-      (or (cond [(void? alt-halo-strokes)
-                 (let ([halos (default-halo-paints)])
-                   (geo-shape-bleed
-                    (pen-select-thickest
-                     (if (list? halos)
-                         (cons main-stroke halos)
-                         (list main-stroke halos)))))]
-                [(list? alt-halo-strokes)
-                 (geo-shape-bleed (pen-select-thickest (cons main-stroke alt-halo-strokes)))]
-                [(pen? alt-halo-strokes)
-                 (geo-shape-bleed (pen-select-thickest (list main-stroke alt-halo-strokes)))]
-                [else #false])
+      ; TODO: deal with scalable strokes
+      (define main-stroke : (Option Option-Stroke-Paint) (if (void? alt-stroke) stroke alt-stroke))
+      (or (cond [(void? alt-halo-stroke) (geo-shape-bleed (pen-select-thickest (list main-stroke (default-track-halo-stroke))))]
+                [(or alt-halo-stroke) (geo-shape-bleed (pen-select-thickest (list main-stroke alt-halo-stroke)))]
+                [else (geo-shape-bleed main-stroke)])
           geo-zero-bleeds))))
 
-(define geo-draw-track! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Track-Halo-Paint (U Boolean Void) Geo-Surface-Draw!)
-  (lambda [alt-stroke alt-fill alt-halo-strokes alt-halo-round?]
+(define geo-draw-track! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Track-Halo-Paint Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-fill alt-halo-stroke]
     (λ [self cr x0 y0 width height]
       (when (geo:track? self)
         (define-values (xoff yoff) (geo-bbox-offset-values (geo:track-bbox self)))
         (dc_track cr (+ x0 xoff) (+ y0 yoff) width height (reverse (geo:track-footprints self))
                   (geo-select-stroke-paint* alt-stroke)
                   (geo-select-fill-source alt-fill)
-                  (if (void? alt-halo-strokes) (default-halo-paints) alt-halo-strokes)
-                  (if (void? alt-halo-round?) (default-halo-round?) alt-halo-round?))))))
+                  (cond [(void? alt-halo-stroke) (default-track-halo-stroke)]
+                        [else alt-halo-stroke]))))))
