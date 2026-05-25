@@ -4,14 +4,17 @@
 (provide (all-from-out digimon/measure))
 (provide (all-from-out "base.rkt"))
 
-(provide Renamon renamon?)
+(provide Renamon renamon? Renamon-Ribbon)
 (provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
 (provide Option-Track-Halo-Paint Maybe-Track-Halo-Paint)
 (provide default-track-halo-stroke renamon-heading)
 (provide default-renamon-description-format)
 (provide default-renamon-angle default-renamon-order default-renamon-terminal-order)
+(provide define-renamon-rule! define-renamon-generator!)
 
 (provide
+ (rename-out [define-renamon-rule! define-renamon-primitive!])
+ 
  (rename-out [geo-track-close renamon-close!]
              [renamon-stamp renamon-stamp!]
              [renamon-teleport! renamon-jump-to!])
@@ -23,7 +26,6 @@
              [renamon-backward! renamon-B!]))
 
 (require digimon/measure)
-(require racket/format)
 
 (require "base.rkt")
 (require "renamon/dsl.rkt")
@@ -44,14 +46,7 @@
 (require "../geometry/bbox.rkt")
 (require "../geometry/footprint.rkt")
 
-(require "../dc/composite.rkt")
-
 (require (for-syntax racket/base))
-(require (for-syntax racket/syntax))
-(require (for-syntax syntax/parse))
-
-(require (for-syntax racket/string))
-(require (for-syntax racket/symbol))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-renamon! stx)
@@ -71,95 +66,12 @@
          ...
          self))]))
 
-(define-syntax (define-renamon-generator! stx)
-  (syntax-parse stx #:datum-literals [:]
-    [(_ id (~alt (~optional (~seq #:desc description) #:defaults ([description #'#false]))
-                 (~optional (~seq #:order n:nat) #:defaults ([n #'(default-renamon-order)]))
-                 (~optional (~seq #:terminal-order terminal-order:nat) #:defaults ([terminal-order #'(default-renamon-terminal-order)]))
-                 (~optional (~seq #:angle delta) #:defaults ([delta #'(default-renamon-angle)]))
-                 (~optional (~seq #:with [(argv-expr : Type defval ...) ...])
-                            #:defaults ([(argv-expr 1) null]
-                                        [(Type 1) null]
-                                        [(defval 2) null])))
-        ...
-        #:- move-expr ...)
-     (with-syntax ([id! (format-id #'id "~a!" (syntax->datum #'id))]
-                   [id: (format-id #'id "~a:" (syntax->datum #'id))]
-                   [id*! (format-id #'id "~a*!" (syntax->datum #'id))]
-                   [fallback-desc (datum->syntax #'id (string-titlecase (string-replace (symbol->immutable-string (syntax-e #'id)) #px"[-_]" " ")))])
-       (syntax/loc stx
-         (begin (define (id! #:order [order : Byte n]
-                             #:angle [angle : Flonum delta]
-                             [self : Renamon] (argv-expr : Type defval ...) ...) : Renamon
-                  (parameterize ([default-renamon-order order]
-                                 [default-renamon-angle angle]
-                                 [default-renamon-terminal-order terminal-order])
-                    (renamon-dsl self move-expr) ...)
-                  self)
-                
-                (define (id*! #:order [order : Byte n]
-                              #:angle [angle : Flonum delta]
-                              #:id [name : (Option Symbol) #false]
-                              #:desc [desc : (Option String) #false]
-                              #:desc-format [desc-fmt : String (default-renamon-description-format)]
-                              #:frame [frame : Geo-Frame-Datum #false]
-                              #:trusted-anchors [trusted-anchors : (Option Geo-Trusted-Anchors) #false]
-                              #:truncate? [truncate? : Boolean #true]
-                              #:anchor->sticker [anchor->sticker : Geo-Track-Anchor->Sticker void]
-                              [self : Renamon] (argv-expr : Type defval ...) ...) : Geo:Trail
-                  (geo-track-stick #:id (or name (gensym 'id:)) #:frame frame
-                                   #:desc (format desc-fmt
-                                            (or desc description (geo-desc self) fallback-desc)
-                                            (min order terminal-order)
-                                            (~r (~deg (or (renamon-angle-delta self) angle) 'rad) #:precision 1))
-                                   #:trusted-anchors trusted-anchors #:truncate? truncate?
-                                   (id! self argv-expr ... #:order order #:angle angle)
-                                   anchor->sticker)))))]))
-
-(define-syntax (define-renamon-primitive! stx)
-  (syntax-parse stx #:datum-literals []
-    [(_ name
-        (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
-              (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
-              (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
-        ...
-        #:= rule-expand-expr ...
-        #:- terminate-expr ...)
-     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
-       (syntax/loc stx
-         (define (rena-move! [self : Renamon] argv-expr ...) : Void
-           (define order (min (default-renamon-order) (default-renamon-terminal-order)))
-
-           (parameterize* ([current-renamon-anchor-format fmt]
-                           [current-renamon-primitive-name (renamon-anchor-prefix (or abbr 'name))])
-                 (if (> order 0)
-                     (parameterize ([default-renamon-order (- order 1)])
-                       (renamon-dsl self rule-expand-expr) ... (void))
-                     (begin (renamon-dsl self terminate-expr) ... (void)))))))]
-    [(_ name alt-expr ... #:= rule-expand-expr ...)
-     (syntax/loc stx
-       (define-renamon-primitive! name alt-expr ...
-         #:= rule-expand-expr ...
-         #:-))]
-    [(_ name
-        (~alt (~optional (~seq #:with [argv-expr ...]) #:defaults [((argv-expr 1) null)])
-              (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
-              (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
-        ...
-        #:- move-expr ...)
-     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
-       (syntax/loc stx
-         (define (rena-move! [self : Renamon] argv-expr ...) : Void
-           (parameterize* ([current-renamon-anchor-format fmt]
-                           [current-renamon-primitive-name (renamon-anchor-prefix (or 'abbr 'name))])
-             (renamon-dsl self move-expr) ...
-             (void)))))]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-renamon
   (lambda [#:id [name : (Option Symbol) #false]
            #:desc [desc : (Option String) #false]
            #:avatar [avatar : (Option Geo) #false]
+           #:ribbon [ribbon : (Option Renamon-Ribbon) #false]
            #:angle [angle0 : (Option Real) #false]
            #:anchor [anchor : Geo-Anchor-Name '#:_]
            #:at [home : Geo-Print-Datum 0]
@@ -186,7 +98,7 @@
                               null null
                               
                               ; renamon fields
-                              (box (make-renamon-info #:heading heading #:avatar avatar))
+                              (box (make-renamon-info #:heading heading #:avatar avatar #:ribbon ribbon))
                               stepsize angle -1.0))
 
     (when (and avatar) (renamon-stamp rena avatar))

@@ -12,9 +12,13 @@
 (require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; NOTE:
+; The fundemnatal semantics of each move is that "move and produce a node or a structure",
+; so, the `#:fork` is a noun, meaning "the next move produces a tree structure",
+;   rather then "split the continuation now".
 (define-syntax (gomamon-dsl stx)
   (syntax-parse stx #:datum-literals [=> <- --]
-    [(_ self [(~or #:tree #:fork #:cond #:case)
+    [(_ self [(~or #:tree #:fork)
               move-expr
               [(~or => #:=>) submove-expr ...] ...])
      (quasisyntax/loc stx

@@ -3,8 +3,6 @@
 (provide (all-defined-out))
 (provide 2D-Radius-Type 3D-Radius-Type)
 
-(require racket/symbol)
-
 (require "digitama/misc.rkt")
 (require "digitama/paint.rkt")
 (require "digitama/paint/source.rkt")
@@ -19,15 +17,6 @@
 (require/provide "digitama/base.rkt" "digitama/self.rkt" "digitama/convert.rkt" "digitama/freeze.rkt")
 (require/provide "digitama/paint/self.rkt" "digitama/geometry/dot.rkt" "digitama/geometry/sides.rkt")
 (require/provide "digitama/geometry/constants.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo->string : (-> Geo<%> String)
-  (lambda [self]
-    (define maybe-desc (geo-group-desc-from-caption self))
-
-    (cond [(string? maybe-desc) maybe-desc]
-          [(geo? self) (or (geo-desc self) (symbol->immutable-string (geo-id self)))]
-          [else (format "~a" (object-name self))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-save

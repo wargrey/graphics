@@ -49,9 +49,7 @@
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
-    (define body : String
-      (cond [(string? text) text]
-            [else (format "~a" text)]))
+    (define body : String (geo-text-content-from-object text))
     
     (create-geometry-object geo:art-text
                             #:with [id (geo-draw-art-text font stroke fill bgsource)
@@ -65,9 +63,7 @@
            #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            [text : Any] [font : (Option Font) #false]] : Geo:Text
-    (define body : String
-      (cond [(string? text) text]
-            [else (format "~a" text)]))
+    (define body : String (geo-text-content-from-object text))
     
     (create-geometry-object geo:text
                             #:with [id (geo-draw-text font fgsource bgsource)
@@ -159,3 +155,10 @@
 (define geo-select-font-description : (-> (Option Font) (-> Font) Font-Description)
   (lambda [alt-font fallback-font]
     (font-description (or alt-font (fallback-font)))))
+
+(define geo-text-content-from-object : (-> Any String)
+  (lambda [v]
+    (cond [(string? v) v]
+          [(geo:string? v) (geo:string-body v)]
+          [(geo? v) (geo->string v)]
+          [else (format "~a" v)])))

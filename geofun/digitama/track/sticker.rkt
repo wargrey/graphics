@@ -60,8 +60,12 @@
     (define-values (Width Height) (geo-flsize self))
 
     (define user-stickers : (Listof (GLayerof Geo))
-      (for/list ([s (in-list (geo:track-stickers self))])
-        (geo-sticker->layer (car s) (- (cdr s) origin) offset)))
+      (let ->layer ([srekcits (geo:track-stickers self)]
+                    [stickers : (Listof (GLayerof Geo)) null])
+        (if (pair? srekcits)
+            (let-values ([(s rest) (values (car srekcits) (cdr srekcits))])
+              (->layer rest (cons (geo-sticker->layer (car s) (- (cdr s) origin) offset) stickers)))
+            (reverse stickers))))
     
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
                 [stickers : (Listof (GLayerof Geo)) user-stickers])

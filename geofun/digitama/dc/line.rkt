@@ -11,6 +11,7 @@
 (require "../paint.rkt")
 (require "../unsafe/dc/shape.rkt")
 
+;;; NOTE: lines might be rotated, so don't be lazy for their bleeds
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:line geo
   ([x : Flonum]
@@ -28,7 +29,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       geo-zero-bleeds]
+                                       (geo-shape-bleed stroke)]
                             0.0 (* flheight 0.5) flwidth 0.0)))
 
 (define geo-vline : (->* (Real-Length Length+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)
@@ -38,7 +39,7 @@
     (create-geometry-object geo:line
                             #:with [id (geo-draw-surface stroke)
                                        (geo-shape-extent flwidth flheight)
-                                       geo-zero-bleeds]
+                                       (geo-shape-bleed stroke)]
                             (* flwidth 0.5) 0.0 0.0 flheight)))
 
 (define geo-diagonal : (->* (Real-Length Length+%) (#:id (Option Symbol) #:stroke Maybe-Stroke-Paint) Geo:Line)

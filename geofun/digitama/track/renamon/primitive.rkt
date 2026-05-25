@@ -14,22 +14,27 @@
 
 (require "../../self.rkt")
 (require "../../dc/resize.rkt")
+(require "../../layer/sticker.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Maybe-Avatar (U Geo False Void))
+(define-type Maybe-Renamon-Ribbon (U Renamon-Ribbon False Void))
+(define-type Renamon-Ribbon (-> Float-Complex Float-Complex (U Geo False Void)))
+
+(define default-renamon-description-format : (Parameterof String) (make-parameter "~a (n = ~a, δ = ~a°)"))
+(define default-renamon-order : (Parameterof Integer) (make-parameter 0))
+(define default-renamon-terminal-order : (Parameterof Byte) (make-parameter 12))
+(define default-renamon-angle : (Parameterof Flonum) (make-parameter pi/4))
 
 (define current-renamon-primitive-name : (Parameterof (Option String)) (make-parameter #false))
 (define current-renamon-anchor-format : (Parameterof (Option String)) (make-parameter #false))
-
-(define default-renamon-description-format : (Parameterof String) (make-parameter "~a (n = ~a, δ = ~a°)"))
-(define default-renamon-order : (Parameterof Byte) (make-parameter 0))
-(define default-renamon-terminal-order : (Parameterof Byte) (make-parameter 12))
-(define default-renamon-angle : (Parameterof Flonum) (make-parameter pi/4))
+(define current-renamon-ribbon : (Parameterof Maybe-Renamon-Ribbon) (make-parameter (void)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct renamon-info : Renamon-Info
   ([heading : Flonum]
-   [avatar : (Option Geo)])
+   [avatar : (Option Geo)]
+   [ribbon : (Option Renamon-Ribbon)])
   #:transparent)
 
 (struct renamon geo:track
@@ -67,14 +72,39 @@
         #false
         (~wrap (* (angle (- ept spt)) (renamon-tp-sgn self)) 2pi))))
 
-(define renamon-stamp : (-> Renamon Geo Void)
-  (lambda [self gobj]
-    (geo-track-stamp self
-                     (geo-rotate gobj (* (renamon-heading self)
-                                         (renamon-tp-sgn self))))))
+(define renamon-stamp : (case-> [Renamon Geo -> Void]
+                                [Renamon Geo Complex -> Void])
+  (case-lambda
+    [(self gobj) (geo-track-stamp self (renamon-rotate self gobj))]
+    [(self gobj offset)
+     (geo-track-stamp self
+                      (make-sticker (renamon-rotate self gobj)
+                                    'cc
+                                    (renamon-position self offset)))]))
 
-(define renamon-evolve : (-> Renamon Maybe-Avatar Void)
-  (lambda [self avatar]
+(define renamon-pave : (->* (Renamon Float-Complex Float-Complex) (Maybe-Renamon-Ribbon) Void)
+  (lambda [self start end [maybe-ribbon (current-renamon-ribbon)]] ; for parameteric L-systems
+    (define &box (renamon-box self))
+    (define datum (unbox &box))
+    (define ribbon (renamon-info-ribbon datum))
+
+    (unless (void? maybe-ribbon)
+      (unless (eq? ribbon maybe-ribbon)
+        (set-box! &box
+                  (remake-renamon-info #:ribbon maybe-ribbon
+                                       datum))))
+
+    (define trail
+      (cond [(void? maybe-ribbon) (when ribbon (ribbon start end))]
+            [(or maybe-ribbon) (maybe-ribbon start end)]))
+
+    (when (geo? trail)
+      (geo-track-stamp self
+                       (make-sticker (renamon-rotate self trail)
+                                     'cc (* 0.5 (- start end)))))))
+
+(define renamon-evolve : (->* (Renamon) (Maybe-Avatar) Void)
+  (lambda [self [avatar (void)]]
     (define &box (renamon-box self))
     (define datum (unbox &box))
     (define rena (renamon-info-avatar datum))
@@ -93,6 +123,11 @@
   (lambda [self pos]
     (make-rectangular (* (real->double-flonum (real-part pos)) (renamon-stepsize self))
                       (* (real->double-flonum (imag-part pos)) (renamon-stepsize self) (renamon-tp-sgn self)))))
+
+(define renamon-rotate : (-> Renamon Geo Geo)
+  (lambda [self gobj]
+    (geo-rotate gobj (* (renamon-heading self)
+                        (renamon-tp-sgn self)))))
 
 (define renamon-anchor-prefix : (-> Symbol String)
   (lambda [name]

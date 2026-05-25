@@ -6,6 +6,8 @@
                      [geo-intrinsic-size   geo-size]
                      [geo-intrinsic-size   geo-intrinsic-flsize]))
 
+(require racket/symbol)
+
 (require "paint/self.rkt")
 (require "geometry/ink.rkt")
 (require "geometry/bleed.rkt")
@@ -63,6 +65,11 @@
       [(self w% h%) (flsize self (real->double-flonum w%) (real->double-flonum h%))]
       [(self ratio) (let ([% (real->double-flonum ratio)]) (flsize self % %))]
       [(self) (geo-intrinsic-size self)])))
+
+(define geo->string : (-> Geo String)
+  (lambda [self]
+    (or (geo-desc self)
+        (symbol->immutable-string (geo-id self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
 (define geo-shape-extent : (case-> [Nonnegative-Flonum -> Geo-Calculate-Extent]
