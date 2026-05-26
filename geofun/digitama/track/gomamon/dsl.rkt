@@ -17,7 +17,7 @@
 ; so, the `#:fork` is a noun, meaning "the next move produces a tree structure",
 ;   rather then "split the continuation now".
 (define-syntax (gomamon-dsl stx)
-  (syntax-parse stx #:datum-literals [=> <- --]
+  (syntax-parse stx #:datum-literals [=> <- -- let where]
     [(_ self [(~or #:tree #:fork)
               move-expr
               [(~or => #:=>) submove-expr ...] ...])
@@ -60,8 +60,9 @@
          (let ([here (geo:track-here self)])
            (gomamon-dsl self submove-expr) ...
            (geo-track-jump-to-position self here))))]
+    [(_ self ((~or let where #:let #:where) (let-expr ...) move-expr ...))
+     (syntax/loc stx (let (let-expr ...) (gomamon-dsl self move-expr) ...))]
     [(_ self (move:id argl ...))
      (with-syntax ([goma-move! (format-id #'move "gomamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx
          (goma-move! self argl ...)))]))
-

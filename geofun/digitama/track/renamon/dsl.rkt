@@ -138,75 +138,66 @@
          (rena-move! self)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-for-syntax (define-make-ribbon <name> <make-ribbon> <argv>)
+  (cond [(not (syntax-e <make-ribbon>)) (list null (list #'(void)))]
+        [(null? (syntax->list <argv>)) (list null (list <make-ribbon>))]
+        [else (with-syntax ([make-ribbon <make-ribbon>]
+                            [name::make-ribbon! (format-id <make-ribbon> "~a::~a" (syntax->datum <name>) (syntax->datum <make-ribbon>))]
+                            [([argv Type defval ...] ...) <argv>])
+                (list (list #'(define (name::make-ribbon! [argv : Type defval ...] ...) : Renamon-Ribbon
+                                (λ [[start : Float-Complex] [end : Float-Complex]]
+                                  (make-ribbon argv ... start end))))
+                      (list #'(name::make-ribbon! argv ...))))]))
+
 (define-syntax (define-renamon-rule! stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ name:id (~optional (~seq #:with [(argv : Type defval ...) ...])
                            #:defaults ([(argv 1) null]
                                        [(Type 1) null]
                                        [(defval 2) null]))
-        (~alt (~optional (~seq #:make-ribbon make-ribbon) #:defaults ([make-ribbon #'void]))
+        (~alt (~optional (~seq #:make-ribbon make-ribbon) #:defaults ([make-ribbon #'#false]))
               (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
               (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
         ...
         #:= rule-expand:expr ...
         (~optional (~seq #:- terminate:expr ...) #:defaults ([(terminate 1) null])))
-     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
+     (with-syntax* ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))]
+                    [([define-name-ribbon ...] [para-ribbon ...]) (define-make-ribbon #'name #'make-ribbon #'[(argv Type defval ...) ...])])
        (syntax/loc stx
-         (begin (define (make-name-ribbon [argv : Type] ...) : Renamon-Ribbon
-                  (λ [[start : Float-Complex] [end : Float-Complex]]
-                    (make-ribbon argv ... start end)))
-                
+         (begin define-name-ribbon ...
+
                 (define (rena-move! [self : Renamon] [argv : Type defval ...] ...) : Void
                   (define order (min (default-renamon-order) (default-renamon-terminal-order)))
                   
                   (parameterize* ([current-renamon-anchor-format fmt]
                                   [current-renamon-primitive-name (renamon-anchor-prefix (or abbr 'name))]
-                                  [current-renamon-ribbon (if (eq? make-ribbon void) (void) (make-name-ribbon argv ...))])
+                                  [current-renamon-ribbon para-ribbon ...])
                     (if (> order 0)
                         (parameterize ([default-renamon-order (- order 1)])
                           (renamon-dsl self rule-expand) ... (void))
                         (begin (renamon-dsl self terminate) ... (void))))))))]
-    [(_ name:id #:with [(argv : Type defval ...) ...]
-        (~alt (~optional (~seq #:make-ribbon make-ribbon) #:defaults ([make-ribbon #'void]))
+    [(_ name:id (~optional (~seq #:with [(argv : Type defval ...) ...])
+                           #:defaults ([(argv 1) null]
+                                       [(Type 1) null]
+                                       [(defval 2) null]))
+        (~alt (~optional (~seq #:make-ribbon make-ribbon) #:defaults ([make-ribbon #'#false]))
               (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
               (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
         ...
         [pred:expr (~optional (~or #:= #:-)) rule-expand:expr ...] ...
         (~optional (~seq #:- terminate:expr ...) #:defaults ([(terminate 1) null])))
-     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
+     (with-syntax* ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))]
+                    [([define-name-ribbon ...] [para-ribbon ...]) (define-make-ribbon #'name #'make-ribbon #'[(argv Type defval ...) ...])])
        (syntax/loc stx
-         (begin (define (make-name-ribbon [argv : Type] ...) : Renamon-Ribbon
-                  (λ [[start : Float-Complex] [end : Float-Complex]]
-                    (make-ribbon argv ... start end)))
-                
+         (begin define-name-ribbon ...
+
                 (define (rena-move! [self : Renamon] [argv : Type defval ...] ...) : Void
                   (parameterize* ([current-renamon-anchor-format fmt]
                                   [current-renamon-primitive-name (renamon-anchor-prefix (or abbr 'name))]
-                                  [current-renamon-ribbon (if (eq? make-ribbon void) (void) (make-name-ribbon argv ...))])
+                                  [current-renamon-ribbon para-ribbon ...])
                     (cond [pred (renamon-dsl self rule-expand) ... (void)]
                           ...
-                          [else (renamon-dsl self terminate) ... (void)]))))))]
-    [(_ name:id (~optional (~seq #:with [(argv : Type defval ...) ...])
-                           #:defaults ([(argv 1) null]
-                                       [(Type 1) null]
-                                       [(defval 2) null]))
-        (~alt (~optional (~seq #:make-ribbon make-ribbon) #:defaults ([make-ribbon #'void]))
-              (~optional (~seq #:anchor-format fmt) #:defaults ([fmt #'"~a::~a"]))
-              (~optional (~seq #:anchor-abbr abbr) #:defaults ([abbr #'#false])))
-        ...
-        #:- move-expr ...)
-     (with-syntax ([rena-move! (format-id #'name "renamon-~a!" (syntax->datum #'name))])
-       (syntax/loc stx
-         (begin (define (make-name-ribbon [argv : Type] ...) : Renamon-Ribbon
-                  (λ [[start : Float-Complex] [end : Float-Complex]]
-                    (make-ribbon argv ... start end)))
-                
-                (define (rena-move! [self : Renamon] argv ...) : Void
-                  (parameterize* ([current-renamon-anchor-format fmt]
-                                  [current-renamon-primitive-name (renamon-anchor-prefix (or 'abbr 'name))]
-                                  [current-renamon-ribbon (if (eq? make-ribbon void) (void) (make-name-ribbon argv ...))])
-                    (renamon-dsl self move-expr) ...
-                    (void))))))]))
+                          [else (renamon-dsl self terminate) ... (void)]))))))]))
 
 (define-syntax (define-renamon-generator! stx)
   (syntax-parse stx #:datum-literals [:]
