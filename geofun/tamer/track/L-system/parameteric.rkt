@@ -30,7 +30,7 @@
   [(>= w 9.00) #:= (F s #:@ (make-growth-arrow w) #:~) (R s w)]
   [(>= w 4.00) #:= (F s #:~@ (make-growth-arrow w)) (R s w)]
   [(>= s 0.05) #:= (F s ~) (R s w)]
-  #:- (F s ~))
+  #:- (F s))
 
 (define-renamon-generator! parameteric-tree #:with [[s : Real 1.0] [w : Real 10.0]] #:- (A s w))
 
@@ -38,6 +38,6 @@
 (module+ main
   (default-stroke-paint (desc-stroke #:color 'ForestGreen #:dash 'long-dash #:width 1.5))
   
-  (geo-table 4 (for/list : (Listof Geo) ([order (in-range 1 9)])
+  (geo-table 4 (for/list : (Listof Geo) ([order (in-range 1 13)])
                  (parameteric-tree*! (make-renamon 100 #:angle pi/7) #:order order))
              'cb 'cb 8.0 8.0))

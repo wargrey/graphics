@@ -96,9 +96,9 @@
                      (geo-text rena))))
 
   (geo-hb-append #:gapsize 4.0
-                 (renamon-label (geo-track-stick beginner))
-                 (renamon-label (geo-track-stick expert))
-                 (renamon-label (geo-track-stick what-a-mess)))
+                 (renamon-label (geo-track-stick beginner void))
+                 (renamon-label (geo-track-stick expert void))
+                 (renamon-label (geo-track-stick what-a-mess void)))
 
   (geo-hb-append #:gapsize 4.0
                  (renamon-label (tree-in-the-wind*! (make-renamon 8 pi/2 #:stroke 'OliveDrab #:halo-stroke #false) #:order 4))

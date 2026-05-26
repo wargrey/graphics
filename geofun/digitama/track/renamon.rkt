@@ -73,7 +73,7 @@
            #:avatar [avatar : (Option Geo) #false]
            #:ribbon [ribbon : (Option Renamon-Ribbon) #false]
            #:angle [angle0 : (Option Real) #false]
-           #:anchor [anchor : Geo-Anchor-Name '#:_]
+           #:anchor [anchor : Geo-Anchor-Name '#:home]
            #:at [home : Geo-Print-Datum 0]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [fill : Maybe-Fill-Paint (void)]
