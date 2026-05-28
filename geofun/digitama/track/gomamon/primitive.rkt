@@ -17,17 +17,39 @@
 (define-syntax (define-gomamon-line-move! stx)
   (syntax-case stx []
     [(_ move1 move2 #:+> xsgn ysgn)
-     (with-syntax ([move! (format-id #'move1 "gomamon-move-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
-                   [jump! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+     (with-syntax ([move-1-2! (format-id #'move1 "gomamon-move-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [move-2-1! (format-id #'move1 "gomamon-move-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+                   [step-1-2! (format-id #'move1 "gomamon-step-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [step-2-1! (format-id #'move1 "gomamon-step-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
+                   [jump-1-2! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
+                   [jump-2-1! (format-id #'move1 "gomamon-jump-~a-~a!" (syntax->datum #'move2) (syntax->datum #'move1))]
                    [shuffle! (format-id #'move1 "gomamon-shuffle-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))]
                    [sidestep! (format-id #'move1 "gomamon-sidestep-~a-~a!" (syntax->datum #'move1) (syntax->datum #'move2))])
        (syntax/loc stx
-         (begin (define (move! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
-                               [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+         (begin (define (move-1-2! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
                   (gomamon-regular-move goma xstep ystep xsgn ysgn anchor info))
 
-                (define (jump! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
-                               [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                (define (move-2-1! [goma : Gomamon] [ystep : Geo-Step-Datum 1.0] [xstep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false] [info : Any #false]) : Void
+                  (gomamon-regular-move goma xstep ystep xsgn ysgn anchor info))
+
+                (define (step-1-2! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false] [info1 : Any #false] [info2 : Any #false]) : Void
+                  (gomamon-regular-move goma xstep 0.0 xsgn 0.0 #false info1)
+                  (gomamon-regular-move goma 0.0 ystep 0.0 ysgn anchor info2))
+
+                (define (step-2-1! [goma : Gomamon] [ystep : Geo-Step-Datum 1.0] [xstep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false] [info1 : Any #false] [info2 : Any #false]) : Void
+                  (gomamon-regular-move goma 0.0 ystep 0.0 ysgn #false info1)
+                  (gomamon-regular-move goma xstep 0.0 xsgn 0.0 anchor info2))
+
+                (define (jump-1-2! [goma : Gomamon] [xstep : Geo-Step-Datum 1.0] [ystep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false]) : Void
+                  (gomamon-regular-move goma xstep ystep xsgn ysgn anchor))
+
+                (define (jump-2-1! [goma : Gomamon] [ystep : Geo-Step-Datum 1.0] [xstep : Geo-Step-Datum 1.0]
+                                   [anchor : (Option Geo-Anchor-Name) #false]) : Void
                   (gomamon-regular-move goma xstep ystep xsgn ysgn anchor))
 
                 (define (shuffle! [goma : Gomamon] [xstep : Real 1.0] [ystep : Real 1.0]

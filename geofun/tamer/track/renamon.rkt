@@ -102,4 +102,4 @@
 
   (geo-hb-append #:gapsize 4.0
                  (renamon-label (tree-in-the-wind*! (make-renamon 8 pi/2 #:stroke 'OliveDrab #:halo-stroke #false) #:order 4))
-                 (renamon-label (fractal-tree*! (make-renamon 3 pi/2 #:stroke 'Olive #:halo-stroke #false) #:order 6))))
+                 (renamon-label (fractal-tree*! (make-renamon 3 pi/2 #:stroke 'Goldenrod #:halo-stroke #false) #:order 6))))

@@ -55,6 +55,12 @@
     (define-values (_w h _) (geo-extent self))
     h))
 
+(define geo-aspect-ratio : (-> Geo<%> Nonnegative-Flonum)
+  (lambda [self]
+    (define-values (w h _) (geo-extent self))
+
+    (max 0.0 (/ w h))))
+
 (define geo-flsize : (case-> [Geo<%> -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                              [Geo<%> Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)]
                              [Geo<%> Nonnegative-Real Nonnegative-Real -> (Values Nonnegative-Flonum Nonnegative-Flonum)])
