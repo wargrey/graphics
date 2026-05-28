@@ -145,8 +145,8 @@
                             [name::make-ribbon! (format-id <make-ribbon> "~a::~a" (syntax->datum <name>) (syntax->datum <make-ribbon>))]
                             [([argv Type defval ...] ...) <argv>])
                 (list (list #'(define (name::make-ribbon! [argv : Type defval ...] ...) : Renamon-Ribbon
-                                (λ [[start : Float-Complex] [end : Float-Complex]]
-                                  (make-ribbon argv ... start end))))
+                                (λ [[self : Renamon] [start : Float-Complex] [end : Float-Complex]]
+                                  (make-ribbon self argv ... start end))))
                       (list #'(name::make-ribbon! argv ...))))]))
 
 (define-syntax (define-renamon-rule! stx)

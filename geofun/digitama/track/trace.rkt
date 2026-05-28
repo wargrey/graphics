@@ -20,13 +20,13 @@
     (if (keyword? anchor)
 
         (unsafe-geo-trace (make-hasheq (list (cons anchor home)))
-                            (list anchor)
-                            home)
+                          (list anchor)
+                          home)
 
         (unsafe-geo-trace (make-hasheq (list (cons anchor home)
-                                               (cons '#:home home)))
-                            (list anchor)
-                            home))))
+                                             (cons '#:home home)))
+                          (list anchor)
+                          home))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-trace-anchors : (-> Geo-Trace (Pairof Geo-Anchor-Name (Listof Geo-Anchor-Name)))
@@ -38,7 +38,7 @@
     (last (geo-trace-ranchors self))))
 
 (define #:forall (Alt) geo-trace-ref : (case-> [Geo-Trace Geo-Anchor-Name -> Float-Complex]
-                                                 [Geo-Trace Geo-Anchor-Name Alt -> (U Alt Float-Complex)])
+                                               [Geo-Trace Geo-Anchor-Name Alt -> (U Alt Float-Complex)])
   (case-lambda
     [(self anchor)
      (hash-ref (geo-trace-positions self) anchor

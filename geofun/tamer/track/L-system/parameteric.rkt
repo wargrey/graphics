@@ -10,8 +10,8 @@
                #:fill (desc-brush #:color c #:opacity 0.618)
                5.5 0.0)))
 
-(define make-branch : (-> Real Real Float-Complex Float-Complex Geo)
-  (lambda [s w start end]
+(define make-branch : (-> Renamon Real Real Float-Complex Float-Complex Geo)
+  (lambda [self s w start end]
     (geo-hline #:stroke (desc-stroke #:color (random #xFFFFFF) #:width w #:cap 'round #:opacity 0.32)
                (magnitude (- end start)) 1.0)))
 

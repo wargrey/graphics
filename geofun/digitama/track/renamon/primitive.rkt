@@ -19,7 +19,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Maybe-Avatar (U Geo False Void))
 (define-type Maybe-Renamon-Ribbon (U Renamon-Ribbon False Void))
-(define-type Renamon-Ribbon (-> Float-Complex Float-Complex (U Geo False Void)))
+(define-type Renamon-Ribbon (-> Renamon Float-Complex Float-Complex (U Geo False Void)))
 
 (define default-renamon-description-format : (Parameterof String) (make-parameter "~a (n = ~a, δ = ~a°)"))
 (define default-renamon-order : (Parameterof Integer) (make-parameter 0))
@@ -95,8 +95,8 @@
                                        datum))))
 
     (define trail
-      (cond [(void? maybe-ribbon) (when ribbon (ribbon start end))]
-            [(or maybe-ribbon) (maybe-ribbon start end)]))
+      (cond [(void? maybe-ribbon) (when ribbon (ribbon self start end))]
+            [(or maybe-ribbon) (maybe-ribbon self start end)]))
 
     (when (geo? trail)
       (geo-track-stamp self
