@@ -38,13 +38,14 @@
       (set-geo:track-origin! self endpt))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-track-drift : (-> Geo:Track Geo-Bezier-Datum (Listof Geo-Bezier-Datum) (Option Geo-Anchor-Name) Flonum Flonum Void)
-  (lambda [goma end-step ctrl-steps anchor xsize ysize]
-    (define endpt : Float-Complex (geo-track-bezier-point goma end-step xsize ysize))
+(define #:forall (T) geo-track-drift : (-> (∩ T Geo:Track) Geo-Bezier-Datum (Listof Geo-Bezier-Datum) (Option Geo-Anchor-Name)
+                                           (-> (∩ T Geo:Track) Number Float-Complex) Flonum)
+  (lambda [goma end-step ctrl-steps anchor position]
+    (define endpt ((inst geo-track-bezier-point T) goma end-step position))
     (define ctrls : (Listof Float-Complex)
       (for/list : (Listof Float-Complex) ([ctrl (in-list ctrl-steps)])
-        (geo-track-bezier-point goma ctrl xsize ysize)))
-
+        ((inst geo-track-bezier-point T) goma ctrl position)))
+    
     (cond [(null? ctrls) (geo-track-linear-bezier goma endpt anchor)]
           [(null? (cdr ctrls)) (geo-track-quadratic-bezier goma endpt (car ctrls) anchor)]
           [else (geo-track-cubic-bezier goma endpt (car ctrls) (cadr ctrls) anchor)])))
@@ -132,32 +133,40 @@
                                           (geo:track-footprints self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-track-bezier-point : (->* (Geo:Track Geo-Bezier-Datum) (Flonum Flonum) Float-Complex)
-  (lambda [self dpos [sx 1.0] [sy 1.0]]
+(define #:forall (T) geo-track-bezier-point : (-> (∩ T Geo:Track) Geo-Bezier-Datum (-> (∩ T Geo:Track) Number Float-Complex) Float-Complex)
+  (lambda [self dpos position]
     (define cpos : Float-Complex (geo:track-here self))
     
-    (cond [(real? dpos) (+ cpos (make-rectangular (* (real->double-flonum dpos) sx) 0.0))]
-          [(list? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cadr dpos)) sy)))]
-          [(pair? dpos) (+ cpos (make-rectangular (* (real->double-flonum (car dpos)) sx) (* (real->double-flonum (cdr dpos)) sy)))]
-          [(complex? dpos) (+ cpos (make-rectangular (* (real->double-flonum (real-part dpos)) sx) (* (real->double-flonum (imag-part dpos)) sy)))]
+    (cond [(complex? dpos) (+ cpos (position self dpos))]
+          [(list? dpos) (+ cpos (position self (make-rectangular (car dpos) (cadr dpos))))]
+          [(pair? dpos) (+ cpos (position self (make-rectangular (car dpos) (cdr dpos))))]
           [else (geo-trace-ref (geo:track-trace self) dpos)])))
 
-(define geo-track-linear-bezier : (-> Geo:Track Float-Complex (Option Geo-Anchor-Name) Void)
+(define geo-track-linear-bezier : (-> Geo:Track Float-Complex (Option Geo-Anchor-Name) Flonum)
   (lambda [self endpt anchor]
-    (geo-track-do-move self endpt #\L anchor #false #false)))
+    (define here (geo:track-here self))
+    
+    (geo-track-do-move self endpt #\L anchor #false #false)
+    (angle (- endpt here))))
 
-(define geo-track-quadratic-bezier : (-> Geo:Track Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
+(define geo-track-quadratic-bezier : (-> Geo:Track Float-Complex Float-Complex (Option Geo-Anchor-Name) Flonum)
   (lambda [self endpt ctrl anchor]
     (define path:bezier (gpp:bezier:quadratic #\Q endpt (geo:track-here self) (default-bezier-samples) ctrl))
 
     (geo-track-try-fit! self anchor endpt ctrl)
     (set-geo:track-here! self endpt)
-    (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))))
+    (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))
 
-(define geo-track-cubic-bezier : (-> Geo:Track Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Void)
+    (let-values ([(_hpt _hrad _tpt trad) (gpp-bezier-endpoints path:bezier)])
+      trad)))
+
+(define geo-track-cubic-bezier : (-> Geo:Track Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Flonum)
   (lambda [self endpt ctrl1 ctrl2 anchor]
     (define path:bezier (gpp:bezier:cubic #\C endpt (geo:track-here self) (default-bezier-samples) ctrl1 ctrl2))
 
     (geo-track-try-fit! self anchor endpt ctrl1 ctrl2)
     (set-geo:track-here! self endpt)
-    (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))))
+    (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))
+
+    (let-values ([(_hpt _hrad _tpt trad) (gpp-bezier-endpoints path:bezier)])
+      trad)))

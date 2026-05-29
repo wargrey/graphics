@@ -41,7 +41,7 @@
   ([box : (Boxof Renamon-Info)]
    [stepsize : Positive-Flonum]
    [angle-delta : (Option Flonum)]
-   [tp-sgn : Flonum])
+   [im-sgn : Flonum])
   #:type-name Renamon
   #:transparent)
 
@@ -70,7 +70,7 @@
     (if (and (flnear? (real-part ept) (real-part spt))
              (flnear? (imag-part ept) (imag-part spt)))
         #false
-        (~wrap (* (angle (- ept spt)) (renamon-tp-sgn self)) 2pi))))
+        (~wrap (* (angle (- ept spt)) (renamon-im-sgn self)) 2pi))))
 
 (define renamon-stamp : (case-> [Renamon Geo -> Void]
                                 [Renamon Geo Complex -> Void])
@@ -122,12 +122,19 @@
 (define renamon-position : (-> Renamon Complex Float-Complex)
   (lambda [self pos]
     (make-rectangular (* (real->double-flonum (real-part pos)) (renamon-stepsize self))
-                      (* (real->double-flonum (imag-part pos)) (renamon-stepsize self) (renamon-tp-sgn self)))))
+                      (* (real->double-flonum (imag-part pos)) (renamon-stepsize self) (renamon-im-sgn self)))))
+
+(define renamon-polar-position : (-> Renamon Complex Float-Complex)
+  (lambda [self pos]
+    (* (renamon-position self pos)
+       (exp (* (renamon-heading self)
+               (renamon-im-sgn self)
+               +1.0i)))))
 
 (define renamon-rotate : (-> Renamon Geo Geo)
   (lambda [self gobj]
     (geo-rotate gobj (* (renamon-heading self)
-                        (renamon-tp-sgn self)))))
+                        (renamon-im-sgn self)))))
 
 (define renamon-anchor-prefix : (-> Symbol String)
   (lambda [name]

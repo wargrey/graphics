@@ -65,7 +65,7 @@
         (if (pair? srekcits)
             (let-values ([(s rest) (values (car srekcits) (cdr srekcits))])
               (->layer rest (cons (geo-sticker->layer (car s) (- (cdr s) origin) offset) stickers)))
-            (reverse stickers))))
+            stickers)))
     
     (let stick ([srohcna : (Listof Geo-Anchor-Name) srohcna]
                 [stickers : (Listof (GLayerof Geo)) user-stickers])

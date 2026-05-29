@@ -108,15 +108,15 @@
        (quasisyntax/loc stx ; order matters
          (let ([prev (geo:track-here self)])
            (rena-move! self argl ...)
-           (renamon-evolve self avatar ...)
-           (renamon-pave self prev (geo:track-here self) ribbon))))]
+           (renamon-pave self prev (geo:track-here self) ribbon)
+           (renamon-evolve self avatar ...))))]
     [(_ self (move:id argl:expr ... (~or @ #:@) avatar:expr (~or ~ #:~) ribbon:expr ...))
      (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx ; order matters
          (let ([prev (geo:track-here self)])
            (rena-move! self argl ...)
-           (renamon-pave self prev (geo:track-here self) ribbon ...)
-           (renamon-evolve self avatar))))]
+           (renamon-evolve self avatar)
+           (renamon-pave self prev (geo:track-here self) ribbon ...))))]
     [(_ self (move:id argl:expr ... (~or @ #:@) (~optional avatar:expr #:defaults ([avatar #'(void)]))))
      (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx

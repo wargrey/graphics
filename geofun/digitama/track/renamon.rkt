@@ -105,6 +105,13 @@
     rena))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define renamon-drift! : (->* (Renamon Geo-Bezier-Datum (Listof Geo-Bezier-Datum)) ((Option Geo-Anchor-Name)) Void)
+  (lambda [rena end-step ctrl-steps [anchor #false]]
+    (renamon-turn-to rena
+                     (* (geo-track-drift rena end-step ctrl-steps anchor
+                                         renamon-polar-position)
+                        (renamon-im-sgn rena)))))
+
 (define renamon-jump! : (->* (Renamon) (Real (Option Geo-Anchor-Name)) Void)
   (lambda [rena [steps 1.0] [anchor #false]]
     (geo-track-jump-to rena (make-polar steps (renamon-heading rena))

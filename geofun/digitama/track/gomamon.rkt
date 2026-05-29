@@ -136,8 +136,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gomamon-drift! : (->* (Gomamon Geo-Bezier-Datum (Listof Geo-Bezier-Datum)) ((Option Geo-Anchor-Name)) Void)
   (lambda [goma end-step ctrl-steps [anchor #false]]
-    (geo-track-drift goma end-step ctrl-steps anchor
-                     (gomamon-xstepsize goma) (gomamon-ystepsize goma))))
+    (void (geo-track-drift goma end-step ctrl-steps anchor
+                           gomamon-grid-position))))
 
 (define gomamon-jump! : (->* (Gomamon Real Real) ((Option Geo-Anchor-Name)) Void)
   (lambda [goma length radians [anchor #false]]
