@@ -9,13 +9,13 @@
 (require geofun/digitama/paint)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/richtext/self)
+(require geofun/digitama/geometry/sample)
 
 (require "../dot.rkt")
 (require "../self.rkt")
 (require "../guard.rkt")
 (require "../interface.rkt")
 
-(require "../../sample.rkt")
 (require "../../calculus.rkt")
 
 (require "../../marker/self.rkt")

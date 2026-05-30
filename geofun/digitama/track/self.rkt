@@ -70,8 +70,7 @@
 
 (define geo-track-try-fit! : (case-> [Geo:Track Float-Complex -> Void]
                                      [Geo:Track (Option Geo-Anchor-Name) Float-Complex -> Void]
-                                     [Geo:Track (Option Geo-Anchor-Name) Float-Complex Float-Complex -> Void]
-                                     [Geo:Track (Option Geo-Anchor-Name) Float-Complex Float-Complex Float-Complex -> Void])
+                                     [Geo:Track (Option Geo-Anchor-Name) Float-Complex (Listof Float-Complex) -> Void])
   (case-lambda
     [(self pt) (geo-bbox-fit! (geo:track-bbox self) pt)]
     [(self anchor pt)
@@ -79,13 +78,13 @@
      (when (or anchor)
        (geo-trace-set! (geo:track-trace self) anchor pt)
        (geo-current-zone-try-push-anchor! anchor))]
-    [(self anchor pt ctrl)
+    [(self anchor pt ctrls)
      (geo-track-try-fit! self anchor pt)
-     (geo-bbox-fit! (geo:track-bbox self) ctrl)]
-    [(self anchor pt ctrl1 ctrl2)
-     (geo-track-try-fit! self anchor pt)
-     (geo-bbox-fit! (geo:track-bbox self) ctrl1)
-     (geo-bbox-fit! (geo:track-bbox self) ctrl2)]))
+     (let ([bbox (geo:track-bbox self)])
+       (let fit ([ctrls : (Listof Float-Complex) ctrls])
+         (when (pair? ctrls)
+           (geo-bbox-fit! bbox (car ctrls))
+           (fit (cdr ctrls)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-create-flex-zone! : (-> Geo:Track Symbol Symbol Geo-Option-Rich-Text Geo-Pin-Anchor (Option Keyword) Geo:Track:Zone:Flex)

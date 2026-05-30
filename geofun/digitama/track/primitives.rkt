@@ -11,6 +11,7 @@
 (require "../self.rkt")
 (require "../layer/type.rkt")
 (require "../layer/sticker.rkt")
+(require "../geometry/bezier.rkt")
 (require "../geometry/footprint.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -151,9 +152,10 @@
 
 (define geo-track-quadratic-bezier : (-> Geo:Track Float-Complex Float-Complex (Option Geo-Anchor-Name) Flonum)
   (lambda [self endpt ctrl anchor]
-    (define path:bezier (gpp:bezier:quadratic #\Q endpt (geo:track-here self) (default-bezier-samples) ctrl))
+    (define head (geo:track-here self))
+    (define path:bezier (gpp:bezier:quadratic #\Q endpt head (default-bezier-samples) ctrl))
 
-    (geo-track-try-fit! self anchor endpt ctrl)
+    (geo-track-try-fit! self anchor endpt (bezier-quadratic-extremities head ctrl endpt))
     (set-geo:track-here! self endpt)
     (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))
 
@@ -162,9 +164,10 @@
 
 (define geo-track-cubic-bezier : (-> Geo:Track Float-Complex Float-Complex Float-Complex (Option Geo-Anchor-Name) Flonum)
   (lambda [self endpt ctrl1 ctrl2 anchor]
-    (define path:bezier (gpp:bezier:cubic #\C endpt (geo:track-here self) (default-bezier-samples) ctrl1 ctrl2))
+    (define head (geo:track-here self))
+    (define path:bezier (gpp:bezier:cubic #\C endpt head (default-bezier-samples) ctrl1 ctrl2))
 
-    (geo-track-try-fit! self anchor endpt ctrl1 ctrl2)
+    (geo-track-try-fit! self anchor endpt (bezier-cubic-extremities head ctrl1 ctrl2 endpt))
     (set-geo:track-here! self endpt)
     (set-geo:track-footprints! self (cons path:bezier (geo:track-footprints self)))
 

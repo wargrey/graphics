@@ -2,10 +2,9 @@
 
 (provide (all-defined-out))
 
+(require racket/list)
 (require digimon/complex)
 (require digimon/digitama/unsafe/ops)
-
-(require racket/list)
 
 (require "bezier.rkt")
 
@@ -65,7 +64,7 @@
   #:transparent)
 
 (struct gpp:bezier:nth gpp:bezier
-  ([ctrls+endpoint : (Listof Float-Complex)])
+  ([ctrls+endpoint : (List* Float-Complex Float-Complex Float-Complex Float-Complex (Listof Float-Complex))])
   #:type-name GPP:Bezier:Nth
   #:transparent)
 
@@ -139,7 +138,7 @@
                               (traverse (cons (car self) (cons (cdr self) rest)) p-head stnirp curpos))]
                          [else ; n-th order bezier
                           (if (or p-head)
-                              (let-values ([(B) (gpp:bezier:nth #\null (last self) curpos samples self)])
+                              (let ([B (gpp:bezier:nth #\null (last self) curpos samples self)])
                                 (traverse rest p-head (cons B stnirp) (gpath:print-end-here B)))
                               ; decay to the head point and a bezier stroage of controls
                               (traverse (cons (car self) (cons (cdr self) rest)) p-head stnirp curpos))])]
@@ -159,7 +158,7 @@
                                 [prints : (Listof GPath:Print) (cddr footprints)])
                    (if (null? prints)
                        (let-values ([(hpt hrad)
-                                     (cond [(gpp:bezier? h2nd) ; NOTE: A bezier storage couldn't be the first one, an the storage know the head point.
+                                     (cond [(gpp:bezier? h2nd) ; NOTE: A bezier storage couldn't be the first one, and the storage know the head point.
                                             (let-values ([(hpt hrad tpt trad) (gpp-bezier-endpoints h2nd)])
                                               (values hpt hrad))]
                                            [(gpp:bezier? h1st) ; WARNING: rarely happen, but who knows.
@@ -314,20 +313,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define gpp-bezier-endpoints : (-> GPP:Bezier (Values Float-Complex Flonum Float-Complex Flonum))
-  (let ([pts-db : (HashTable Any (List Float-Complex Flonum Float-Complex Flonum)) (make-weak-hash)])
-    (lambda [self]
-      (define results
-        (hash-ref! pts-db self
-                   (λ [] (let ([spt (gpp:bezier-start-here self)]
-                               [ept (gpath:print-end-here self)])
-                           (define derivative : (Option (-> Flonum Float-Complex)) (gpp-bezier-function self 1))
-                           
-                           (if (not derivative)
-                               (list spt 0.0 ept 0.0)
-                               (list spt (angle (derivative 0.0))
-                                     ept (angle (derivative 1.0))))))))
-      (values (car results)   (cadr results)
-              (caddr results) (cadddr results)))))
+  (lambda [self]
+    (define spt (gpp:bezier-start-here self))
+    (define ept (gpath:print-end-here self))
+    
+    (define-values (ctrlp1 ctrlpn)
+      (cond [(gpp:bezier:cubic? self) (values (gpp:bezier:cubic-ctrl1 self) (gpp:bezier:cubic-ctrl2 self))]
+            [(gpp:bezier:quadratic? self) (values (gpp:bezier:quadratic-ctrl self) (gpp:bezier:quadratic-ctrl self))]
+            [(gpp:bezier:nth? self) ; NOTE: the `ept` is also in the list
+             (let ([ctrls (gpp:bezier:nth-ctrls+endpoint self)])
+               (values (car ctrls) (car (take-right ctrls 2))))]
+            [else '#:deadcode (values ept spt)]))
+    
+    (values spt (angle (- ctrlp1 spt))
+            ept (angle (- ept ctrlpn)))))
 
 (define gpp-bezier-tail-points : (-> GPP:Bezier (Listof Float-Complex))
   (lambda [self]

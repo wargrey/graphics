@@ -4,13 +4,13 @@
 
 (provide (all-defined-out))
 
-(require (only-in racket/list last remove-duplicates))
+(require racket/list)
 (require racket/flonum)
-(require racket/math)
-
 (require digimon/complex)
-(require math/number-theory)
-(require plotfun/digitama/sample)
+
+(require (only-in math/number-theory quadratic-solutions binomial))
+
+(require "sample.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define bezier-quadratic-extremities : (-> Float-Complex Float-Complex Float-Complex (Listof Float-Complex))
