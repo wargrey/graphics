@@ -99,9 +99,9 @@
             [(or maybe-ribbon) (maybe-ribbon self start end)]))
 
     (when (geo? trail)
-      (geo-track-stamp self
-                       (make-sticker (renamon-rotate self trail)
-                                     'cc (* 0.5 (- start end)))))))
+      (geo-track-stamp-append self
+                              (make-sticker (renamon-rotate self trail)
+                                            'cc (* 0.5 (- start end)))))))
 
 (define renamon-evolve : (->* (Renamon) (Maybe-Avatar) Void)
   (lambda [self [avatar (void)]]

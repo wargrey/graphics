@@ -72,6 +72,12 @@
                                     (geo:track-stickers goma)))]
     [(goma gobj anchor) (geo-track-stamp goma (make-sticker gobj anchor))]))
 
+(define geo-track-stamp-append : (-> Geo:Track Geo-Sticker Void)
+  (lambda [goma sticker]
+    (set-geo:track-stickers! goma
+                             (append (geo:track-stickers goma)
+                                     (list (cons sticker (geo:track-here goma)))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (T) geo-track-jump-to
   : (case-> [(∩ T Geo:Track) Geo-Anchor-Name -> Void]

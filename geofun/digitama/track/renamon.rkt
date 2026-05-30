@@ -60,7 +60,7 @@
 (define-syntax (with-renamon! stx)
   (syntax-case stx []
     [(_ rena move-expr ...)
-     (quasisyntax/loc stx
+     (syntax/loc stx
        (let ([self rena])
          (renamon-dsl self move-expr)
          ...
