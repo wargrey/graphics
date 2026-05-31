@@ -49,8 +49,8 @@
 (define desc-font
   (lambda [#:family [face : (U Font-Family-Datum False) #false]
            #:size [size : (U Font-Size-Datum False) #false]
-           #:weight [weight : (U Symbol Integer False) #false]
-           #:style [style : (Option Symbol) #false]
+           #:weight [weight : (Option Font-Weight-Datum) #false]
+           #:style [style : (Option Font-Style) #false]
            #:stretch [stretch : (Option Symbol) #false]
            #:variant [variant : (Option Symbol) #false]
            [basefont : Font (default-font)]] : Font
@@ -77,8 +77,8 @@
   (lambda [#:tweak [tweak : (Option Font:Tweak) #false]
            #:family [fc : (U Font-Family-Datum False) #false]
            #:size [sz : (U Font-Size-Datum False) #false]
-           #:weight [wght : (U Symbol Integer False) #false]
-           #:style [styl : (Option Symbol) #false]
+           #:weight [wght : (Option Font-Weight-Datum) #false]
+           #:style [styl : (Option Font-Style) #false]
            #:stretch [stretch : (Option Symbol) #false]
            #:variant [variant : (Option Symbol) #false]
            [basefont : Font (default-font)]] : Font
