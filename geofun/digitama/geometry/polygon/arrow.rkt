@@ -66,7 +66,7 @@
       (if (and draw-shaft? (> shaft-length shaft-minlen))
           (let*-values ([(shaft-radius) (sqrt (+ (* shaft-thickness/2 shaft-thickness/2)
                                                  (* shaft-length shaft-length)))]
-                        [(shdelta) (+ (acos (/ shaft-thickness/2 shaft-radius)) pi/2)]
+                        [(shdelta) (+ (assert (acos (min 1.0 (/ shaft-thickness/2 shaft-radius))) flonum?) pi/2)]
                         [(shtail1 shtail2) (values (+ rpoint shdelta) (- rpoint shdelta))]
                         [(shx1 shy1) (values (* shaft-radius (cos shtail1)) (* shaft-radius (sin shtail1)))]
                         [(shx2 shy2) (values (* shaft-radius (cos shtail2)) (* shaft-radius (sin shtail2)))])
