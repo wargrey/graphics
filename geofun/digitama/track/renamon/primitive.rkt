@@ -17,8 +17,9 @@
 (require "../../layer/sticker.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Maybe-Avatar (U Geo False Void))
+(define-type Maybe-Avatar (U Renamon-Avatar Geo False Void))
 (define-type Maybe-Renamon-Ribbon (U Renamon-Ribbon False Void))
+(define-type Renamon-Avatar (-> Renamon Float-Complex (U Geo False Void)))
 (define-type Renamon-Ribbon (-> Renamon Float-Complex Float-Complex (U Geo False Void)))
 
 (define default-renamon-description-format : (Parameterof String) (make-parameter "~a (n = ~a, δ = ~a°)"))
@@ -33,7 +34,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct renamon-info : Renamon-Info
   ([heading : Flonum]
-   [avatar : (Option Geo)]
+   [avatar : (Option (U Geo Renamon-Avatar))]
    [ribbon : (Option Renamon-Ribbon)])
   #:transparent)
 
@@ -72,15 +73,21 @@
         #false
         (~wrap (* (angle (- ept spt)) (renamon-im-sgn self)) 2pi))))
 
-(define renamon-stamp : (case-> [Renamon Geo -> Void]
-                                [Renamon Geo Complex -> Void])
+(define renamon-stamp : (case-> [Renamon (U Geo Renamon-Avatar) -> Void]
+                                [Renamon (U Geo Renamon-Avatar) Complex -> Void])
   (case-lambda
-    [(self gobj) (geo-track-stamp self (renamon-rotate self gobj))]
+    [(self gobj)
+     (cond [(geo? gobj) (geo-track-stamp self (renamon-rotate self gobj))]
+           [else (let ([g (gobj self (geo:track-here self))])
+                   (when (geo? g) (renamon-stamp self g)))])]
     [(self gobj offset)
-     (geo-track-stamp self
-                      (make-sticker (renamon-rotate self gobj)
-                                    'cc
-                                    (renamon-position self offset)))]))
+     (cond [(geo? gobj)
+            (geo-track-stamp self
+                             (make-sticker (renamon-rotate self gobj)
+                                           'cc
+                                           (renamon-position self offset)))]
+           [else (let ([g (gobj self (geo:track-here self))])
+                   (when (geo? g) (renamon-stamp self g offset)))])]))
 
 (define renamon-pave : (->* (Renamon Float-Complex Float-Complex) (Maybe-Renamon-Ribbon) Void)
   (lambda [self start end [maybe-ribbon (current-renamon-ribbon)]] ; for parameteric L-systems

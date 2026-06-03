@@ -48,7 +48,7 @@
                                           sigmoid))
 
     (define (stroke-lightness [Lf : Flonum] [bgL : Flonum]) : Flonum
-      (cond [(<= bgL Tdark)  (+ Lf ΔL (* 0.25 (log (max 0.0 (- 2.0 bgL)))))]
+      (cond [(<= bgL Tdark)  (+ Lf ΔL (* 0.25 (log (max 1e-6 (- 2.0 bgL)))))]
             [(>= bgL Tlight) (- Lf ΔL (* 0.05 bgL))]
             [(<= Lf 0.5) (+ Lf ΔL (* 0.1 (- 1.0 bgL)))]
             [else (- Lf ΔL (* 0.1 bgL))]))
@@ -108,6 +108,18 @@
           (hash-ref! color-db (list idx bgL bgC bgH)
                      (λ [] (gen-color (index->hue idx bgH) bgL bgC)))
           (adjust-color idx bgL)))))
+
+(define oklch-sequence-make : (->* () (#:palette Palette-Index->Pen+Brush-Colors 
+                                       #:background (Option FlRGBA) 
+                                       #:type (U 'stroke 'fill))
+                                   (-> FlRGBA))
+  (lambda [#:palette [palette the-oklch-palette] #:background [bg #false] #:type [type 'fill]]
+    (let ([&idx : (Boxof Natural) (box 0)])
+      (lambda []
+        (define c (palette (unbox &idx) bg))
+        
+        (set-box! &idx (+ (unbox &idx) 1))
+        (if (eq? type 'fill) (cdr c) (car c))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define oklch-palette-sigmoid-interpolator : (->* ((-> Flonum Flonum))

@@ -4,7 +4,7 @@
 (provide (all-from-out digimon/measure))
 (provide (all-from-out "base.rkt"))
 
-(provide Renamon renamon? Renamon-Ribbon)
+(provide Renamon renamon? Renamon-Ribbon Renamon-Avatar)
 (provide Geo-Print-Datum Geo-Step-Datum Geo-Bezier-Datum)
 (provide Option-Track-Halo-Paint Maybe-Track-Halo-Paint)
 (provide default-track-halo-stroke renamon-heading)
@@ -70,8 +70,8 @@
 (define make-renamon
   (lambda [#:id [name : (Option Symbol) #false]
            #:desc [desc : (Option String) #false]
-           #:avatar [avatar : (Option Geo) #false]
-           #:ribbon [ribbon : (Option Renamon-Ribbon) #false]
+           #:make-avatar [avatar : (Option (U Geo Renamon-Avatar)) #false]
+           #:make-ribbon [make-ribbon : (Option Renamon-Ribbon) #false]
            #:angle [angle0 : (Option Real) #false]
            #:anchor [anchor : Geo-Anchor-Name '#:home]
            #:at [home : Geo-Print-Datum 0]
@@ -98,7 +98,7 @@
                               null null
                               
                               ; renamon fields
-                              (box (make-renamon-info #:heading heading #:avatar avatar #:ribbon ribbon))
+                              (box (make-renamon-info #:heading heading #:avatar avatar #:ribbon make-ribbon))
                               stepsize angle -1.0))
 
     (when (and avatar) (renamon-stamp rena avatar))

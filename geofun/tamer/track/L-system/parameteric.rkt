@@ -1,18 +1,23 @@
 #lang typed/racket/base
 
 (require geofun/vector)
+(require colorspace/palette)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define next-arrow-color : (-> FlRGBA) (oklch-sequence-make #:type 'stroke))
+(define next-trunk-color : (-> FlRGBA) (oklch-sequence-make #:type 'fill))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-growth-arrow : (-> Real Geo:Arrow)
   (lambda [w]
-    (define c (random #xFFFFFF))
+    (define c (next-arrow-color))
     (geo-arrow #:stroke (desc-stroke #:color c #:width (* w 0.1))
                #:fill (desc-brush #:color c #:opacity 0.618)
                5.5 0.0)))
 
 (define make-branch : (-> Renamon Real Real Float-Complex Float-Complex Geo)
   (lambda [self s w start end]
-    (geo-hline #:stroke (desc-stroke #:color (random #xFFFFFF) #:width w #:cap 'round #:opacity 0.32)
+    (geo-hline #:stroke (desc-stroke #:color (next-trunk-color) #:width w #:cap 'round #:opacity 0.32)
                (magnitude (- end start)) 1.0)))
 
 (define θ : (-> Flonum)

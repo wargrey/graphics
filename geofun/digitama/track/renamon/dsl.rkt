@@ -100,23 +100,18 @@
     [(_ self (move:id argl:expr ... (~or ~@ #:~@) (~optional avatar:expr #:defaults ([avatar #'(void)]))))
      (syntax/loc stx (renamon-dsl self (move argl ... #:~ (current-renamon-ribbon) #:@ avatar)))]
     [(_ self (move:id argl:expr ... (~or @ #:@) (~or ~ #:~) (~optional ribbon:expr #:defaults ([ribbon #'(current-renamon-ribbon)]))))
-     (syntax/loc stx (renamon-dsl self (move argl ... #:@ (void) #:~ ribbon)))]
+     (syntax/loc stx (renamon-dsl self (move argl ... #:~ ribbon #:@ (void))))]
     [(_ self (move:id argl:expr ... (~or @~ #:@~) (~optional ribbon:expr #:defaults ([ribbon #'(current-renamon-ribbon)]))))
-     (syntax/loc stx (renamon-dsl self (move argl ... #:@ (void) #:~ ribbon)))]
+     (syntax/loc stx (renamon-dsl self (move argl ... #:~ ribbon #:@ (void))))]
+    [(_ self (move:id argl:expr ... (~or @ #:@) avatar:expr (~or ~ #:~) (~optional ribbon:expr #:defaults ([ribbon #'(current-renamon-ribbon)]))))
+     (syntax/loc stx (renamon-dsl self (move argl ... #:~ ribbon #:@ avatar)))]
     [(_ self (move:id argl:expr ... (~or ~ #:~) ribbon:expr (~or @ #:@) avatar:expr ...))
      (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
-       (quasisyntax/loc stx ; order matters
+       (quasisyntax/loc stx
          (let ([prev (geo:track-here self)])
            (rena-move! self argl ...)
-           (renamon-pave self prev (geo:track-here self) ribbon)
-           (renamon-evolve self avatar ...))))]
-    [(_ self (move:id argl:expr ... (~or @ #:@) avatar:expr (~or ~ #:~) ribbon:expr ...))
-     (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
-       (quasisyntax/loc stx ; order matters
-         (let ([prev (geo:track-here self)])
-           (rena-move! self argl ...)
-           (renamon-evolve self avatar)
-           (renamon-pave self prev (geo:track-here self) ribbon ...))))]
+           (renamon-evolve self avatar ...)
+           (renamon-pave self prev (geo:track-here self) ribbon))))]
     [(_ self (move:id argl:expr ... (~or @ #:@) (~optional avatar:expr #:defaults ([avatar #'(void)]))))
      (with-syntax ([rena-move! (format-id #'move "renamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx

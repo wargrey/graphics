@@ -20,7 +20,7 @@
                          10.0 3.0)
              -1.0 1.0))
 
-(define-renamon! beginner [64 pi/2 #:avatar internode #:angle pi/4 #:desc "An Axial Tree (by beginner)"] #:-
+(define-renamon! beginner [64 pi/2 #:make-avatar internode #:angle pi/4 #:desc "An Axial Tree (by beginner)"] #:-
   [#:fork (F @) 
    [=> +
        [#:fork (F lateral-step @)
@@ -43,7 +43,7 @@
    [=> + (F apex-step #:@ apex)]
    [=> (F apex-step #:@ apex)]])
 
-(define-renamon! expert [64 pi/2 #:avatar internode #:angle pi/4 #:desc "An Axial Tree (by expert)"] #:-
+(define-renamon! expert [64 pi/2 #:make-avatar internode #:angle pi/4 #:desc "An Axial Tree (by expert)"] #:-
   (F @) 
   [=> + (F lateral-step @)
       [=> + (F apex-step #:@ apex)]
@@ -63,7 +63,7 @@
   [=> + (F apex-step #:@ apex)]
   [=> (F apex-step #:@ apex)])
 
-(define-renamon! what-a-mess [64 pi/2 #:avatar internode #:angle pi/4 #:desc "An Axial Tree (what a mess)"] #:-
+(define-renamon! what-a-mess [64 pi/2 #:make-avatar internode #:angle pi/4 #:desc "An Axial Tree (what a mess)"] #:-
   [#:seq
    [(F @) #:=> + [#:seq
                   [(F lateral-step @) #:=> + (F apex-step #:@ apex)]
@@ -81,7 +81,7 @@
    [(F @) #:=> + (F apex-step #:@ apex)]
    [(F apex-step #:@ apex)]])
 
-(define-renamon! true-dichotomous-branching [#:avatar apex #:angle pi/4 #:desc "True Dichotomous Branching"
+(define-renamon! true-dichotomous-branching [#:make-avatar apex #:angle pi/4 #:desc "True Dichotomous Branching"
                                              #:stroke (desc-stroke #:color 'SeaGreen #:width 1.0 #:dash 'short-dash)
                                              #:halo-stroke (desc-halo-stroke #:width 5.0 #:opacity 0.42 #:scalable? #true
                                                                              #:colors '(OliveDrab OliveDrab OliveDrab))

@@ -16,4 +16,4 @@
 
   (geo-hb-append* #:gapsize 4.0
                   (for/list : (Listof Geo) ([order (in-range 0 4)])
-                    (geo-frame (stochastic-tree*! (make-renamon 10 #:stroke (random #xFFFFFF)))))))
+                    (geo-frame (stochastic-tree*! (make-renamon 10 #:stroke (* (random 360) 1.0)))))))
