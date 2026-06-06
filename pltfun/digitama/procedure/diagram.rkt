@@ -32,10 +32,10 @@
 (define default-procedure-iofill : (Parameterof Plt-Procedure-IO-Fill)
   (make-parameter (λ [[idx : Index] [label : Plt-Procedure-Label-Datum] [type : Symbol]] : Fill-Paint
                     (if (eq? type 'Input)
-                        (cdr (the-oklch-palette idx #false))
+                        (cdr (the-plot-oklch-palette idx #false))
                         (let ([text (plt-procedure-caption-text label)])
                           (cond [(or (not text) (regexp-match? #px"^\\s*$" text)) (default-procedure-body-fill)]
-                                [else (car (the-oklch-palette (char->integer (string-ref text 0)) #false))]))))))
+                                [else (car (the-plot-oklch-palette (char->integer (string-ref text 0)) #false))]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plt-procedure

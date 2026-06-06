@@ -1,11 +1,11 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require colorspace/palette)
+(require geofun/palette)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define next-arrow-color : (-> FlRGBA) (oklch-sequence-make #:type 'stroke))
-(define next-trunk-color : (-> FlRGBA) (oklch-sequence-make #:type 'fill))
+(define next-arrow-color : (-> FlRGBA) (palette-generator-create #:for 'stroke))
+(define next-trunk-color : (-> FlRGBA) (palette-generator-create #:for 'fill))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define make-growth-arrow : (-> Real Geo:Arrow)

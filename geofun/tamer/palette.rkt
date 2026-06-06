@@ -1,14 +1,12 @@
 #lang typed/racket/base
 
 (require geofun/vector)
-(require colorspace/palette)
-
-(require "misc.rkt")
+(require geofun/palette)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-display-hcl : (->* ((Option FlRGBA)) (Real (Option Symbol)) Geo)
   (lambda [bg [N +nan.0] [name #false]]
-    (define golden-hcl-palette (oklch-palette-create #:hue-count N))
+    (define golden-hcl-palette (oklch-plot-palette-create #:hue-count N))
     (define thickness 2.0)
 
     (define palette
@@ -41,8 +39,8 @@
 (geo-display-hcl white phi 'φ)
 (geo-display-hcl white (sqrt 3.0) '√3)
 (geo-display-hcl white (exp 1.0) 'e)
-
 (geo-display-hcl white 0.0 'φ²)
+
 (geo-display-hcl black)
 (geo-display-hcl (rgba 0.4 0.4 0.4 1.0))
 (geo-display-hcl (rgba 0.6 0.6 0.6 1.0))

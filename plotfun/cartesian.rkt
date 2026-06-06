@@ -71,6 +71,7 @@
            #:x-grid-style [xgrid-style : (Option Plot-Grid-Style) (default-plot-grid-style)]
            #:y-grid-style [ygrid-style : (Option Plot-Grid-Style) xgrid-style]
            #:palette [palette : Plot-Palette (default-plot-palette)]
+           #:chameleon [chameleon : Plot-Chameleon (default-plot-chameleon)]
            #:layer-order [layer-order : (Listof Plot-Cartesian-Layer) (default-plot-cartesian-layer-order)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:frame [frame : Geo-Frame-Datum #false]
@@ -118,7 +119,7 @@
                                   ytick-range ytick-format)]))
     
     (define bg-color : (Option FlRGBA) (brush-maybe-rgba background))
-    (define adjust-color (λ [[c : FlRGBA]] (plot-adjust-pen-color palette c bg-color)))
+    (define adjust-color (λ [[c : FlRGBA]] (plot-adjust-pen-color chameleon c bg-color)))
     (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
       (plot-axis-visual-values axis-style adjust-color))
     (define-values (pin-pen mark-font mark-color mark-anchor) (plot-mark-visual-values mark-style axis-font axis-pen adjust-color))
@@ -189,7 +190,7 @@
               (* xdigit-position em -1.0))
            #;(null? actual-yticks)))
 
-    (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette bg-color))
+    (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette chameleon bg-color))
     (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview screen?))
     (define-values (visible-width visible-height) (values (abs (real-part visible-diag)) (abs (imag-part visible-diag))))
     

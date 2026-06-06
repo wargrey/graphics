@@ -1,9 +1,10 @@
-#lang typed/racket
+#lang typed/racket/base
 
-(require geofun/vector)
+(require racket/math)
+
 (require plotfun/cartesian)
 
-(require colorspace/palette)
+(require colorspace/digitama/interpolator)
 (require colorspace/misc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -51,58 +52,58 @@
                    (plot-cartesian
                     #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
                     #:x-label "L" #:y-label "L" #:y-desc "logistic"
-                    (function (sigmoid palette-sigmoid/logistic #:k 10.0))
-                    (function (sigmoid palette-sigmoid/logistic #:k 20.0))
-                    (function (sigmoid palette-sigmoid/logistic #:k 30.0))
-                    (function (sigmoid palette-sigmoid/logistic #:k 40.0))
-                    (function (sigmoid palette-sigmoid/logistic #:k 50.0)))
+                    (function (sigmoid ~logistic #:k 10.0))
+                    (function (sigmoid ~logistic #:k 20.0))
+                    (function (sigmoid ~logistic #:k 30.0))
+                    (function (sigmoid ~logistic #:k 40.0))
+                    (function (sigmoid ~logistic #:k 50.0)))
                    
                    (plot-cartesian
                     #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
                     #:x-label "L" #:y-label "L" #:y-desc "tanh"
-                    (function (sigmoid palette-sigmoid/tanh #:k 10.0))
-                    (function (sigmoid palette-sigmoid/tanh #:k 20.0))
-                    (function (sigmoid palette-sigmoid/tanh #:k 30.0))
-                    (function (sigmoid palette-sigmoid/tanh #:k 40.0))
-                    (function (sigmoid palette-sigmoid/tanh #:k 50.0)))
+                    (function (sigmoid ~tanh #:k 10.0))
+                    (function (sigmoid ~tanh #:k 20.0))
+                    (function (sigmoid ~tanh #:k 30.0))
+                    (function (sigmoid ~tanh #:k 40.0))
+                    (function (sigmoid ~tanh #:k 50.0)))
                    
                    (plot-cartesian
                     #:x-range (cons -1.0 1.0) #:y-range (cons 0.0 1.0)
                     #:x-label "L" #:y-label "L" #:y-desc "algebraic"
-                    (function (sigmoid palette-sigmoid/algebraic #:k 10.0))
-                    (function (sigmoid palette-sigmoid/algebraic #:k 20.0))
-                    (function (sigmoid palette-sigmoid/algebraic #:k 30.0))
-                    (function (sigmoid palette-sigmoid/algebraic #:k 40.0))
-                    (function (sigmoid palette-sigmoid/algebraic #:k 50.0))))))
+                    (function (sigmoid ~algebraic #:k 10.0))
+                    (function (sigmoid ~algebraic #:k 20.0))
+                    (function (sigmoid ~algebraic #:k 30.0))
+                    (function (sigmoid ~algebraic #:k 40.0))
+                    (function (sigmoid ~algebraic #:k 50.0))))))
 
 (define brightness.plot
   (geo-hb-append #:gapsize 16.0
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
                   #:x-label "L" #:y-label "L" #:y-desc "logistic"
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 10.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 20.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 30.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 40.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/logistic #:k 50.0)))
+                  (function (sigmoid-interpolator ~logistic #:k 10.0))
+                  (function (sigmoid-interpolator ~logistic #:k 20.0))
+                  (function (sigmoid-interpolator ~logistic #:k 30.0))
+                  (function (sigmoid-interpolator ~logistic #:k 40.0))
+                  (function (sigmoid-interpolator ~logistic #:k 50.0)))
                  
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
                   #:x-label "L" #:y-label "L" #:y-desc "tanh"
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 10.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 20.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 30.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 40.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/tanh #:k 50.0)))
+                  (function (sigmoid-interpolator ~tanh #:k 10.0))
+                  (function (sigmoid-interpolator ~tanh #:k 20.0))
+                  (function (sigmoid-interpolator ~tanh #:k 30.0))
+                  (function (sigmoid-interpolator ~tanh #:k 40.0))
+                  (function (sigmoid-interpolator ~tanh #:k 50.0)))
                  
                  (plot-cartesian
                   #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
                   #:x-label "L" #:y-label "L" #:y-desc "algebraic"
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 10.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 20.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 30.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 40.0))
-                  (function (oklch-palette-sigmoid-interpolator palette-sigmoid/algebraic #:k 50.0)))))
+                  (function (sigmoid-interpolator ~algebraic #:k 10.0))
+                  (function (sigmoid-interpolator ~algebraic #:k 20.0))
+                  (function (sigmoid-interpolator ~algebraic #:k 30.0))
+                  (function (sigmoid-interpolator ~algebraic #:k 40.0))
+                  (function (sigmoid-interpolator ~algebraic #:k 50.0)))))
 
 (define brightness/vector.plot
   (parameterize ([default-plot-visualizer-label-position-range (cons 0.1 0.3)]
@@ -110,18 +111,14 @@
     (plot-cartesian
      #:x-range (cons 0.0 1.0) #:y-range (cons 0.0 1.0)
      #:x-label "L" #:y-label "L" #:y-desc "logistic"
-     (function (oklch-palette-sigmoid-interpolator
-                #:smooth-vector #(0.4 0.3 0.5) #:name (format "~a" #(0.4 0.3 0.5))
-                palette-sigmoid/logistic))
-     (function (oklch-palette-sigmoid-interpolator
-                #:smooth-vector #(0.5 0.4 0.6) #:name (format "~a" #(0.5 0.4 0.6))
-                palette-sigmoid/logistic))
-     (function (oklch-palette-sigmoid-interpolator
-                #:smooth-vector #(0.6 0.5 0.7) #:name (format "~a" #(0.6 0.5 0.7))
-                palette-sigmoid/logistic))
-     (function (oklch-palette-sigmoid-interpolator
-                #:smooth-vector #(0.7 0.6 0.8) #:name (format "~a" #(0.7 0.6 0.8))
-                palette-sigmoid/logistic)))))
+     (function (sigmoid-interpolator #:smooth-vector #(0.4 0.3 0.5) #:name (format "~a" #(0.4 0.3 0.5))
+                                     ~logistic))
+     (function (sigmoid-interpolator #:smooth-vector #(0.5 0.4 0.6) #:name (format "~a" #(0.5 0.4 0.6))
+                                     ~logistic))
+     (function (sigmoid-interpolator #:smooth-vector #(0.6 0.5 0.7) #:name (format "~a" #(0.6 0.5 0.7))
+                                     ~logistic))
+     (function (sigmoid-interpolator #:smooth-vector #(0.7 0.6 0.8) #:name (format "~a" #(0.7 0.6 0.8))
+                                     ~logistic)))))
 
 (define chroma.plot
   (parameterize ([default-plot-visualizer-label-position 1.0])

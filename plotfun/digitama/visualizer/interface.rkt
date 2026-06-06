@@ -1,16 +1,16 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
-(provide (rename-out [Palette-Index->Pen+Brush-Colors Plot-Palette]))
+(provide (rename-out [Palette-Index->Colors Plot-Palette]
+                     [Palette-Color-Adapter Plot-Chameleon]))
 
 (require geofun/color)
 (require geofun/stroke)
 (require geofun/fill)
+(require geofun/palette)
 
 (require geofun/digitama/base)
 (require geofun/digitama/paint/self)
-
-(require colorspace/palette)
 
 (require "style.rkt")
 (require "reference.rkt")
@@ -30,7 +30,8 @@
 (define default-plot-function-pen : (Parameterof Pen) (make-parameter default-visualizer-stroke))
 (define default-plot-sticker-pen : (Parameterof Pen) (make-parameter default-visualizer-stroke))
 (define default-plot-sticker-brush : (Parameterof Brush) (make-parameter default-visualizer-brush))
-(define default-plot-palette : (Parameterof Palette-Index->Pen+Brush-Colors) (make-parameter the-oklch-palette))
+(define default-plot-palette : (Parameterof Palette-Index->Colors) (make-parameter the-plot-oklch-palette))
+(define default-plot-chameleon : (Parameterof Palette-Color-Adapter) (make-parameter the-plot-oklch-adapter))
 (define plot-sampling? : (Parameterof Boolean) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -65,8 +66,8 @@
            (let* ([cpool (current-visualizer-color-pool)]
                   [prev-c (and cpool (hash-ref cpool alt-color (λ _ #false)))])
              (cond [(or prev-c) prev-c]
-                   [else ((default-plot-palette) (rgb* alt-color) bg-color)]))]
-          [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
+                   [else ((default-plot-chameleon) (rgb* alt-color) bg-color)]))]
+          [else ((default-plot-chameleon) (rgb* alt-color) bg-color)])))
 
 (define plot-select-brush-color : (-> (Option Color) Natural (Option FlRGBA) FlRGBA)
   (lambda [alt-color idx bg-color]
@@ -75,13 +76,13 @@
            (let* ([cpool (current-visualizer-color-pool)] ; TODO: set another pool for brush colors
                   [prev-c (and cpool (hash-ref cpool alt-color (λ _ #false)))])
              (cond [(or prev-c) prev-c]
-                   [else ((default-plot-palette) (rgb* alt-color) bg-color)]))]
-          [else ((default-plot-palette) (rgb* alt-color) bg-color)])))
+                   [else ((default-plot-chameleon) (rgb* alt-color) bg-color)]))]
+          [else ((default-plot-chameleon) (rgb* alt-color) bg-color)])))
 
-(define plot-adjust-pen-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)
+(define plot-adjust-pen-color : (-> Palette-Color-Adapter Color (Option FlRGBA) FlRGBA)
   (lambda [palette color bg-color]
     (palette (rgb* color) bg-color)))
 
-(define plot-adjust-brush-color : (-> Palette-Index->Pen+Brush-Colors Color (Option FlRGBA) FlRGBA)
+(define plot-adjust-brush-color : (-> Palette-Color-Adapter Color (Option FlRGBA) FlRGBA)
   (lambda [palette color bg-color]
     (palette (rgb* color) bg-color)))

@@ -6,7 +6,7 @@
 (require geofun/digitama/self)
 (require geofun/digitama/layer/sticker)
 
-(require colorspace/palette)
+(require geofun/palette)
 
 (require "self.rkt")
 (require "interface.rkt")
@@ -27,9 +27,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-realize-all : (-> (Listof Plot-Visualizer) (Pairof Real Real) (Pairof Real Real)
-                               Plot-Position-Transform Palette-Index->Pen+Brush-Colors (Option FlRGBA)
+                               Plot-Position-Transform Palette-Index->Colors Palette-Color-Adapter (Option FlRGBA)
                                (Listof Geo-Visualizer))
-  (lambda [visualizers xview yview origin-dot->pos palette bg-color]
+  (lambda [visualizers xview yview origin-dot->pos palette chameleon bg-color]
     (define color-pool ((inst make-hasheq Symbol FlRGBA)))
     (define polyline-pool ((inst make-hasheq Symbol Plot-Visualizer)))
 
@@ -42,6 +42,7 @@
           (hash-set! polyline-pool vid self))))
     
     (parameterize ([default-plot-palette palette]
+                   [default-plot-chameleon chameleon]
                    [current-visualizer-color-pool color-pool]
                    [current-visualizer-polyline-pool polyline-pool])
       (let ([N (length visualizers)])
