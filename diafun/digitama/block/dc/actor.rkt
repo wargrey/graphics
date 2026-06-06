@@ -22,7 +22,7 @@
                                                Dia:Block)
   (lambda [id caption style width height [tags #false]]
     (define head-color (dia-block-resolve-fill-paint style))
-    (define body-color (if (color? head-color) (rgb-transform-scale head-color 0.75) head-color))
+    (define body-color (if (color? head-color) (oklch-modulate head-color #:lightness 0.75) head-color))
     (define padding (dia-block-resolve-padding style))
     
     (define stickman : Geo:Stickman

@@ -8,7 +8,7 @@
 (require racket/keyword)
 
 (require geofun/vector)
-(require colorspace/palette)
+(require geofun/palette)
 
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/plain)

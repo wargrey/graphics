@@ -26,9 +26,9 @@
                     [clra? (format-id #'clr "~aa?" (syntax-e #'clr))]
                     [clr* (format-id #'clr "~a*" (syntax-e #'clr))]
                     [clr-alpha (format-id #'clr "~aa-alpha" (syntax-e #'clr))]
-                    [clr-replace (format-id #'clr "~a-transform-replace" (syntax-e #'clr))]
-                    [clr-modulate (format-id #'clr "~a-transform-modulate" (syntax-e #'clr))]
-                    [clr-offset (format-id #'clr "~a-transform-offset" (syntax-e #'clr))]
+                    [clr-replace (format-id #'clr "~a-replace" (syntax-e #'clr))]
+                    [clr-modulate (format-id #'clr "~a-modulate" (syntax-e #'clr))]
+                    [clr-offset (format-id #'clr "~a-offset" (syntax-e #'clr))]
                     [([kw:com a:com clr-com] ...) (for/list ([<c> (in-syntax #'(com ...))])
                                                     (list (datum->syntax <c> (string->keyword (symbol->immutable-string (syntax-e <c>))))
                                                           (format-id <c> "a:~a" (syntax-e <c>))
@@ -182,7 +182,7 @@
     [(r g b alpha) (hexa (flcolor->hex (rgb r g b)) 1.0)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define rgb-transform-replace : (-> Color [#:red (Option Real)] [#:green (Option Real)] [#:blue (Option Real)] [#:alpha (Option Real)] FlRGBA)
+(define rgb-replace : (-> Color [#:red (Option Real)] [#:green (Option Real)] [#:blue (Option Real)] [#:alpha (Option Real)] FlRGBA)
   (lambda [src #:red [red #false] #:green [green #false] #:blue [blue #false] #:alpha [alpha #false]]
     (define c (rgb* src))
     (define r (rgba-red c))
@@ -195,7 +195,7 @@
          (if (not blue) b blue)
          (if (not alpha) a alpha))))
 
-(define rgb-transform-modulate : (-> Color [#:red Nonnegative-Real] [#:green Nonnegative-Real] [#:blue Nonnegative-Real] [#:alpha Nonnegative-Real] FlRGBA)
+(define rgb-modulate : (-> Color [#:red Nonnegative-Real] [#:green Nonnegative-Real] [#:blue Nonnegative-Real] [#:alpha Nonnegative-Real] FlRGBA)
   (lambda [src #:red [rmod #false] #:green [gmod #false] #:blue [bmod #false] #:alpha [amod #false]]
     (define c (rgb* src))
     (define r (rgba-red c))
@@ -208,7 +208,7 @@
          (if (not bmod) b (* b bmod))
          (if (not amod) a (* a amod)))))
 
-(define rgb-transform-offset : (-> Color [#:red Real] [#:green Real] [#:blue Real] [#:alpha Real] FlRGBA)
+(define rgb-offset : (-> Color [#:red Real] [#:green Real] [#:blue Real] [#:alpha Real] FlRGBA)
   (lambda [src #:red [roff #false] #:green [goff #false] #:blue [boff #false] #:alpha [aoff #false]]
     (define c (rgb* src))
     (define r (rgba-red c))
@@ -221,23 +221,23 @@
          (if (not boff) b (+ b boff))
          (if (not aoff) a (+ a aoff)))))
 
-(define rgb-transform-scale : (-> Color Nonnegative-Real FlRGBA)
+(define rgb-scale : (-> Color Nonnegative-Real FlRGBA)
   (lambda [src s]
-    (rgb-transform-modulate src #:red s #:green s #:blue s)))
+    (rgb-modulate src #:red s #:green s #:blue s)))
 
-(define rgb-transform-shade : (-> Color Nonnegative-Real FlRGBA)
+(define rgb-shade : (-> Color Nonnegative-Real FlRGBA)
   (lambda [src s0]
     (define s : Nonnegative-Flonum (real->gamut s0))
     (define b : Nonnegative-Flonum (max (- 1.0 s) 0.0))
     
-    (rgb* (hwb-transform-modulate src #:hue s #:white s #:black b))))
+    (rgb* (hwb-modulate src #:hue s #:white s #:black b))))
 
-(define rgb-transform-tint : (-> Color Nonnegative-Real FlRGBA)
+(define rgb-tint : (-> Color Nonnegative-Real FlRGBA)
   (lambda [src s0]
     (define s : Nonnegative-Flonum (real->gamut s0))
     (define w : Nonnegative-Flonum (max (- 1.0 s) 0.0))
     
-    (rgb* (hwb-transform-modulate src #:hue s #:white w #:black s))))
+    (rgb* (hwb-modulate src #:hue s #:white w #:black s))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define list-color-names : (-> (Listof Symbol))

@@ -29,7 +29,8 @@
            #:T [T : Brightness-Threshold 0.20] #:delta-brightness [ΔL : Nonnegative-Flonum 0.15]
            #:dark-range [drk-rng : (Pairof Nonnegative-Flonum Nonnegative-Flonum) (cons 0.2 0.9)]
            #:light-range [lgt-rng : (Pairof Nonnegative-Flonum Nonnegative-Flonum) (cons 0.1 0.8)]
-           #:chroma0 [chroma0 : Real +nan.0] #:hue0 [hue0 : Real +nan.0] #:hue-count [N : Real +nan.0]] : Palette-Index->Colors
+           #:chroma0 [chroma0 : Real +nan.0] #:hue0 [hue0 : Real +nan.0] #:hue-count [N : Real +nan.0]
+           #:name [name : (Option Symbol) #false]] : Palette-Index->Colors
     (define color-db : (HashTable Any (Pairof FlRGBA FlRGBA)) (make-weak-hash))
     (define hue-delta : Flonum (if (and (rational? N) (not (zero? N))) (/ 360.0 (real->double-flonum N)) (* 360.0 1/phi 1/phi)))
     (define C0 : Nonnegative-Flonum (real->ok-chroma (if (rational? chroma0) chroma0 40/100)))
@@ -55,14 +56,18 @@
       
       (cons (rgba Rs Gs Bs 1.0)
             (rgba Rf Gf Bf 1.0)))
-    
-    (λ [idx bg]
-      (define-values (bgL bgC bgH) (oklch-background-extract bg))
-      (hash-ref! color-db (list idx bgL bgC bgH)
-                 (λ [] (gen-color (index->hue idx bgH) bgL bgC))))))
+
+    (procedure-rename
+     (λ [[idx : Natural] [bg : (Option Color) #false]]
+       (define-values (bgL bgC bgH) (oklch-background-extract bg))
+       (hash-ref! color-db (list idx bgL bgC bgH)
+                  (λ [] (gen-color (index->hue idx bgH) bgL bgC))))
+     (or name (gensym 'palette:oklch:plot)))))
 
 (define oklch-palette-adapter-create
-  (lambda [#:T [T : Brightness-Threshold 0.20] #:delta-brightness [ΔL : Nonnegative-Flonum 0.15]] : Palette-Color-Adapter
+  (lambda [#:T [T : Brightness-Threshold 0.20]
+           #:delta-brightness [ΔL : Nonnegative-Flonum 0.15]
+           #:name [name : Symbol (gensym 'palette:adapter:oklch)]] : Palette-Color-Adapter
     (define-values (Tdark Tlight) (brightness-threshold T))
     
     (define (adjust-color [src : FlRGBA] [bgL : Flonum]) : FlRGBA
@@ -73,11 +78,13 @@
           (let-values ([(R G B) (oklab->rgb (~clamp adjusted-L 0.1 0.9) a b)])
             (rgba R G B (rgba-alpha src)))
           src))
-    
-    (λ [c bg]
-      (define-values (bgL _C _H) (oklch-background-extract bg))
-      (adjust-color (rgb* c) bgL))))
+
+    (procedure-rename
+     (λ [[c : Color] [bg : (Option Color)]]
+       (define-values (bgL _C _H) (oklch-background-extract bg))
+       (adjust-color (rgb* c) bgL))
+     name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define the-plot-oklch-palette : Palette-Index->Colors (oklch-plot-palette-create))
-(define the-plot-oklch-adapter : Palette-Color-Adapter (oklch-palette-adapter-create))
+(define the-plot-oklch-palette : Palette-Index->Colors (oklch-plot-palette-create #:name 'palette:oklch:plot))
+(define the-plot-oklch-adapter : Palette-Color-Adapter (oklch-palette-adapter-create #:name 'palette:adapter:oklch))
