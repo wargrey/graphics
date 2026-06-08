@@ -46,10 +46,10 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* lexpr
-         (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-act-block-width))]
-                [chart (with-gomamon! goma move-expr ...)])
-           (parameterize pexpr
+       (parameterize pexpr
+         (let* lexpr
+           (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-act-block-width))]
+                  [chart (with-gomamon! goma move-expr ...)])
              (dia-track-activate chart args ...)))))]))
 
 (define-syntax (define-activity-diagram! stx)

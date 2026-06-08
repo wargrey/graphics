@@ -2,13 +2,12 @@
 
 (provide (all-defined-out))
 
+(require "primitive.rkt")
+
 (require "../base.rkt")
 (require "../self.rkt")
 (require "../primitives.rkt")
-
 (require "../../self.rkt")
-
-(require "primitive.rkt")
 
 (require digimon/measure)
 (require racket/format)

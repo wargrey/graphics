@@ -41,11 +41,11 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* lexpr
-         (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-uc-block-width))]
-                [dia (with-gomamon! goma move-expr ...)])
-           (parameterize pexpr
-             (dia-track-use-case dia args ...)))))]))
+       (parameterize pexpr
+           (let* lexpr
+             (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-uc-block-width))]
+                    [dia (with-gomamon! goma move-expr ...)])
+               (dia-track-use-case dia args ...)))))]))
 
 (define-syntax (define-use-case-diagram! stx)
   (syntax-parse stx #:literals []

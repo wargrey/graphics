@@ -41,11 +41,11 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* lexpr
-         (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-cls-block-width))]
-                [dia (with-gomamon! goma move-expr ...)])
-           (parameterize pexpr
-             (dia-track-class dia args ...)))))]))
+       (parameterize pexpr
+           (let* lexpr
+             (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-cls-block-width))]
+                    [dia (with-gomamon! goma move-expr ...)])
+               (dia-track-class dia args ...)))))]))
 
 (define-syntax (define-class-diagram! stx)
   (syntax-parse stx #:literals []

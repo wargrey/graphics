@@ -39,10 +39,10 @@
         ...
         [args ...] #:- move-expr ...)
      (syntax/loc stx
-       (let* lexpr
-         (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-flow-block-width))]
-                [chart (with-gomamon! goma move-expr ...)])
-           (parameterize pexpr
+       (parameterize pexpr
+         (let* lexpr
+           (let* ([goma (dia-initial-track pid gw gh ts home anchor (default-flow-block-width))]
+                  [chart (with-gomamon! goma move-expr ...)])
              (dia-track-flow chart args ...)))))]))
 
 (define-syntax (define-flowchart! stx)
