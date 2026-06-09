@@ -30,9 +30,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-track-anchor->sticker : Geo-Track-Anchor->Sticker
   (lambda [anchor pos Width Height]
+    (define-values (text stereotype) (dia-anchor-extract anchor))
+    
     (if (symbol? anchor)
-        (geo-text (geo-anchor->string anchor) #:color 'RoyalBlue)
-        (geo-text (geo-anchor->string anchor) #:color 'Gray))))
+        (geo-text text #:color 'RoyalBlue)
+        (geo-text text #:color 'Gray))))
 
 (define geo:track-stick : (-> Geo:Track Geo-Track-Anchor->Sticker (Option Geo-Trusted-Anchors) Boolean
                               (Option Symbol) (Option String) (Option Geo-Pin-Operator) (Option Geo-Pin-Operator) Float-Complex
