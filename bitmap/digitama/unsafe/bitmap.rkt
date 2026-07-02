@@ -11,7 +11,7 @@
 
   (require racket/unsafe/ops)
   (require racket/draw/unsafe/cairo)
-
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (bitmap-surface-content-size sfc)
     (unsafe-fx* (cairo_image_surface_get_stride sfc)
@@ -38,8 +38,9 @@
             (unsafe-fxquotient total stride))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; NOTE: the smallest image surface is of 1 x 1 
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Index))]
+ [bitmap-surface-data (-> Bitmap-Surface (Values Bytes Positive-Index))]
  [bitmap-surface-intrinsic-size (-> Bitmap-Surface (Values Positive-Index Positive-Index))]
  [bitmap-surface-rendered-size (-> Bitmap-Surface Positive-Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))])

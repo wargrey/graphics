@@ -14,7 +14,7 @@
   (require racket/unsafe/ops)
   
   (require "../convert.rkt")
-  (require "pixman.rkt")
+  (require (submod "pixman.rkt" unsafe))
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -26,12 +26,15 @@
     (cairo_surface_flush surface)
     (let y-loop ([y 0])
       (when (unsafe-fx< y h)
-        (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
+        (let x-loop ([x 0]
+                     [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x w)
             (define-values (a r g b) (λargb x y w h))
-            (unless (and (unsafe-fl<= a 0.0) (unsafe-fl<= r 0.0) (unsafe-fl<= g 0.0) (unsafe-fl<= b 0.0))
-              (pixels-set-argb-flonums pixels idx a r g b))
-            (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4))))
+            (unless (and (unsafe-fl<= a 0.0) (unsafe-fl<= r 0.0)
+                         (unsafe-fl<= g 0.0) (unsafe-fl<= b 0.0))
+              (pix-set-argb-flonums! pixels idx a r g b))
+            (x-loop (unsafe-fx+ x 1)
+                    (unsafe-fx+ idx 4))))
         (y-loop (unsafe-fx+ y 1))))
 
     (cairo_surface_mark_dirty surface)
@@ -52,8 +55,9 @@
                        [datum datum0])
             (if (unsafe-fx< x w)
                 (let-values ([(a r g b datum++) (λargb x y w h datum)])
-                  (unless (and (unsafe-fl<= a 0.0) (unsafe-fl<= r 0.0) (unsafe-fl<= g 0.0) (unsafe-fl<= b 0.0))
-                    (pixels-set-argb-flonums pixels idx a r g b))
+                  (unless (and (unsafe-fl<= a 0.0) (unsafe-fl<= r 0.0)
+                               (unsafe-fl<= g 0.0) (unsafe-fl<= b 0.0))
+                    (pix-set-argb-flonums! pixels idx a r g b))
                   (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4) datum++))
                 (y-loop (unsafe-fx+ y 1) datum)))
 
@@ -74,7 +78,7 @@
              (cairo_surface_mark_dirty surface)
              (values img datum++)]
             [(and (fixnum? x) (fixnum? y) (unsafe-fx>= x 0) (unsafe-fx< x w) (unsafe-fx>= y 0) (unsafe-fx< y h))
-             (pixels-set-argb-flonums pixels (unsafe-fx+ (unsafe-fx* y stride) (unsafe-fx* x 4)) a r g b)
+             (pix-set-argb-flonums! pixels (unsafe-fx+ (unsafe-fx* y stride) (unsafe-fx* x 4)) a r g b)
              (step datum++)]
             [else (step datum++)])))
 
@@ -91,13 +95,23 @@
       (when (unsafe-fx< y h)
         (let x-loop ([x 0] [idx (unsafe-fx* y stride)])
           (when (unsafe-fx< x w)
-            (let*-values ([(A R G B) (pixels-get-argb-bytes data idx)]
+            (let*-values ([(A R G B) (pix-get-argb-bytes data idx)]
                           [(a r g b) (argb-map x y w h A R G B)])
               (unless (and (unsafe-fl<= a 0.0) (unsafe-fl<= r 0.0) (unsafe-fl<= g 0.0) (unsafe-fl<= b 0.0))
-                (pixels-set-argb-flonums pixels idx a r g b))
+                (pix-set-argb-flonums! pixels idx a r g b))
               (x-loop (unsafe-fx+ x 1) (unsafe-fx+ idx 4)))))
         (y-loop (unsafe-fx+ y 1))))
     
+    (cairo_surface_mark_dirty surface)
+    img)
+
+  (define (λbitmap_random flwidth flheight n density)
+    (define-values (img cr) (create-argb-bitmap flwidth flheight density #false))
+    (define surface (cairo_get_target cr))
+    (define-values (pixels _ stride w h) (bitmap-surface-metrics surface 4))
+    
+    (cairo_surface_flush surface)
+    (pix-randomize! pixels w h n)
     (cairo_surface_mark_dirty surface)
     img))
 
@@ -112,4 +126,5 @@
  [λbitmap (-> Flonum Flonum Positive-Flonum XYWH->ARGB Bitmap)]
  [λbitmap* (All (t) (-> Flonum Flonum Positive-Flonum (XYWH->ARGB* t) t (Values Bitmap t)))]
  [λbitmap_step (All (t) (-> Flonum Flonum Positive-Flonum (ARGB-Step t) t (Values Bitmap t)))]
- [λbitmap_map (-> Bitmap-Surface Positive-Flonum ARGB-Map Bitmap)])
+ [λbitmap_map (-> Bitmap-Surface Positive-Flonum ARGB-Map Bitmap)]
+ [λbitmap_random (-> Flonum Flonum Natural Positive-Flonum Bitmap)])

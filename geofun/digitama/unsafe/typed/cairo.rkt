@@ -84,6 +84,7 @@
  racket/draw/unsafe/cairo
  [cairo_image_surface_create (-> Byte Nonnegative-Flonum Nonnegative-Flonum Bitmap-Surface)]
  [cairo_image_surface_get_data (-> Bitmap-Surface Bytes)]
+ [cairo_image_surface_get_data* (-> Bitmap-Surface Bitmap-Pixels)]
  [cairo_image_surface_get_width (-> Bitmap-Surface Index)]
  [cairo_image_surface_get_height (-> Bitmap-Surface Index)]
  [cairo_image_surface_get_stride (-> Bitmap-Surface Index)])

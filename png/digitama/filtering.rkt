@@ -45,7 +45,7 @@
                                       [(2) (filtering-reconstruct-up      cline pline stride fxcount)]
                                       [(3) (filtering-reconstruct-average cline pline stride fxcount)]
                                       [(4) (filtering-reconstruct-paeth   cline pline stride fxcount)]
-                                      [else (throw-range-error* 'deserialize-block (cons 0 4) filter-type "filter-type")]))
+                                      [else (throw-range-error /dev/stdin 'deserialize-block (cons 0 4) filter-type "filter-type")]))
                                   (deserialize end (cons cline senilnacs)))]))]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

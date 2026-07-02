@@ -16,7 +16,7 @@
     (bitmap invalid-convert (cairo-image-shadow-size img-sfc)
             img-sfc (string->uninterned-symbol "/dev/zero")
             density
-            fxwidth fxheight 4 8)))
+            fxwidth fxheight)))
 
 (define bitmap-invalid? : (-> Bitmap Boolean)
   (lambda [bmp]

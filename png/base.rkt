@@ -23,15 +23,15 @@
     (define-values (flevel adler32 ?dictid) (parse-png-zlib /dev/stdin zlib 0 data-size))
     (when (and ?dictid) (throw-check-error /dev/stdin 'png "unknown preset dictionary ~a is present" ?dictid))
     (define zlib-block-start (if (not ?dictid) 2 6))
-    (define compression-level (integer->compression-level flevel throw-range-error*))
+    (define compression-level (integer->compression-level flevel throw-enum-error))
     (define fxcount (png-color-type->sample-count color-type))
 
-    (create-bitmap PNG (bitmap-port-source /dev/stdin)
-                   density width height fxcount bitdepth color-type
+    (create-bitmap PNG /dev/stdin density width height fxcount bitdepth color-type
                    compression-method compression-level filter-method interlace-method
-                   (λ [pixels fxwidth fxheight]
+                   (λ [[pixels : Bitmap-Pixels] [fxwidth : Positive-Index] [fxheight : Positive-Index] [stride : Positive-Index]]
                      (define blocks : (Listof Bytes)
                        (png-zlib-inflate /dev/stdin zlib zlib-block-start (assert (- data-size 4) index?) adler32))
                      (define senilnacs : (Listof Bytes)
                        (filter-scanline-reconstruct /dev/stdin blocks fxwidth fxcount filter-method))
-                     (scanline-recombine senilnacs interlace-method pixels fxwidth fxheight fxcount)))))
+                     ;(scanline-recombine senilnacs interlace-method pixels fxwidth fxheight fxcount)
+                     (void)))))

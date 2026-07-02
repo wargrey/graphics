@@ -20,9 +20,7 @@
   ([source : Symbol]
    [density : Positive-Flonum]
    [intrinsic-width : Positive-Index]
-   [intrinsic-height : Positive-Index]
-   [palettes : Positive-Byte]
-   [depth : Positive-Byte])
+   [intrinsic-height : Positive-Index])
   #:type-name Bitmap
   #:transparent)
 
@@ -41,11 +39,6 @@
     
     (values (assert (exact-ceiling flw) index?)
             (assert (exact-ceiling flh) index?))))
-
-(define bitmap-depth* : (-> Bitmap (Values Positive-Byte Positive-Byte))
-  (lambda [bmp]
-    (values (bitmap-depth bmp)
-            (bitmap-palettes bmp))))
 
 (define bitmap-intrinsic-size : (-> Bitmap (Values Positive-Index Positive-Index))
   (lambda [bmp]

@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 (provide XYWH->ARGB XYWH->ARGB* ARGB-Step)
 
+(require racket/fixnum)
 (require digimon/measure)
 (require geofun/digitama/base)
 
@@ -30,3 +31,13 @@
   (lambda [width height λargb initial #:density [density (default-bitmap-density)]]
     (define-values (w h) (~extent width height))
     (λbitmap_step w h density λargb initial)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define bitmap-random : (->* (Real-Length Length+%) ((U Natural &:) #:density Positive-Flonum) Bitmap)
+  (lambda [width height [n 0] #:density [density (default-bitmap-density)]]
+    (define-values (w h) (~extent width height))
+    (define total : Natural
+      (cond [(exact-nonnegative-integer? n) n]
+            [else (fl->fx (round (~dimension n (* w h density))))]))
+    
+    (λbitmap_random w h total density)))

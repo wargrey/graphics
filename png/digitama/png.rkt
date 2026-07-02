@@ -6,7 +6,9 @@
 (require "enum.rkt")
 
 (struct PNG-Header Bitmap
-  ([color-type : PNG-Color-Type]
+  ([channels : Positive-Byte]
+   [depth : Positive-Byte]
+   [color-type : PNG-Color-Type]
    [compression-method : PNG-Compression-Method]
    [compression-level : PNG-Compression-Level]
    [filter-method : PNG-Filter-Method]

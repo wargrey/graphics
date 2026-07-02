@@ -6,7 +6,8 @@
 
 (module unsafe racket/base
   (provide (all-defined-out) phantom-bytes?)
-  (provide (rename-out [cpointer? bitmap-surface?]
+  (provide (rename-out [cpointer? bitmap-pixels?]
+                       [cpointer? bitmap-surface?]
                        [cpointer? abstract-surface?]
                        [cpointer? svg-surface?]
                        [cpointer? pdf-surface?]
@@ -27,6 +28,7 @@
  (submod "." unsafe)
  [#:opaque Phantom-Bytes phantom-bytes?]
  [#:opaque Abstract-Surface abstract-surface?]
+ [#:opaque Bitmap-Pixels bitmap-pixels?]
  [#:opaque Bitmap-Surface bitmap-surface?]
  [#:opaque SVG-Surface svg-surface?]
  [#:opaque PDF-Surface pdf-surface?]

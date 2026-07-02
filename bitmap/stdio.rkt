@@ -1,31 +1,34 @@
 #lang typed/racket/base
 
-(provide (all-defined-out) port-name)
+(provide (all-defined-out))
+(provide Bitmap-Pixels exn-port-name)
+
 (provide (all-from-out digimon/stdio))
 (provide (all-from-out digimon/struct))
 (provide (all-from-out digimon/checksum))
 (provide (all-from-out digimon/enumeration))
-(provide (all-from-out digimon/digitama/ioexn))
 
 (provide (all-from-out "digitama/self.rkt"))
 (provide (all-from-out "digitama/convert.rkt"))
-(provide (all-from-out "digitama/parser/stream.rkt"))
+(provide (all-from-out "digitama/unsafe/pixman.rkt"))
 
 (require digimon/stdio)
 (require digimon/struct)
 (require digimon/checksum)
 (require digimon/enumeration)
-(require digimon/digitama/ioexn)
 
 (require geofun/digitama/unsafe/typed/cairo)
 (require geofun/digitama/unsafe/surface/image)
 
 (require "digitama/self.rkt")
 (require "digitama/convert.rkt")
-(require "digitama/parser/stream.rkt")
+(require "digitama/unsafe/pixman.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/symbol))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Bitmap-Body-Decoder (-> Bitmap-Pixels Positive-Index Positive-Index Positive-Index Void))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (define-read-bitmap stx)
@@ -38,22 +41,32 @@
        (syntax/loc stx
          (define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
            (lambda [/dev/stdin #:density [density 1.0] #:try-@2x? [try-@2x? #false]]
-             (cond [(input-port? /dev/stdin) sexp ...]
-                   [else (let-values ([(path scale) (select-file@2x /dev/stdin density try-@2x?)])
-                           (call-with-input-file* path #:mode 'binary
-                             (λ [[stdin : Input-Port]]
-                               (read-bitmap stdin #:density scale))))])))))]))
+             (if (input-port? /dev/stdin)
+                 (parameterize ([current-ioexn-input-port /dev/stdin])
+                   sexp ...)
+
+                 (let-values ([(path scale) (select-file@2x /dev/stdin density try-@2x?)])
+                   (call-with-input-file* path #:mode 'binary
+                     (λ [[stdin : Input-Port]]
+                       (read-bitmap stdin #:density scale)))))))))]))
 
 (define-syntax (create-bitmap stx)
   (syntax-case stx [:]
-    [(_ [Bitmap convertor] filename density width height palettes depth argl ... decode)
+    [(_ [Bitmap convertor] filename density width height argl ... decoder)
      (syntax/loc stx
-       (let-values ([(surface fxwidth fxheight) (cairo-create-argb-image-surface (exact->inexact width) (exact->inexact height) density)])
-         (decode (cairo_image_surface_get_data surface) fxwidth fxheight)
+       (let*-values ([(surface fxwidth fxheight) (cairo-create-argb-image-surface (exact->inexact width) (exact->inexact height) 1.0)]
+                     [(pixels) (cairo_image_surface_get_data* surface)]
+                     [(stride) (max 1 (cairo_image_surface_get_stride surface))]
+                     [(source) (if (input-port? filename) (bitmap-port-source filename) filename)]
+                     [(decode) decoder])
+         (cairo_surface_flush surface)
+         (decode pixels fxwidth fxheight stride)
          (cairo_surface_mark_dirty surface)
-         (Bitmap convertor (cairo-image-shadow-size surface) surface filename density fxwidth fxheight palettes depth argl ...)))]
-    [(_ constructor filename density width height palettes depth argl ... decode)
-     (syntax/loc stx (create-bitmap [constructor bitmap-convert] filename density width height palettes depth argl ... decode))]))
+         (Bitmap convertor
+                 (cairo-image-shadow-size surface) surface source density
+                 fxwidth fxheight argl ...)))]
+    [(_ constructor filename density width height argl ... decode)
+     (syntax/loc stx (create-bitmap [constructor bitmap-convert] filename density width height argl ... decode))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-file@2x : (-> Path-String Positive-Flonum Boolean (Values Path-String Positive-Flonum))
@@ -66,4 +79,4 @@
 
 (define bitmap-port-source : (-> Input-Port Symbol)
   (lambda [/dev/stdin]
-    (string->unreadable-symbol (port-name /dev/stdin))))
+    (string->unreadable-symbol (exn-port-name /dev/stdin))))

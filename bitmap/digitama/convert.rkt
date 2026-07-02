@@ -48,7 +48,7 @@
                                               (Visual-Object-Convert Symbol)
                                               Bitmap)
   (lambda [sfc density fxwidth fxheight [convert bitmap-convert] [source '/dev/ram]]
-    (bitmap convert (cairo-image-shadow-size sfc) sfc source density fxwidth fxheight 4 8)))
+    (bitmap convert (cairo-image-shadow-size sfc) sfc source density fxwidth fxheight)))
 
 (define create-argb-bitmap : (-> Nonnegative-Flonum Nonnegative-Flonum Positive-Flonum Boolean (Values Bitmap Cairo-Ctx))
   (lambda [width height density scale?]

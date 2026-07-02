@@ -15,7 +15,7 @@
   (require ffi/unsafe)
 
   (require "../convert.rkt")
-  (require "pixman.rkt")
+  (require (submod "pixman.rkt" unsafe))
   (require (submod "bitmap.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -39,9 +39,9 @@
     (memcpy pixels data total _byte)
     (let grayscale ([idx 0])
       (when (unsafe-fx< idx total)
-        (define-values (r g b) (pixels-get-rgb-bytes data idx))
+        (define-values (r g b) (pix-get-rgb-bytes data idx))
         (define gray (rgb->gray r g b))
-        (pixels-set-rgb-bytes pixels idx gray gray gray)
+        (pix-set-rgb-bytes! pixels idx gray gray gray)
         (grayscale (unsafe-fx+ idx 4))))
 
     (cairo_surface_mark_dirty surface)

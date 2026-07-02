@@ -6,11 +6,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (printf "====== ~a =====~n" '(density 1.0))
-(time (bitmap-rectangular 100 100 xy->argb #:density 1.00))
+(time (bitmap-random 100 100 #:density 1.00))
 (printf "====== ~a =====~n" '(density 1.75))
-(time (bitmap-rectangular 100 100 xy->argb #:density 1.75))
+(time (bitmap-random 100 100 #:density 1.75))
 (printf "====== ~a =====~n" '(density 2.0))
-(time (bitmap-rectangular 100 100 xy->argb #:density 2.00))
+(time (bitmap-random 100 100 #:density 2.00))
 
 (define plane (time (bitmap-rectangular 100 100 xy->argb #:density 2.00)))
 (printf "====== ~a =====~n" 'COPY)
