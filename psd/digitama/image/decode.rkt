@@ -6,12 +6,11 @@
 (require digimon/packbits)
 (require racket/unsafe/ops)
 
-(require "image.rkt")
+(require "enum.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define psd-image-decoder : (-> (U Symbol Procedure) Bytes Positive-Index Positive-Index
-                                PSD-Color-Mode Positive-Byte Positive-Byte
-                                PSD-Compression-Method
+                                PSD-Color-Mode Positive-Byte Positive-Byte PSD-Compression-Method
                                 Bitmap-Body-Decoder)
   (lambda [func planar-data width height color-mode channels depth compression-method]
     (unless (eq? color-mode 'RGB)
@@ -20,6 +19,17 @@
       (throw-unsupported-error (current-ioexn-input-port) func "depth: ~a-bpc" depth))
     (unless (or (= channels 3) (= channels 4))
       (throw-unsupported-error (current-ioexn-input-port) func "channel count: ~a" channels))
+
+    (: reverse-unpack (->* ((Listof (Pairof Integer Integer))) ((Listof Bytes)) (Listof Bytes)))
+    (define (reverse-unpack rest [ranalp-data null])
+      (if (pair? rest)
+          (let-values ([(self rest--) (values (car rest) (cdr rest))])
+            (reverse-unpack rest--
+                            (cons (unpackbits width planar-data (car self) (cdr self))
+                                  ranalp-data)))
+          
+          ; Yes, we need the reversed planar-data for dealing with the alpha channel first
+          ranalp-data))
     
     (case compression-method
       [(Raw) (λ [[pixels : Bitmap-Pixels] [fxwidth : Positive-Index] [fxheight : Positive-Index] [stride : Positive-Index]] : Void
@@ -27,10 +37,7 @@
       [(RLE) (λ [[pixels : Bitmap-Pixels] [fxwidth : Positive-Index] [fxheight : Positive-Index] [stride : Positive-Index]] : Void
                (let* ([scan-lines (* height channels)]
                       [intervals (nbytes-pairs (unsafe-fx* scan-lines 2) (parse-nsizes-list planar-data 0 2 scan-lines))])
-                 (psd-extract-pixels! pixels
-                                      (for/list : (Listof Bytes) ([interval (in-list intervals)])
-                                        (unpackbits width planar-data (car interval) (cdr interval)))
-                                      width height stride channels)))]
+                 (psd-extract-pixels! pixels (reverse-unpack intervals) width height stride channels)))]
       [else (throw-unsupported-error (current-ioexn-input-port) func "compression method: ~a" compression-method)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -59,27 +66,35 @@
         
         (if (= channels 4)
             (let ([a (unsafe-bytes-ref planar-data (unsafe-fx+ idx (unsafe-fx* total 3)))])
-              (pix-set-argb-bytes! pixels pixel-idx a r g b))
+              (pix-set-straight-argb-bytes! pixels pixel-idx a r g b))
             (pix-set-rgb-bytes! pixels pixel-idx r g b))
         (fill! (unsafe-fx+ idx 1))))))
 
 (define psd-fill-argb-from-scanlines! : (-> Bitmap-Pixels (Listof Bytes) Positive-Index Positive-Index Positive-Index Positive-Byte Void)
-  (lambda [pixels planar-data width height stride channels]
-    (let fill! ([rest : (Listof Bytes) planar-data]
-                [row : Nonnegative-Fixnum 0]
-                [channel : Byte 0])
-      (when (unsafe-fx< channel channels)
+  (lambda [pixels ranalp-data width height stride channels]
+    ;;; The planar-data is stored line by line and channel by channel
+    ;     whoever the designed this deserve negative rewards forever. 
+    ;   We have to fill all alpha values first for premultiplication if it exists,
+    ;     so all the 3 aspects have to be dealed with in reverse order.
+    
+    (define height-- : Index (- height 1))
+    
+    (let fill! ([rest : (Listof Bytes) ranalp-data]
+                [row : Index height--]
+                [channel : Byte channels])
+      (when (unsafe-fx> channel 0)
+        (define channel-- : Byte (- channel 1))
         (define offset : Nonnegative-Fixnum (unsafe-fx* row stride))
         (define planar : Bytes (unsafe-car rest))
 
         (let subfill! ([col : Nonnegative-Fixnum 0])
           (when (unsafe-fx< col width)
             (define pixel-idx (unsafe-fx+ offset (unsafe-fx* col 4)))
-            
-            (pix-set-rgba-channel-byte! pixels pixel-idx channel (unsafe-bytes-ref planar col))
+
+            ;;; this function knows how to deal with the alpha channel
+            (pix-set-straight-rgba-channel-byte! pixels pixel-idx channel-- (unsafe-bytes-ref planar col))
             (subfill! (unsafe-fx+ col 1))))
 
-        (if (unsafe-fx= (unsafe-fx+ row 1) height)
-            (fill! (unsafe-cdr rest) 0 (unsafe-b+ channel 1))
-            (fill! (unsafe-cdr rest) (unsafe-fx+ row 1) channel))))))
-  
+        (if (unsafe-fx= row 0)
+            (fill! (unsafe-cdr rest) height-- channel--)
+            (fill! (unsafe-cdr rest) (- row 1) channel))))))

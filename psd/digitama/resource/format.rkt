@@ -1,23 +1,24 @@
 #lang typed/racket/base
 
 (provide (all-defined-out) unsafe-provide)
-(provide (struct-out PSD-Resource))
+(provide (struct-out psd-resource) PSD-Resource)
 
 (require typed/racket/unsafe)
 (require digimon/enumeration)
 
-(require "../resource.rkt")
+(require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct PSD-Version-Info PSD-Resource ; 1057
+(struct psd:res:version:info psd-resource ; 1057
   ([version : Index]
    [has-real-merged-data? : Boolean]
    [writer : String]
    [reader : String]
    [file-version : Index])
+  #:type-name PSD:Res:Version:Info
   #:transparent)
 
-(struct PSD-Thumbnail PSD-Resource    ; 1036
+(struct psd:res:thumbnail psd-resource    ; 1036
   ([format : PSD-Thumbnail-Format]
    [width : Positive-Fixnum]
    [height : Positive-Fixnum]
@@ -27,20 +28,23 @@
    [depth : Byte]
    [planes : Index]
    [image : False])
+  #:type-name PSD:Res:Thumbnail
   #:transparent)
 
-(struct PSD-File-Info PSD-Resource    ; 1028 1060
+(struct psd:res:file:info psd-resource    ; 1028 1060
   ([raw : Any])
+  #:type-name PSD:Res:File:Info
   #:transparent)
 
-(struct PSD-Grid+Guides PSD-Resource  ; 1032
+(struct psd:res:grid+guides psd-resource  ; 1032
   ([version : Fixnum]
    [horizontal : Fixnum]
    [vertical : Fixnum]
    [guides : (Listof (Pairof Fixnum PSD-Guide-Direction))])
+  #:type-name PSD:Res:Grid+Guides
   #:transparent)
 
-(struct PSD-Print-Flags PSD-Resource  ; 1011
+(struct psd:res:print:flags psd-resource  ; 1011
   ([labels : Boolean]
    [crop-marks : Boolean]
    [color-bars : Boolean]
@@ -50,6 +54,7 @@
    [interpolate : Boolean]
    [caption : Boolean]
    [print-flags : Boolean])
+  #:type-name PSD:Res:Print:Flags
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,4 +67,4 @@
   [0 vertical horizontal])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define /psd/resources : Path (collection-file-path "resources" "psd" "digitama"))
+(define /psd/res : Path (collection-file-path "resource" "psd" "digitama"))

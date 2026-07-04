@@ -5,7 +5,7 @@
 (require digimon/stdio)
 
 (require "exn.rkt")
-(require "image.rkt")
+(require "image/enum.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define select-psd-file : (-> Path-String Positive-Real Boolean (Values Path-String Positive-Real))
@@ -35,9 +35,26 @@
             (assert (read-muint16 /dev/psdin) positive-byte?)   ; depth
             (integer->color-mode (read-muint16 /dev/psdin) throw-enum-error))))
 
+(define skip-psd-subsection : (-> Input-Port Positive-Byte (Option Fixnum))
+  (lambda [/dev/psdin psd/psb-size]
+    (define _color-mode-data : Void (skip-mn:bytes /dev/psdin 4))
+    (define _images-resources : Void (skip-mn:bytes /dev/psdin 4))
+    (define layer+mask-size : Index (read-msize /dev/psdin psd/psb-size))
+
+    (and (> layer+mask-size 0)
+         (unsafe-fx+ (file-position /dev/psdin) layer+mask-size))))
+
+(define read-psd-composite-image : (-> Input-Port (Option Fixnum) (Values PSD-Compression-Method Bytes))
+  (lambda [/dev/psdin image-pos]
+    (unless (not image-pos) (file-position /dev/psdin image-pos))
+    
+    (values (integer->compression-method (read-muint16 /dev/psdin) throw-enum-error)
+            (read-rest-bytes /dev/psdin))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define read-psd-subsection : (-> Input-Port Positive-Byte (Values Bytes Bytes (Option Bytes) (Option Bytes) (Option Bytes) (Option Fixnum)))
   (lambda [/dev/psdin psd/psb-size]
-    (define color-mode-data : Bytes (read-mn:bytes /dev/psdin 4))
+    (define color-mode-data : Bytes (read-mn:bytes /dev/psdin 4)) ; for indexed or duotone images
     (define images-resources : Bytes (read-mn:bytes /dev/psdin 4))
     (define layer+mask-size : Index (read-msize /dev/psdin psd/psb-size))
 
@@ -59,19 +76,3 @@
                   (and (> tagged-blocks-size 0) (read-nbytes /dev/psdin tagged-blocks-size))
                   image-pos))
         (values color-mode-data images-resources #false #false #false #false))))
-
-(define skip-psd-subsection : (-> Input-Port Positive-Byte (Option Fixnum))
-  (lambda [/dev/psdin psd/psb-size]
-    (define _color-mode-data : Void (skip-mn:bytes /dev/psdin 4))
-    (define _images-resources : Void (skip-mn:bytes /dev/psdin 4))
-    (define layer+mask-size : Index (read-msize /dev/psdin psd/psb-size))
-
-    (and (> layer+mask-size 0)
-         (unsafe-fx+ (file-position /dev/psdin) layer+mask-size))))
-
-(define read-psd-composite-image : (-> Input-Port (Option Fixnum) (Values PSD-Compression-Method Bytes))
-  (lambda [/dev/psdin image-pos]
-    (unless (not image-pos) (file-position /dev/psdin image-pos))
-    
-    (values (integer->compression-method (read-muint16 /dev/psdin) throw-enum-error)
-            (read-rest-bytes /dev/psdin))))

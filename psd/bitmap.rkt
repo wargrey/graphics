@@ -7,7 +7,7 @@
 (require bitmap/stdio)
 
 (require "digitama/stdin.rkt")
-(require "digitama/pixels.rkt")
+(require "digitama/image/decode.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-read-bitmap psd-bitmap #:-> Bitmap

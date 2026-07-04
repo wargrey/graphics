@@ -3,9 +3,9 @@
 (require "format.rkt")
 (require "../exn.rkt")
 
-(unsafe-provide 0x3eb)
+(unsafe-provide 0x3fc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define 0x3eb : (-> Integer String Bytes Fixnum Index Null PSD-Resource)
+(define 0x3fc : (-> Integer String Bytes Index Index Null PSD-Resource)
   (lambda [id name block idx size args]
-    (throw-obsolete-error id "Photoshop 2.0 only")))
+    (throw-obsolete-error id)))

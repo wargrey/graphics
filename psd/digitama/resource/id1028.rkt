@@ -9,7 +9,7 @@
 (unsafe-provide 0x404)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define 0x404 : (-> Integer String Bytes Fixnum Index Null PSD-File-Info)
+(define 0x404 : (-> Integer String Bytes Index Index Null PSD:Res:File:Info)
   (lambda [id name iptc-naa idx size argl]
     (define max-idx : Fixnum (unsafe-fx+ idx size))
     (let parse ([start : Integer idx]
@@ -18,7 +18,7 @@
              (define-values (record: dataset data-size data) (parse-dataset iptc-naa start))
              (parse (unsafe-fx+ (unsafe-fx+ start 5) data-size)
                     (cons (cons (make-rectangular record: dataset) data) entries))]
-            [else (PSD-File-Info id name (reverse entries))]))))
+            [else (psd:res:file:info id name (reverse entries))]))))
 
 (define parse-dataset : (-> Bytes Integer (Values Byte Byte Natural Bytes))
   (lambda [iptc-naa start]
@@ -27,11 +27,12 @@
       (values (parse-uint8 iptc-naa (unsafe-fx+ start 1))
               (parse-uint8 iptc-naa (unsafe-fx+ start 2))))
     (define data-size : Fixnum (parse-int16 iptc-naa (unsafe-fx+ start 3)))
+    
     (if (> data-size 0)
         (values record-number: dataset-number data-size
                 (parse-iimv4 record-number: dataset-number iptc-naa (unsafe-fx+ start 5) data-size))
         (throw-unsupported-error (current-ioexn-input-port)
-                                 'parse-dataset
+                                 parse-dataset
                                  "confronted an extended dataset in resource: ~a"
                                  (psd-id->string 1028)))))
 

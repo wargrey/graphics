@@ -20,6 +20,14 @@
       (ptr-set! pixels _ubyte
                 (unsafe-fx+ idx (unsafe-vector*-ref RGBA channel))
                 value)))
+
+  (define pix-set-straight-rgba-channel-byte!
+    (lambda [pixels idx channel value]
+      (define C (unsafe-vector*-ref RGBA channel))
+      
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
+                (cond [(unsafe-fx= C A) value]
+                      [else (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))]))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define pix-zero?
@@ -70,19 +78,39 @@
     (lambda [pixels idx]
       (ptr-ref pixels _ubyte (unsafe-fx+ idx A))))
 
+  (define pix-alpha-set!
+    (lambda [pixels idx alpha]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)))
+
   ;;; WARNING: the color component value cannot be greater than alpha if it is properly scaled
   (define pix-set-argb-flonums!
     (lambda [pixels idx a r g b]
-      (define alpha (alpha-multiplied-flonum->byte a #x100))
+      (define alpha (alpha-multiplied-flonum->byte a #xFF))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
       (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte r alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte g alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte b alpha))))
+
+  (define pix-set-straight-argb-flonums!
+    (lambda [pixels idx a r g b]
+      (define alpha (alpha-multiplied-flonum->byte a #xFF))
+      
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
   
   (define pix-set-argb-bytes!
     (lambda [pixels idx alpha r g b]
       (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
       (safe-set-rgb-bytes pixels idx alpha r g b)))
+
+  (define pix-set-straight-argb-bytes!
+    (lambda [pixels idx alpha r g b]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (straight-byte->premultiplied-byte r alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (straight-byte->premultiplied-byte g alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (straight-byte->premultiplied-byte b alpha))))
   
   (define pix-get-argb-bytes
     (lambda [pixels idx]
@@ -107,6 +135,9 @@
                                 (unsafe-fl->fx
                                  (unsafe-flround
                                   (unsafe-fl* v 255.0))))))
+
+  (define (straight-byte->premultiplied-byte v alpha)
+    (unsafe-fxquotient (unsafe-fx+ (unsafe-fx* v alpha) 127) 255))
   
   (define safe-set-rgb-bytes
     (lambda [pixels idx alpha r g b]
@@ -118,6 +149,7 @@
 (unsafe-require/typed/provide
  (submod "." unsafe)
  [pix-set-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-straight-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
  
  [pix-randomize! (->* (Bitmap-Pixels Natural Natural) (Index) Void)]
  [pix-fill! (case-> [Bitmap-Pixels Natural Byte Natural -> Void]
@@ -128,9 +160,12 @@
  [pix-alpha-zero? (-> Bitmap-Pixels Natural Boolean)]
 
  [pix-alpha-ref (-> Bitmap-Pixels Natural Byte)]
+ [pix-alpha-set! (-> Bitmap-Pixels Natural Byte Void)]
  [pix-get-argb-bytes (-> Bitmap-Pixels Natural (Values Byte Byte Byte Byte))]
  [pix-get-rgb-bytes (-> Bitmap-Pixels Natural (Values Byte Byte Byte))]
 
  [pix-set-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
+ [pix-set-straight-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
  [pix-set-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
+ [pix-set-straight-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
  [pix-set-rgb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Void)])
