@@ -9,11 +9,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-runtime-path tamer/ "samples")
-(define (psd? path) (regexp-match? #px"[.]psd$" path))
+(define (psd? path) (regexp-match? #px"[.]ps[bd]$" path))
 
 (filter list?
         (for/list ([file.psd (in-directory tamer/)] #:when (psd? file.psd))
-          (with-handlers ([exn:fail? (λ [e] (eprintf "~a~n" (exn-message e)))])
+          (with-handlers ([exn:fail:contract? raise]
+                          [exn:fail? (λ [e] (eprintf "~a: ~a~n" (object-name e) (exn-message e)))])
             (define tamer.psd (read-psd file.psd #:try-@2x? #false))
             
             (psd-profile tamer.psd)

@@ -28,6 +28,23 @@
       (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
                 (cond [(unsafe-fx= C A) value]
                       [else (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))]))))
+
+  (define pix-set-monochromic-channel-byte!
+    (lambda [pixels idx channel value]
+      (if (unsafe-fx= channel 0)
+          (begin (ptr-set! pixels _ubyte (unsafe-fx+ idx R) value)
+                 (ptr-set! pixels _ubyte (unsafe-fx+ idx G) value)
+                 (ptr-set! pixels _ubyte (unsafe-fx+ idx B) value))
+          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
+    
+  (define pix-set-straight-monochromic-channel-byte!
+    (lambda [pixels idx channel value]
+      (if (unsafe-fx= channel 0)
+          (let ([v (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))])
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
+          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define pix-zero?
@@ -150,6 +167,8 @@
  (submod "." unsafe)
  [pix-set-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
  [pix-set-straight-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-monochromic-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-straight-monochromic-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
  
  [pix-randomize! (->* (Bitmap-Pixels Natural Natural) (Index) Void)]
  [pix-fill! (case-> [Bitmap-Pixels Natural Byte Natural -> Void]

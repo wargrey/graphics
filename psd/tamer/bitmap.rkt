@@ -7,7 +7,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-runtime-path tamer/ "samples")
-(define (psd? path) (regexp-match? #px"[.]psd$" path))
+(define (psd? path) (regexp-match? #px"[.]ps[bd]$" path))
 
 (filter-not void?
             (for/list ([file.psd (in-directory tamer/)] #:when (psd? file.psd))

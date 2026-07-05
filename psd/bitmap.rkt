@@ -18,4 +18,4 @@
     (create-bitmap Bitmap /dev/psdin density width height
                    (psd-image-decoder read-psd-bitmap image-data
                                       width height color-mode channels depth
-                                      compression-method))))
+                                      compression-method ps-size))))

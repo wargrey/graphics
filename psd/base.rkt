@@ -47,7 +47,7 @@
                    (if (not tagged-blocks) psd-empty-tagged-blocks (psd-tagged-blocks-parse tagged-blocks ps-size))
                    (psd-image-decoder read-psd image-data
                                       width height color-mode channels depth
-                                      compression-method))))
+                                      compression-method ps-size))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define psd-depth : (-> PSD (Values Positive-Byte Positive-Byte))

@@ -23,21 +23,23 @@
 (define parse-dataset : (-> Bytes Integer (Values Byte Byte Natural Bytes))
   (lambda [iptc-naa start]
     (define-values (record-number: dataset-number)
-      ; IIM identifies dataset tags with shape `rn:dsn`
+      ; IIM dataset tag is formatted as `record-number:dataset-number`
       (values (parse-uint8 iptc-naa (unsafe-fx+ start 1))
               (parse-uint8 iptc-naa (unsafe-fx+ start 2))))
-    (define data-size : Fixnum (parse-int16 iptc-naa (unsafe-fx+ start 3)))
+    (define maybe-data-size : Index (parse-uint16 iptc-naa (unsafe-fx+ start 3)))
+
+    (define-values (data-length idxoff)
+      (if (bitwise-bit-set? maybe-data-size 15)
+          (let* ([length-of-size (bitwise-and maybe-data-size #x7FFF)]
+                 [actual-length (parse-size iptc-naa (unsafe-fx+ start 5) length-of-size)])
+            (values actual-length (unsafe-idx+ 5 length-of-size)))
+          (values maybe-data-size 5)))
     
-    (if (> data-size 0)
-        (values record-number: dataset-number data-size
-                (parse-iimv4 record-number: dataset-number iptc-naa (unsafe-fx+ start 5) data-size))
-        (throw-unsupported-error (current-ioexn-input-port)
-                                 parse-dataset
-                                 "confronted an extended dataset in resource: ~a"
-                                 (psd-id->string 1028)))))
+    (values record-number: dataset-number data-length
+            (parse-iimv4 record-number: dataset-number iptc-naa (unsafe-fx+ start idxoff) data-length))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define parse-iimv4 : (-> Byte Byte Bytes Fixnum Fixnum Bytes)
+(define parse-iimv4 : (-> Byte Byte Bytes Fixnum Index Bytes)
   (lambda [record dataset src start size]
     (case record
       [(1) (parse-object-envelope-record dataset src start size)]
@@ -50,34 +52,34 @@
       [(9) (parse-post-object-data-descriptor-record dataset src start size)]
       [else (parse-nbytes src start size)])))
 
-(define parse-object-envelope-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-object-envelope-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-application-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-application-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-digital-newsphoto-parameter-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-digital-newsphoto-parameter-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-not-allocated-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-not-allocated-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-abstract-relationship-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-abstract-relationship-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-pre-object-data-descriptor-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-pre-object-data-descriptor-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-object-data-descriptor-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-object-data-descriptor-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
 
-(define parse-post-object-data-descriptor-record : (-> Byte Bytes Fixnum Fixnum Bytes)
+(define parse-post-object-data-descriptor-record : (-> Byte Bytes Fixnum Index Bytes)
   (lambda [dataset src start size]
     (parse-nbytes src start size)))
