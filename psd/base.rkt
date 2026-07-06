@@ -37,7 +37,7 @@
 (struct psb psd () #:type-name PSB #:transparent)
 
 (define-read-bitmap psd #:-> PSD
-  (lambda [/dev/psdin density #:expose [expose : (U False Flonum (-> Flonum Flonum)) #false]]
+  (lambda [/dev/psdin density #:hdr-expose [expose : (U False Flonum (-> Flonum Flonum)) #false]]
     (define-values (ps-size channels height width depth color-mode) (read-psd-header /dev/psdin))
     (define-values (color-mode-data image-resources layer-info gmask-info tagged-blocks image-pos) (read-psd-subsection /dev/psdin ps-size))
     (define-values (compression-method image-data) (read-psd-composite-image /dev/psdin image-pos))

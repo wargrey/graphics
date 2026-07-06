@@ -12,7 +12,7 @@
 (define read-hdr : (-> Flonum Geo)
   (lambda [expose]
     (geo-vc-append #:gapsize 2.0
-                   (geo-scale (geo-bitmap (read-psd-bitmap hdr.psd #:expose expose)) 0.4)
+                   (geo-scale (geo-bitmap (read-psd-bitmap hdr.psd #:hdr-expose expose)) 0.4)
                    (geo-text (format "exposure: ~a" (~r expose #:precision '(= 1)))))))
 
 (read-psd-bitmap hdr.psd)

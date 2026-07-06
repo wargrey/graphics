@@ -12,18 +12,23 @@
   (require racket/unsafe/ops)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;; NOTE
+  ; Channel based setters suppose that the source is reliable.
+  ; So, we don't check against the alpha channel by default.
+  ; For some quirk format with *straight* data like PSD,
+  ;   callers should set alpha before setting pixels.
   (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
-  (define RGBA (vector-immutable R G B A))
+  (define RGBA-channels (vector-immutable R G B A))
 
   (define pix-set-rgba-channel-byte!
     (lambda [pixels idx channel value]
       (ptr-set! pixels _ubyte
-                (unsafe-fx+ idx (unsafe-vector*-ref RGBA channel))
+                (unsafe-fx+ idx (unsafe-vector*-ref RGBA-channels channel))
                 value)))
 
   (define pix-set-straight-rgba-channel-byte!
     (lambda [pixels idx channel value]
-      (define C (unsafe-vector*-ref RGBA channel))
+      (define C (unsafe-vector*-ref RGBA-channels channel))
       
       (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
                 (cond [(unsafe-fx= C A) value]
@@ -49,12 +54,12 @@
   (define pix-set-rgba-channel-flonum!
     (lambda [pixels idx channel value]
       (ptr-set! pixels _ubyte
-                (unsafe-fx+ idx (unsafe-vector*-ref RGBA channel))
+                (unsafe-fx+ idx (unsafe-vector*-ref RGBA-channels channel))
                 (alpha-multiplied-flonum->byte value #xFF))))
 
   (define pix-set-straight-rgba-channel-flonum!
     (lambda [pixels idx channel value]
-      (define C (unsafe-vector*-ref RGBA channel))
+      (define C (unsafe-vector*-ref RGBA-channels channel))
       
       (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
                 (if (unsafe-fx= C A)
@@ -82,6 +87,70 @@
                     (alpha-multiplied-flonum->byte value #xFF)))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;; WARNING: the color component value cannot be greater than alpha if it is properly scaled
+  (define pix-set-argb-flonums!
+    (lambda [pixels idx a r g b]
+      (define alpha (alpha-multiplied-flonum->byte a #xFF))
+      
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (safe-set-rgb-flonums! pixels idx alpha (unsafe-fl* r a) (unsafe-fl* g a) (unsafe-fl* b a))))
+
+  (define pix-set-straight-argb-flonums!
+    (lambda [pixels idx a r g b]
+      (define alpha (alpha-multiplied-flonum->byte a #xFF))
+      
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
+
+  (define pix-set-rgb-flonums!
+    (case-lambda
+      [(pixels idx r g b)
+       (safe-set-rgb-flonums! pixels idx #xFF r g b)]
+      [(pixels idx a r g b)
+       (safe-set-rgb-flonums! pixels idx
+                              (alpha-multiplied-flonum->byte a #xFF)
+                              (unsafe-fl* r a) (unsafe-fl* g a) (unsafe-fl* b a))]))
+  
+  (define pix-set-argb-bytes!
+    (lambda [pixels idx alpha r g b]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (safe-set-rgb-bytes! pixels idx alpha r g b)))
+
+  (define pix-set-straight-argb-bytes!
+    (lambda [pixels idx alpha r g b]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (straight-byte->premultiplied-byte r alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (straight-byte->premultiplied-byte g alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (straight-byte->premultiplied-byte b alpha))))
+
+  (define pix-set-rgb-bytes!
+    (case-lambda
+      [(pixels idx r g b) (safe-set-rgb-bytes! pixels idx #xFF r g b)]
+      [(pixels idx alpha r g b) (safe-set-rgb-bytes! pixels idx alpha r g b)]))
+  
+  (define pix-get-argb-bytes
+    (lambda [pixels idx]
+      (define-values (r g b) (pix-get-rgb-bytes pixels idx))
+      (define a (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
+      (values a r g b)))
+  
+  (define pix-get-rgb-bytes
+    (lambda [pixels idx]
+      (values (ptr-ref pixels _ubyte (unsafe-fx+ idx R))
+              (ptr-ref pixels _ubyte (unsafe-fx+ idx G))
+              (ptr-ref pixels _ubyte (unsafe-fx+ idx B)))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define pix-alpha-ref
+    (lambda [pixels idx]
+      (ptr-ref pixels _ubyte (unsafe-fx+ idx A))))
+
+  (define pix-alpha-set!
+    (lambda [pixels idx alpha]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)))
+
   (define pix-zero?
     (lambda [pixels idx]
       (and (unsafe-fx= (ptr-ref pixels _ubyte idx) 0)
@@ -124,71 +193,6 @@
                                              (unsafe-fx* w 4))
                                  #xFF (random #x100) (random #x100) (random #x100))
             (randomize (unsafe-fx- n 1)))))))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define pix-alpha-ref
-    (lambda [pixels idx]
-      (ptr-ref pixels _ubyte (unsafe-fx+ idx A))))
-
-  (define pix-alpha-set!
-    (lambda [pixels idx alpha]
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)))
-
-  ;;; WARNING: the color component value cannot be greater than alpha if it is properly scaled
-  (define pix-set-argb-flonums!
-    (lambda [pixels idx a r g b]
-      (define alpha (alpha-multiplied-flonum->byte a #xFF))
-      
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte r alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte g alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte b alpha))))
-
-  (define pix-set-straight-argb-flonums!
-    (lambda [pixels idx a r g b]
-      (define alpha (alpha-multiplied-flonum->byte a #xFF))
-      
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
-
-  (define pix-set-rgb-flonums!
-    (lambda [pixels idx r g b]
-      (define alpha (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
-      (define a (alpha->flonum alpha))
-      
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
-  
-  (define pix-set-argb-bytes!
-    (lambda [pixels idx alpha r g b]
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
-      (safe-set-rgb-bytes pixels idx alpha r g b)))
-
-  (define pix-set-straight-argb-bytes!
-    (lambda [pixels idx alpha r g b]
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (straight-byte->premultiplied-byte r alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (straight-byte->premultiplied-byte g alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (straight-byte->premultiplied-byte b alpha))))
-
-  (define pix-set-rgb-bytes!
-    (lambda [pixels idx r g b]
-      (define alpha (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
-      (safe-set-rgb-bytes pixels idx alpha r g b)))
-  
-  (define pix-get-argb-bytes
-    (lambda [pixels idx]
-      (define-values (r g b) (pix-get-rgb-bytes pixels idx))
-      (values (ptr-ref pixels _ubyte (unsafe-fx+ idx A)) r g b)))
-  
-  (define pix-get-rgb-bytes
-    (lambda [pixels idx]
-      (values (ptr-ref pixels _ubyte (unsafe-fx+ idx R))
-              (ptr-ref pixels _ubyte (unsafe-fx+ idx G))
-              (ptr-ref pixels _ubyte (unsafe-fx+ idx B)))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define (alpha-multiplied-flonum->byte v alpha)
@@ -199,22 +203,31 @@
                                   (unsafe-fl* v 255.0))))))
 
   (define (straight-flonum->byte v alpha)
-    (if (unsafe-fx= alpha #xFF)
-        (alpha-multiplied-flonum->byte v alpha)
-        (alpha-multiplied-flonum->byte (unsafe-fl* v (alpha->flonum alpha)) alpha)))
+    (cond [(unsafe-fx= alpha #xFF) (alpha-multiplied-flonum->byte v alpha)]
+          [(unsafe-fx= alpha #x00) 0]
+          [else (alpha-multiplied-flonum->byte (unsafe-fl* v (alpha->flonum alpha)) alpha)]))
 
   (define (alpha->flonum alpha)
     (cond [(unsafe-fx= alpha #xFF) 1.0]
+          [(unsafe-fx= alpha #x00) 0.0]
           [else (unsafe-fl/ (unsafe-fx->fl alpha) 255.0)]))
 
   (define (straight-byte->premultiplied-byte v alpha)
-    (unsafe-fxquotient (unsafe-fx+ (unsafe-fx* v alpha) 127) 255))
+    (cond [(unsafe-fx= alpha #xFF) v]
+          [(unsafe-fx= alpha #x00) 0]
+          [else (unsafe-fxquotient (unsafe-fx+ (unsafe-fx* v alpha) 127) 255)]))
   
-  (define safe-set-rgb-bytes
+  (define safe-set-rgb-bytes!
     (lambda [pixels idx alpha r g b]
       (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (unsafe-fxmin r alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (unsafe-fxmin g alpha))
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (unsafe-fxmin b alpha)))))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (unsafe-fxmin b alpha))))
+
+  (define safe-set-rgb-flonums!
+    (lambda [pixels idx alpha r g b]
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte r alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte g alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte b alpha)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
@@ -244,7 +257,10 @@
 
  [pix-set-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
  [pix-set-straight-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
- [pix-set-rgb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Void)]
  [pix-set-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
  [pix-set-straight-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
- [pix-set-rgb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Void)])
+
+ [pix-set-rgb-flonums! (case-> [Bitmap-Pixels Natural Flonum Flonum Flonum -> Void]
+                               [Bitmap-Pixels Natural Flonum Flonum Flonum Flonum -> Void])]
+ [pix-set-rgb-bytes! (case-> [Bitmap-Pixels Natural Byte Byte Byte -> Void]
+                             [Bitmap-Pixels Natural Byte Byte Byte Byte -> Void])])

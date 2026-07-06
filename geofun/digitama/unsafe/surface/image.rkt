@@ -21,7 +21,7 @@
       (define width (unsafe-fxmax (unsafe-fl->fx (unsafe-flceiling (unsafe-fl* flwidth density))) 1))
       (define height (unsafe-fxmax (unsafe-fl->fx (unsafe-flceiling (unsafe-fl* flheight density))) 1))
       (define surface (cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height))
-      
+
       (let ([status (cairo_surface_status surface)])
         (unless (unsafe-fx= status CAIRO_STATUS_SUCCESS)
           (raise-arguments-error 'cairo-create-argb-image-surface

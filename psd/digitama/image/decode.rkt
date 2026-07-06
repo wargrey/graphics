@@ -17,7 +17,7 @@
                                 PSD-Color-Mode Positive-Byte Positive-Byte PSD-Compression-Method Positive-Byte
                                 (U False Flonum (-> Flonum Flonum)) Bitmap-Body-Decoder)
   (lambda [func planar-data width height color-mode channels depth compression-method ps-size expose]
-    (define gamma-expose
+    (define gamma-expose : (-> Flonum Flonum)
       (cond [(not expose) values]
             [(procedure? expose) (λ [[linear : Flonum]] (color-component-gamma-encode (expose linear)))]
             [(or (zero? expose) (not (rational? expose))) (λ [[linear : Flonum]] (color-component-gamma-encode linear))]

@@ -11,6 +11,8 @@
 (define-type Geo-Side-Choice (U 't 'r 'l 'b))
 (define-type Geo-Corner-Choice (U 'lt 'rt 'lb 'rb))
 
+(define CAIRO-FORMAT-RGBA128F : Byte 7)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  ffi/unsafe/atomic

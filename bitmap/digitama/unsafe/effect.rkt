@@ -35,13 +35,12 @@
 
     (cairo_surface_flush surface)
 
-    ; this is more efficient than read/write ARGB
-    (memcpy pixels data total _byte)
     (let grayscale ([idx 0])
       (when (unsafe-fx< idx total)
-        (define-values (r g b) (pix-get-rgb-bytes data idx))
+        (define-values (a r g b) (pix-get-argb-bytes data idx))
         (define gray (rgb->gray r g b))
-        (pix-set-rgb-bytes! pixels idx gray gray gray)
+        
+        (pix-set-argb-bytes! pixels idx a gray gray gray)
         (grayscale (unsafe-fx+ idx 4))))
 
     (cairo_surface_mark_dirty surface)
