@@ -17,6 +17,7 @@
 (require digimon/checksum)
 (require digimon/enumeration)
 
+(require geofun/digitama/base)
 (require geofun/digitama/unsafe/typed/cairo)
 (require geofun/digitama/unsafe/surface/image)
 
@@ -36,19 +37,22 @@
     [(_ #:-> Bitmap λsexp)
      (with-syntax ([read-bitmap (datum->syntax #'Bitmap (string->symbol (string-downcase (symbol->immutable-string (syntax-e #'Bitmap)))))])
        (syntax/loc stx (define-read-bitmap read-bitmap #:-> Bitmap λsexp)))]
-    [(_ bitmap #:-> Bitmap (lambda [/dev/stdin density] sexp ...))
+    [(_ bitmap #:-> Bitmap (lambda [/dev/stdin density extra ...] sexp ...))
      (with-syntax ([read-bitmap (datum->syntax #'bitmap (string->symbol (string-append "read-" (symbol->immutable-string (syntax-e #'bitmap)))))])
        (syntax/loc stx
-         (define read-bitmap : (->* ((U Path-String Input-Port)) (#:density Positive-Flonum #:try-@2x? Boolean) Bitmap)
-           (lambda [/dev/stdin #:density [density 1.0] #:try-@2x? [try-@2x? #false]]
-             (if (input-port? /dev/stdin)
-                 (parameterize ([current-ioexn-input-port /dev/stdin])
-                   sexp ...)
+         (define (read-bitmap #:density [backing-scale : Positive-Flonum (default-bitmap-density)]
+                              #:try-@2x? [try-@2x? : Boolean #false]
+                              [src : (U Path-String Input-Port)]
+                              extra ...) : Bitmap
+           (define (load-bitmap [/dev/stdin : Input-Port] [density : Positive-Flonum]) : Bitmap
+             (parameterize ([current-ioexn-input-port /dev/stdin])
+               sexp ...))
 
-                 (let-values ([(path scale) (select-file@2x /dev/stdin density try-@2x?)])
-                   (call-with-input-file* path #:mode 'binary
-                     (λ [[stdin : Input-Port]]
-                       (read-bitmap stdin #:density scale)))))))))]))
+           (cond [(input-port? src) (load-bitmap src backing-scale)]
+                 [else (let-values ([(path scale) (select-file@2x src backing-scale try-@2x?)])
+                         (call-with-input-file* path #:mode 'binary
+                           (λ [[stdin : Input-Port]]
+                             (load-bitmap stdin scale))))]))))]))
 
 (define-syntax (create-bitmap stx)
   (syntax-case stx [:]
@@ -74,8 +78,9 @@
     (cond [(not try?) (values src density)]
           [else (let* ([path.psd : String (if (string? src) src (path->string src))]
                        [path@2x.psd : String (regexp-replace #rx"([.][^.]*|)$" path.psd "@2x\\1")])
-                  (cond [(not (file-exists? path@2x.psd)) (values path.psd density)]
-                        [else (values path@2x.psd (+ density density))]))])))
+                  (if (file-exists? path@2x.psd)
+                      (values path@2x.psd (+ density density))
+                      (values path.psd density)))])))
 
 (define bitmap-port-source : (-> Input-Port Symbol)
   (lambda [/dev/stdin]

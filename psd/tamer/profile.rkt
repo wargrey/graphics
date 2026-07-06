@@ -15,7 +15,7 @@
         (for/list ([file.psd (in-directory tamer/)] #:when (psd? file.psd))
           (with-handlers ([exn:fail:contract? raise]
                           [exn:fail? (λ [e] (eprintf "~a: ~a~n" (object-name e) (exn-message e)))])
-            (define tamer.psd (read-psd file.psd #:try-@2x? #false))
+            (define tamer.psd (read-psd file.psd #:try-@2x? #false #:expose 3.0))
             
             (psd-profile tamer.psd)
             

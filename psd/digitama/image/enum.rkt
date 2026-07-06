@@ -7,7 +7,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-enumeration* psd-color-mode #:+> PSD-Color-Mode ; order matters
   color-mode->integer integer->color-mode
-  [0 Bitmap Grayscale Indexed RGB CMYK Multichannel Duotone Lab])
+  [Bitmap 0] [Grayscale 1] [Indexed 2] [RGB 3] [CMYK 4]
+  [Multichannel 7] [Duotone 8] [Lab 9])
 
 (define-enumeration* psd-compression-method #:+> PSD-Compression-Method ; order matters
   compression-method->integer integer->compression-method

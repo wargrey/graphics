@@ -29,7 +29,7 @@
                 (cond [(unsafe-fx= C A) value]
                       [else (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))]))))
 
-  (define pix-set-monochromic-channel-byte!
+  (define pix-set-grayscale-channel-byte!
     (lambda [pixels idx channel value]
       (if (unsafe-fx= channel 0)
           (begin (ptr-set! pixels _ubyte (unsafe-fx+ idx R) value)
@@ -37,7 +37,7 @@
                  (ptr-set! pixels _ubyte (unsafe-fx+ idx B) value))
           (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
     
-  (define pix-set-straight-monochromic-channel-byte!
+  (define pix-set-straight-grayscale-channel-byte!
     (lambda [pixels idx channel value]
       (if (unsafe-fx= channel 0)
           (let ([v (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))])
@@ -45,7 +45,42 @@
             (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
             (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
           (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
-  
+
+  (define pix-set-rgba-channel-flonum!
+    (lambda [pixels idx channel value]
+      (ptr-set! pixels _ubyte
+                (unsafe-fx+ idx (unsafe-vector*-ref RGBA channel))
+                (alpha-multiplied-flonum->byte value #xFF))))
+
+  (define pix-set-straight-rgba-channel-flonum!
+    (lambda [pixels idx channel value]
+      (define C (unsafe-vector*-ref RGBA channel))
+      
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
+                (if (unsafe-fx= C A)
+                    (alpha-multiplied-flonum->byte value #xFF)
+                    (straight-flonum->byte value (pix-alpha-ref pixels idx))))))
+
+  (define pix-set-grayscale-channel-flonum!
+    (lambda [pixels idx channel value]
+      (define v (alpha-multiplied-flonum->byte value #xFF))
+      
+      (if (unsafe-fx= channel 0)
+          (begin (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
+                 (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
+                 (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
+          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) v))))
+    
+  (define pix-set-straight-grayscale-channel-flonum!
+    (lambda [pixels idx channel value]
+      (if (unsafe-fx= channel 0)
+          (let ([v (straight-flonum->byte value (pix-alpha-ref pixels idx))])
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
+            (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
+          (ptr-set! pixels _ubyte (unsafe-fx+ idx A)
+                    (alpha-multiplied-flonum->byte value #xFF)))))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (define pix-zero?
     (lambda [pixels idx]
@@ -103,6 +138,7 @@
   (define pix-set-argb-flonums!
     (lambda [pixels idx a r g b]
       (define alpha (alpha-multiplied-flonum->byte a #xFF))
+      
       (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
       (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte r alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte g alpha))
@@ -113,6 +149,15 @@
       (define alpha (alpha-multiplied-flonum->byte a #xFF))
       
       (ptr-set! pixels _ubyte (unsafe-fx+ idx A) alpha)
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
+      (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
+
+  (define pix-set-rgb-flonums!
+    (lambda [pixels idx r g b]
+      (define alpha (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
+      (define a (alpha->flonum alpha))
+      
       (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (alpha-multiplied-flonum->byte (unsafe-fl* r a) alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (alpha-multiplied-flonum->byte (unsafe-fl* g a) alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (alpha-multiplied-flonum->byte (unsafe-fl* b a) alpha))))
@@ -128,16 +173,16 @@
       (ptr-set! pixels _ubyte (unsafe-fx+ idx R) (straight-byte->premultiplied-byte r alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx G) (straight-byte->premultiplied-byte g alpha))
       (ptr-set! pixels _ubyte (unsafe-fx+ idx B) (straight-byte->premultiplied-byte b alpha))))
+
+  (define pix-set-rgb-bytes!
+    (lambda [pixels idx r g b]
+      (define alpha (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
+      (safe-set-rgb-bytes pixels idx alpha r g b)))
   
   (define pix-get-argb-bytes
     (lambda [pixels idx]
       (define-values (r g b) (pix-get-rgb-bytes pixels idx))
       (values (ptr-ref pixels _ubyte (unsafe-fx+ idx A)) r g b)))
-  
-  (define pix-set-rgb-bytes!
-    (lambda [pixels idx r g b]
-      (define alpha (ptr-ref pixels _ubyte (unsafe-fx+ idx A)))
-      (safe-set-rgb-bytes pixels idx alpha r g b)))
   
   (define pix-get-rgb-bytes
     (lambda [pixels idx]
@@ -153,6 +198,15 @@
                                  (unsafe-flround
                                   (unsafe-fl* v 255.0))))))
 
+  (define (straight-flonum->byte v alpha)
+    (if (unsafe-fx= alpha #xFF)
+        (alpha-multiplied-flonum->byte v alpha)
+        (alpha-multiplied-flonum->byte (unsafe-fl* v (alpha->flonum alpha)) alpha)))
+
+  (define (alpha->flonum alpha)
+    (cond [(unsafe-fx= alpha #xFF) 1.0]
+          [else (unsafe-fl/ (unsafe-fx->fl alpha) 255.0)]))
+
   (define (straight-byte->premultiplied-byte v alpha)
     (unsafe-fxquotient (unsafe-fx+ (unsafe-fx* v alpha) 127) 255))
   
@@ -167,8 +221,13 @@
  (submod "." unsafe)
  [pix-set-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
  [pix-set-straight-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-monochromic-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-straight-monochromic-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-rgba-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
+ [pix-set-straight-rgba-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
+
+ [pix-set-grayscale-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-straight-grayscale-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
+ [pix-set-grayscale-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
+ [pix-set-straight-grayscale-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
  
  [pix-randomize! (->* (Bitmap-Pixels Natural Natural) (Index) Void)]
  [pix-fill! (case-> [Bitmap-Pixels Natural Byte Natural -> Void]
@@ -185,6 +244,7 @@
 
  [pix-set-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
  [pix-set-straight-argb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Flonum Void)]
+ [pix-set-rgb-flonums! (-> Bitmap-Pixels Natural Flonum Flonum Flonum Void)]
  [pix-set-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
  [pix-set-straight-argb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Byte Void)]
  [pix-set-rgb-bytes! (-> Bitmap-Pixels Natural Byte Byte Byte Void)])

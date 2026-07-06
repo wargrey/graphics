@@ -3,6 +3,8 @@
 ;;; http://www.adobe.com/devnet-apps/photoshop/fileformatashtml
 
 (provide (all-defined-out))
+(provide (all-from-out colorspace/hdr))
+
 (provide (rename-out [bitmap-intrinsic-size psd-size]
                      [bitmap-intrinsic-width psd-header-width]
                      [bitmap-intrinsic-height psd-header-height]
@@ -15,6 +17,7 @@
                      [psd-body-tagged-blocks psd-tagged-blocks]))
 
 (require bitmap/stdio)
+(require colorspace/hdr)
 
 (require "digitama/self.rkt")
 (require "digitama/stdin.rkt")
@@ -34,7 +37,7 @@
 (struct psb psd () #:type-name PSB #:transparent)
 
 (define-read-bitmap psd #:-> PSD
-  (lambda [/dev/psdin density]
+  (lambda [/dev/psdin density #:expose [expose : (U False Flonum (-> Flonum Flonum)) #false]]
     (define-values (ps-size channels height width depth color-mode) (read-psd-header /dev/psdin))
     (define-values (color-mode-data image-resources layer-info gmask-info tagged-blocks image-pos) (read-psd-subsection /dev/psdin ps-size))
     (define-values (compression-method image-data) (read-psd-composite-image /dev/psdin image-pos))
@@ -45,9 +48,10 @@
                    (if (not layer-info) null (psd-layers-parse layer-info ps-size density))
                    (and gmask-info (parse-global-mask-info gmask-info))
                    (if (not tagged-blocks) psd-empty-tagged-blocks (psd-tagged-blocks-parse tagged-blocks ps-size))
-                   (psd-image-decoder read-psd image-data
+                   (psd-image-decoder 'read-psd image-data
                                       width height color-mode channels depth
-                                      compression-method ps-size))))
+                                      compression-method ps-size
+                                      expose))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define psd-depth : (-> PSD (Values Positive-Byte Positive-Byte))
