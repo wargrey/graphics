@@ -11,81 +11,8 @@
   (require ffi/unsafe)
   (require racket/unsafe/ops)
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;; NOTE
-  ; Channel based setters suppose that the source is reliable.
-  ; So, we don't check against the alpha channel by default.
-  ; For some quirk format with *straight* data like PSD,
-  ;   callers should set alpha before setting pixels.
   (define-values (A R G B) (if (system-big-endian?) (values 0 1 2 3) (values 3 2 1 0)))
-  (define RGBA-channels (vector-immutable R G B A))
-
-  (define pix-set-rgba-channel-byte!
-    (lambda [pixels idx channel value]
-      (ptr-set! pixels _ubyte
-                (unsafe-fx+ idx (unsafe-vector*-ref RGBA-channels channel))
-                value)))
-
-  (define pix-set-straight-rgba-channel-byte!
-    (lambda [pixels idx channel value]
-      (define C (unsafe-vector*-ref RGBA-channels channel))
-      
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
-                (cond [(unsafe-fx= C A) value]
-                      [else (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))]))))
-
-  (define pix-set-grayscale-channel-byte!
-    (lambda [pixels idx channel value]
-      (if (unsafe-fx= channel 0)
-          (begin (ptr-set! pixels _ubyte (unsafe-fx+ idx R) value)
-                 (ptr-set! pixels _ubyte (unsafe-fx+ idx G) value)
-                 (ptr-set! pixels _ubyte (unsafe-fx+ idx B) value))
-          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
-    
-  (define pix-set-straight-grayscale-channel-byte!
-    (lambda [pixels idx channel value]
-      (if (unsafe-fx= channel 0)
-          (let ([v (straight-byte->premultiplied-byte value (pix-alpha-ref pixels idx))])
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
-          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) value))))
-
-  (define pix-set-rgba-channel-flonum!
-    (lambda [pixels idx channel value]
-      (ptr-set! pixels _ubyte
-                (unsafe-fx+ idx (unsafe-vector*-ref RGBA-channels channel))
-                (alpha-multiplied-flonum->byte value #xFF))))
-
-  (define pix-set-straight-rgba-channel-flonum!
-    (lambda [pixels idx channel value]
-      (define C (unsafe-vector*-ref RGBA-channels channel))
-      
-      (ptr-set! pixels _ubyte (unsafe-fx+ idx C)
-                (if (unsafe-fx= C A)
-                    (alpha-multiplied-flonum->byte value #xFF)
-                    (straight-flonum->byte value (pix-alpha-ref pixels idx))))))
-
-  (define pix-set-grayscale-channel-flonum!
-    (lambda [pixels idx channel value]
-      (define v (alpha-multiplied-flonum->byte value #xFF))
-      
-      (if (unsafe-fx= channel 0)
-          (begin (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
-                 (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
-                 (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
-          (ptr-set! pixels _ubyte (unsafe-fx+ idx A) v))))
-    
-  (define pix-set-straight-grayscale-channel-flonum!
-    (lambda [pixels idx channel value]
-      (if (unsafe-fx= channel 0)
-          (let ([v (straight-flonum->byte value (pix-alpha-ref pixels idx))])
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx R) v)
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx G) v)
-            (ptr-set! pixels _ubyte (unsafe-fx+ idx B) v))
-          (ptr-set! pixels _ubyte (unsafe-fx+ idx A)
-                    (alpha-multiplied-flonum->byte value #xFF)))))
-
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;; WARNING: the color component value cannot be greater than alpha if it is properly scaled
   (define pix-set-argb-flonums!
@@ -202,16 +129,6 @@
                                  (unsafe-flround
                                   (unsafe-fl* v 255.0))))))
 
-  (define (straight-flonum->byte v alpha)
-    (cond [(unsafe-fx= alpha #xFF) (alpha-multiplied-flonum->byte v alpha)]
-          [(unsafe-fx= alpha #x00) 0]
-          [else (alpha-multiplied-flonum->byte (unsafe-fl* v (alpha->flonum alpha)) alpha)]))
-
-  (define (alpha->flonum alpha)
-    (cond [(unsafe-fx= alpha #xFF) 1.0]
-          [(unsafe-fx= alpha #x00) 0.0]
-          [else (unsafe-fl/ (unsafe-fx->fl alpha) 255.0)]))
-
   (define (straight-byte->premultiplied-byte v alpha)
     (cond [(unsafe-fx= alpha #xFF) v]
           [(unsafe-fx= alpha #x00) 0]
@@ -232,16 +149,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unsafe-require/typed/provide
  (submod "." unsafe)
- [pix-set-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-straight-rgba-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-rgba-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
- [pix-set-straight-rgba-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
-
- [pix-set-grayscale-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-straight-grayscale-channel-byte! (-> Bitmap-Pixels Natural Byte Byte Void)]
- [pix-set-grayscale-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
- [pix-set-straight-grayscale-channel-flonum! (-> Bitmap-Pixels Natural Byte Flonum Void)]
- 
  [pix-randomize! (->* (Bitmap-Pixels Natural Natural) (Index) Void)]
  [pix-fill! (case-> [Bitmap-Pixels Natural Byte Natural -> Void]
                     [Bitmap-Pixels Byte Natural -> Void])]

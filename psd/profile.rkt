@@ -29,14 +29,13 @@
     
     (fprintf out "~aResources: ~a~n" ~t (hash-keys resources))
     (fprintf out "~aLayer Count: ~a~n" ~t (length layers))
-
-    (cond [(null? layers) (newline out)]
-          [else (fprintf out "~aGlobal Layer Mask: ~a~n~aTagged Blocks: ~a~n~n"
-                         ~t (if (not mask) 'None (vector-drop (struct->vector mask) 2))
-                         ~t (hash-keys blocks))])
+    (fprintf out "~aGlobal Mask: ~a~n~aTagged Blocks: ~a~n"
+             ~t (if (not mask) 'None (vector-drop (struct->vector mask) 2))
+             ~t (hash-keys blocks))
     
     (unless (not full?)
       (for ([layer (in-list layers)])
+        (newline out)
         (psd-layer-profile layer out #:prefix ~t)))))
 
 (define psd-layer-profile : (->* (PSD-Layer) (Output-Port #:prefix String) Void)
@@ -64,4 +63,4 @@
     (fprintf out "~aClipping: ~a~n" ~t (if (zero? (psd-layer-header-clipping record)) 'base 'nonbase))
     (fprintf out "~aFlags: ~a~n" ~t (psd-layer-header-flags record))
     (fprintf out "~aMask: ~a~n" ~t (or mask 'None))
-    (fprintf out "~aAdditional Information: ~a~n~n" ~t (hash-keys (psd-layer-blocks self)))))
+    (fprintf out "~aAdditional Information: ~a~n" ~t (hash-keys (psd-layer-blocks self)))))

@@ -4,10 +4,10 @@
 (require psd/bitmap)
 
 (require racket/format)
-(require racket/runtime-path)
+(require digimon/debug)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-runtime-path hdr.psd "samples/HDR.psd")
+(define hdr.psd (collection-file-path "HDR.psd" "psd" "tamer" "samples"))
 
 (define read-hdr : (-> Flonum Geo)
   (lambda [expose]
@@ -15,7 +15,7 @@
                    (geo-scale (geo-bitmap (read-psd-bitmap hdr.psd #:hdr-expose expose)) 0.4)
                    (geo-text (format "exposure: ~a" (~r expose #:precision '(= 1)))))))
 
-(read-psd-bitmap hdr.psd)
+(time* (read-psd-bitmap hdr.psd))
 
-(geo-table 4 (map read-hdr (list -2.0 -1.0 0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0))
+(geo-table 4 (time* (map read-hdr (list -3.0 -2.0 -1.0 0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0)))
            'cc 'cc 4.0 4.0)

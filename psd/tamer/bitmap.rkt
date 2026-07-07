@@ -1,18 +1,18 @@
-#lang racket/base
+#lang typed/racket/base
 
 (require geofun/vector)
 (require psd/bitmap)
 
 (require racket/path)
-(require racket/runtime-path)
+(require digimon/debug)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-runtime-path tamer/ "samples")
-(define (psd? path) (regexp-match? #px"[.]ps[bd]$" path))
+(define tamer/ (collection-file-path "samples" "psd" "tamer"))
+(define (psd-file? [path : Path-String]) (regexp-match? #px"[.]ps[bd]$" path))
 
 (filter geo?
-        (for/list ([file.psd (in-directory tamer/)] #:when (psd? file.psd))
-          (with-handlers ([exn:fail? (λ [e] (eprintf "~a~n" (exn-message e)))])
+        (for/list : (Listof Any) ([file.psd (in-directory tamer/)] #:when (psd-file? file.psd))
+          (with-handlers ([exn:fail? (λ [[e : exn]] (eprintf "~a~n" (exn-message e)))])
             (geo-vc-append #:gapsize 4.0
-                           (geo-bitmap (read-psd-bitmap file.psd #:try-@2x? #false))
+                           (geo-bitmap (time* (read-psd-bitmap file.psd #:try-@2x? #false)))
                            (geo-text (file-name-from-path file.psd))))))
