@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/vector)
+(require digimon/digitama/minimal/format)
 
 (require "base.rkt")
 
@@ -17,10 +18,13 @@
     (define-values (~t ~t~t) (values (string-append prefix "    ") (string-append prefix "        ")))
 
     (fprintf out "~a~a Object[~a]:~n" prefix (if (psd? self) 'PSD 'PSB) (psd-file-name self))
-    (fprintf out "~aSize: [~a * ~a]~n" ~t (psd-header-width self) (psd-header-height self))
+    (fprintf out "~aResolution: [~a * ~a]~n" ~t (psd-header-width self) (psd-header-height self))
     (fprintf out "~aDepth: [~a * ~a]~n" ~t (psd-header-depth self) (psd-header-channels self))
     (fprintf out "~aColor Mode: ~a~n" ~t (psd-header-color-mode self))
     (fprintf out "~aCompression Method: ~a~n" ~t (psd-header-compression-method self))
+    (fprintf out "~aRaw Storage: ~a~n" ~t (~size (* (psd-header-width self) (psd-header-height self)
+                                                (* (/ (psd-header-depth self) 8)
+                                                   (psd-header-channels self)))))
 
     (define resources : PSD-Image-Resources (psd-body-resources self))
     (define layers : (Listof PSD-Layer) (psd-layers self))

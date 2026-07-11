@@ -18,6 +18,7 @@
 
 (require bitmap/stdio)
 (require colorspace/hdr)
+(require colorspace/cmyk)
 
 (require "digitama/self.rkt")
 (require "digitama/stdin.rkt")
@@ -37,21 +38,24 @@
 (struct psb psd () #:type-name PSB #:transparent)
 
 (define-read-bitmap psd #:-> PSD
-  (lambda [/dev/psdin density #:hdr-expose [expose : (U False Flonum (-> Flonum Flonum)) #false]]
+  (lambda [/dev/psdin density
+                      #:hdr-expose [expose : (U False Flonum (-> Flonum Flonum)) #false]
+                      #:cmyk-ink [cmyk-ink : (U CMYK-Ink-Config CMYK->RGB) 'US]]
     (define-values (ps-size channels height width depth color-mode) (read-psd-header /dev/psdin))
-    (define-values (color-mode-data image-resources layer-info gmask-info tagged-blocks image-pos) (read-psd-subsection /dev/psdin ps-size))
+    (define-values (color-mode-data image-resource-data) (read-psd-image-resources /dev/psdin))
+    (define-values (layer-info gmask-info tagged-blocks image-pos) (read-psd-layer-section /dev/psdin ps-size))
     (define-values (compression-method image-data) (read-psd-composite-image /dev/psdin image-pos))
+    (define image-resources (psd-image-resources-parse image-resource-data density))
     
     (create-bitmap (if (= ps-size 4) PSD PSB) /dev/psdin density width height channels depth color-mode compression-method ps-size
-                   color-mode-data
-                   (psd-image-resources-parse image-resources density)
+                   image-resources
                    (if (not layer-info) null (psd-layers-parse layer-info ps-size density))
                    (and gmask-info (parse-global-mask-info gmask-info))
                    (if (not tagged-blocks) psd-empty-tagged-blocks (psd-tagged-blocks-parse tagged-blocks ps-size))
-                   (psd-image-decoder 'read-psd image-data
-                                      width height color-mode channels depth
-                                      compression-method ps-size
-                                      expose))))
+                   (psd-image-decoder 'read-psd image-data width height
+                                      color-mode channels depth compression-method
+                                      color-mode-data image-resources
+                                      ps-size expose cmyk-ink))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define psd-depth : (-> PSD (Values Positive-Byte Positive-Byte))

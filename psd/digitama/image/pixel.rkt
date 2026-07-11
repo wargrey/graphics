@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [parse-mfloat psd-fl32bpc-ref]))
 
 (require bitmap/stdio)
 (require digimon/packbits)
@@ -57,13 +58,23 @@
           [(= depth 32) 4]
           [else 1])))
 
-(define psd-16bpc-ref : (-> Bytes Fixnum Byte)
-  (lambda [planar col]
-    (define 16bits (parse-muint16 planar col))
-    (define 8bits (unsafe-idxrshift 16bits 8))
+(define psd-lab-axis-adjust : (-> Flonum Flonum)
+  (λ [v]
+    (- (* v 255.0) 128.0)))
 
-    (if (> 8bits #xFF) #xFF 8bits)))
-
-(define psd-32bpc-ref : (-> Bytes Fixnum Flonum)
+(define psd-fl8bpc-ref : (-> Bytes Fixnum Flonum)
   (lambda [planar col]
-    (parse-mfloat planar col)))
+    (real->double-flonum
+     (/ (parse-muint8 planar col)
+        #xFF))))
+
+;;; WARNING
+; No matter how Adoble claimed that 16bit is actually 15bit + 1bit,
+;   the values stored in file are full 16bit.
+; Adobe's API provides 15bit values and uses them in memory,
+;   but it has nothing to do with the way they store the values.
+(define psd-fl16bpc-ref : (-> Bytes Fixnum Flonum)
+  (lambda [planar col]
+    (real->double-flonum
+     (/ (parse-muint16 planar col)
+        #xFFFF))))

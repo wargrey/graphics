@@ -23,8 +23,7 @@
   #:transparent)
 
 (struct psd-body psd-header
-  ([color-data : Bytes]
-   [resources : PSD-Image-Resources]
+  ([resources : PSD-Image-Resources]
    [layers : (Listof PSD-Layer)]
    [global-mask : (Option PSD-Global-Mask-Info)]
    [tagged-blocks : PSD-Layer-Tagged-Blocks])

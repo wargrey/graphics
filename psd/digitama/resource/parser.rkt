@@ -17,13 +17,13 @@
 (define psd-image-resources-parse : (-> Bytes Positive-Flonum PSD-Image-Resources)
   (lambda [block density]
     (let parse-8BIM : PSD-Image-Resources ([start : Index 0]
-                                           [resources : PSD-Image-Resources (hasheq)])
+                                           [resources : PSD-Image-Resources psd-empty-resources])
       (if (regexp-match? #px"^8BIM" block start)
           (let*-values ([(id) (parse-int16 block (unsafe-fx+ start 4))]
                         [(name size-idx) (parse-pascal-string*n block (unsafe-idx+ start 6) 2)]
                         [(segsize) (parse-size block size-idx 4)]
                         [(segstart) (unsafe-idx+ size-idx 4)])
-            (define maybe-resource
+            (define maybe-resource : (Option PSD-Resource)
               (parse-resource id /psd/res
                               (λ [[parse : PSD-Resource-Parser]]
                                 (case/eq id
@@ -37,7 +37,8 @@
             (parse-8BIM (unsafe-idx+ (unsafe-idx+ segstart segsize)
                                      (unsafe-fxremainder segsize 2))
                         (cond [(not maybe-resource) resources]
-                              [else (hash-set resources id maybe-resource)])))
+                              [else (log-image-resource maybe-resource)
+                                    (hash-set resources id maybe-resource)])))
           resources))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,3 +54,15 @@
 
     (with-handlers ([exn:fail? (λ [[ef : exn:fail]] (and (on-error ef) #false))])
       (do-with-parser parser))))
+
+(define log-image-resource : (-> PSD-Resource Void)
+  (lambda [self]
+    (define context (object-name (current-ioexn-input-port)))
+    
+    (log-message (current-logger) 'info 'psd:res
+                 (cond [(not context) (format "load resource ~a: ~a" (psd-resource-id self) self)]
+                       [else (format "~a: load resource ~a: ~a" context (psd-resource-id self) self)])
+                 self)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define psd-empty-resources : PSD-Image-Resources (hasheq))
