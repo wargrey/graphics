@@ -23,17 +23,22 @@
                            Bitmap)
   (lambda [src [fallback #false] #:dtrace [tips #false] #:height [size #false] #:scale? [scale? #true]]
     (define (on-error-call-fallback [e : exn]) : Bitmap
-      (define x.icon : Bitmap (if fallback (fallback) (error 'bitmap-icon "#:height (or size (toolbar-icon-height))")))
-      (when (string? tips) (log-message (current-logger) 'warning (format "~a~n~a" tips (exn-message e)) x.icon #false))
+      (define x.icon : Bitmap (if fallback (fallback) (raise e)))
+      (when (string? tips)
+        (log-message (current-logger) 'warning (format "~a~n~a" tips (exn-message e)) x.icon #false))
+      
       x.icon)
+    
     (define raw.icon : Bitmap
       (with-handlers ([exn? on-error-call-fallback])
         (define src.icon : Bitmap
           (cond [(or (path? src) (string? src)) (read-bitmap src #:try-@2x? #true)]
                 [(input-port? src) (read-bitmap src)]
                 [else src]))
-        (when (string? tips) (log-message (current-logger) 'info tips src.icon #false))
+        (when (string? tips)
+          (log-message (current-logger) 'info tips src.icon #false))
         src.icon))
+    
     (cond [(or (not size) (not scale?)) raw.icon]
           [else (bitmap-scale raw.icon (/ size (bitmap-intrinsic-height raw.icon)))])))
 
@@ -46,9 +51,10 @@
                (? string? (app string->number (? index? w))) (? string? (app string->number (? index? h))))
          (bitmap-section raw x y w h)]
         [_ (raise-user-error hint "malformed fragment")]))
-    (cond [(input-port? src) (read-bitmap src #:backing-scale density)]
+
+    (cond [(input-port? src) (read-bitmap src #:density density)]
           [(not (regexp-match? #px"[?]id=" src))
-           (define (read-image.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale density))
+           (define (read-image.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:density density))
            (match (string-split (if (path? src) (path->string src) src) "#xywh=")
              [(list src.rkt xywh) (image-section (read-image.bmp src.rkt) xywh 'read-image)]
              [(list src.rkt) (read-image.bmp src.rkt)]
@@ -67,13 +73,15 @@
   (lambda [src [density (default-bitmap-density)]]
     (define (image-disassemble [raw : Bitmap] [grid : String] [hint : Symbol]) : (Listof Bitmap)
       (match (regexp-match #px"^(\\d+),(\\d+)$" grid)
-        [(list _ (? string? (app string->number (? exact-positive-integer? cols)))
+        [(list _
+               (? string? (app string->number (? exact-positive-integer? cols)))
                (? string? (app string->number (? exact-positive-integer? rows))))
          (bitmap->sprite raw cols rows)]
         [_ (raise-user-error hint "malformed fragments")]))
-    (cond [(input-port? src) (list (read-bitmap src #:backing-scale density))]
+
+    (cond [(input-port? src) (list (read-bitmap src #:density density))]
           [(not (regexp-match? #px"[?]id=" src))
-           (define (read-sprite.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:backing-scale density))
+           (define (read-sprite.bmp [src.bmp : String]) : Bitmap (read-bitmap src.bmp #:density density))
            (match (string-split (if (path? src) (path->string src) src) "#grids=")
              [(list src.rkt xywh) (image-disassemble (read-sprite.bmp src.rkt) xywh 'read-sprite)]
              [(list src.rkt) (list (read-sprite.bmp src.rkt))]
@@ -95,6 +103,7 @@
     (define-values (width height)
       (values (/ (bitmap-intrinsic-width bmp) cols)
               (/ (bitmap-intrinsic-height bmp) rows)))
+
     (reverse (for*/fold ([sprite : (Listof Bitmap) null])
                         ([y (in-range rows)] [x (in-range cols)])
                (cons (bitmap-copy bmp (* x width) (* y height) width height) sprite)))))
