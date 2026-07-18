@@ -2,9 +2,6 @@
 
 (provide (all-defined-out))
 
-(require digimon/measure)
-
-(require geofun/font)
 (require geofun/digitama/self)
 (require geofun/digitama/dc/dingbat)
 (require geofun/digitama/dc/composite)

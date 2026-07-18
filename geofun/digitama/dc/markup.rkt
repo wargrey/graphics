@@ -28,6 +28,7 @@
   (lambda [#:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
            #:color [fgsource : Option-Fill-Paint #false] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:error-color [errfg : Option-Fill-Paint #false] #:error-background [errbg : Option-Fill-Paint #false]
+           #:ink? [ink? : Boolean #false]
            [text : Geo-Markup-Datum] [font : (Option Font) #false]] : (U Geo:Markup Geo:Text)
     (define markup : Bytes (geo-markup-datum->text text))
     (define-values (plain has-attrs?) (dc_markup_plain_text* markup))
@@ -35,13 +36,13 @@
     (cond [(string? plain)
            (if (not has-attrs?)
                (create-geometry-object geo:text
-                                       #:with [id (geo-draw-text font fgsource bgsource)
-                                                  (geo-text-extent font)
+                                       #:with [id (geo-draw-text font fgsource bgsource ink?)
+                                                  (geo-text-extent font ink?)
                                                   geo-zero-bleeds]
                                        plain lines align #false #false #false #false #false)
                (create-geometry-object geo:markup
-                                       #:with [id (geo-draw-markup font fgsource bgsource)
-                                                  (geo-markup-extent font)
+                                       #:with [id (geo-draw-markup font fgsource bgsource ink?)
+                                                  (geo-markup-extent font ink?)
                                                   geo-zero-bleeds]
                                        plain lines align markup))]
           [(or errfg errbg)
@@ -50,19 +51,19 @@
           [else    (error 'geo-markup "~a\n~a" plain markup)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-markup-extent : (-> (Option Font) Geo-Calculate-Extent)
-  (lambda [alt-font]
+(define geo-markup-extent : (-> (Option Font) Boolean Geo-Calculate-Extent)
+  (lambda [alt-font ink?]
     (λ [self]
       (with-asserts ([self geo:markup?])
         (define font-desc (geo-select-font-description alt-font default-font))
-        (define-values (W H _) (dc_markup_parse (geo:markup-raw self) font-desc (geo:string-lines self) (geo:string-alignment self)))
+        (define-values (W H _) (dc_markup_parse (geo:markup-raw self) font-desc (geo:string-lines self) (geo:string-alignment self) ink?))
         (values W H #false)))))
 
-(define geo-draw-markup : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-font alt-fg alt-bg]
+(define geo-draw-markup : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Boolean Geo-Surface-Draw!)
+  (lambda [alt-font alt-fg alt-bg ink?]
     (λ [self cr x0 y0 flwidth flheight]
       (when (geo:markup? self)
         (dc_markup cr x0 y0 flwidth flheight
                    (geo:markup-raw self) (geo-select-font-description alt-font default-font)
-                   (geo:string-lines self) (geo:string-alignment self)
+                   (geo:string-lines self) (geo:string-alignment self) ink?
                    (geo-select-font-source alt-fg) (geo-select-background-source alt-bg))))))

@@ -12,4 +12,10 @@
   (for/list : (Listof (Pairof String Geo)) ([face (in-list (list-math-font-faces))])
     (cons face
           (geo-text* "ℎⁱⱼₖₗₘₙ; 𝑥=𝑎+𝑏−𝑐×𝑑÷𝑒; ∫₀∞𝑓(𝑔)𝑒⁻ˣ²𝑑𝑥; √π/2; ∀𝑥∈ℝ, ∃𝑦∈ℂ: |𝑥−𝑦| < ε"
-                     (desc-font #:family face)))))
+                     (desc-font #:family face))))
+
+
+  (define mfont (desc-font #:size 32.0 #:family 'math))
+
+  (geo-hb-append (geo-text "f" mfont #:ink? #true)
+                 (geo-text "  f  " mfont #:ink? #false)))

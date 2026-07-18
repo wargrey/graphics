@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/vector)
+(require racket/string)
 (require digimon/digitama/minimal/format)
 
 (require "base.rkt")
@@ -32,7 +33,7 @@
     (define blocks : PSD-Layer-Tagged-Blocks (psd-tagged-blocks self))
     
     (fprintf out "~aResources: ~a~n" ~t (hash-keys resources))
-    (fprintf out "~aLayer Count: ~a~n" ~t (length layers))
+    (fprintf out "~aLayers: #~a(~a)~n" ~t (length layers) (string-join (map psd-layer-object-name layers) ", "))
     (fprintf out "~aGlobal Mask: ~a~n~aTagged Blocks: ~a~n"
              ~t (if (not mask) 'None (vector-drop (struct->vector mask) 2))
              ~t (hash-keys blocks))

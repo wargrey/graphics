@@ -151,25 +151,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-axis-label-settings : (case-> [(U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
+                                            (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             Flonum Flonum Flonum Symbol
-                                            -> (Listof (List Geo-Option-Rich-Text Flonum Geo-Option-Rich-Text Geo-Pin-Anchor))]
+                                            -> (Listof (List Geo-Option-Rich-Text Flonum Geo-Option-Rich-Text Geo-Option-Rich-Text Geo-Pin-Anchor))]
                                            [(U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
+                                            (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             Float-Complex Float-Complex
-                                            -> (Listof (List Geo-Option-Rich-Text Float-Complex Geo-Option-Rich-Text Boolean))])
+                                            -> (Listof (List Geo-Option-Rich-Text Float-Complex Geo-Option-Rich-Text Geo-Option-Rich-Text Boolean))])
   (case-lambda
-    [(label desc flmin flmax offset which)
-     (let ([descs (if (pair? desc) desc (cons #false desc))])
+    [(label unit-desc axis-desc flmin flmax offset which)
+     (let ([udescs (if (pair? unit-desc) unit-desc (cons #false unit-desc))]
+           [adescs (if (pair? axis-desc) axis-desc (cons #false axis-desc))])
        (if (pair? label)
-           (list (list (car label) (- flmin offset) (car descs) (if (eq? which 'x) 'rc 'cc))
-                 (list (cdr label) (+ flmax offset) (cdr descs) (if (eq? which 'x) 'lc 'cc)))
-           (list (list label (+ flmax offset) (cdr descs) (if (eq? which 'x) 'lc 'cc)))))]
-    [(label desc src tgt)
-     (let ([descs (if (pair? desc) desc (cons #false desc))])
+           (list (list (car label) (- flmin offset) (car udescs) (car adescs) (if (eq? which 'x) 'rc 'cc))
+                 (list (cdr label) (+ flmax offset) (cdr udescs) (cdr adescs) (if (eq? which 'x) 'lc 'cc)))
+           (list (list label (+ flmax offset) (cdr udescs) (cdr adescs) (if (eq? which 'x) 'lc 'cc)))))]
+    [(label unit-desc axis-desc src tgt)
+     (let ([udescs (if (pair? unit-desc) unit-desc (cons #false unit-desc))]
+           [adescs (if (pair? axis-desc) axis-desc (cons #false axis-desc))])
        (if (pair? label)
-           (list (list (car label) src (car descs) #false)
-                 (list (cdr label) tgt (cdr descs) #true))
-           (list (list label tgt (cdr descs) #true))))]))
+           (list (list (car label) src (car udescs) (car adescs) #false)
+                 (list (cdr label) tgt (cdr udescs) (cdr adescs) #true))
+           (list (list label tgt (cdr udescs) (cdr adescs) #true))))]))
 
 (define plot-screen-axis-label-adjust : (-> (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) Boolean
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)))

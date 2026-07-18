@@ -48,28 +48,28 @@
   #:parameterize ([default-uc-block-theme-adjuster pbl-colorize])
   [#:frame 'White #:start-name "Software\nEngineer" #:block-desc pbl-desc] #:-
   [#:zone 'JrLab 'system #:desc title
-   [(actor-use 2 -pi/4 'arch#dev)
-    (actor-use 2 0 'code#dev)
-    (actor-use 2 +pi/4 'train)
-    
-    (jump-to 'code#dev)
-    (case-include 2.5 -pi/8 'bdd#dev)
-    (case-extend 2.5 +0 'asset)
-    
-    (jump-to 'arch#dev)
-    (case-include 2.5 -pi/12 'api#dev)
-    (case-include 'bdd#dev)
-    
-    (jump-to 'train)
-    (case-include 2 -pi/12 'doc)
-    (case-include 2 +pi/12 'example#edu)
-    (case-extend 2 +5pi/12 'develop#edu)]]
+   (actor-use 2 -pi/4 'arch#dev)
+   (actor-use 2 0 'code#dev)
+   (actor-use 2 +pi/4 'train)
+   
+   (jump-to 'code#dev)
+   (case-include 2.5 -pi/8 'bdd#dev)
+   (case-extend 2.5 +0 'asset)
+   
+   (jump-to 'arch#dev)
+   (case-include 2.5 -pi/12 'api#dev)
+   (case-include 'bdd#dev)
+   
+   (jump-to 'train)
+   (case-include 2 -pi/12 'doc)
+   (case-include 2 +pi/12 'example#edu)
+   (case-extend 2 +5pi/12 'develop#edu)]
    
   (jump-to -0.5+8i '#:Teacher)
   [#:with-zone 'JrLab
-   [(actor-use 2 -pi/6 'fit#edu)
-    (actor-use 3 0 'deploy)
-    (actor-use 3+9i 'report#stu)]]
+   (actor-use 2 -pi/6 'fit#edu)
+   (actor-use 3 0 'deploy)
+   (actor-use 3+9i 'report#stu)]
   
   [#:tree (jump-to -0.5+4i '#:Researcher)
    [=> (actor-use 2.0 +pi/8 'demo#edu)
@@ -79,20 +79,22 @@
 
   (jump-to 'develop#edu)
   [#:with-zone 'JrLab
-   [(case-include 2.5 -pi/12 'trade-off#edu)
-    (case-extend 2.0 +pi/8 'experiment#edu)
-    (case-include 3.0+5.5i 'cthinking#stu)]]
+   (case-include 2.5 -pi/12 'trade-off#edu)
+   (case-extend 2.0 +pi/8 'experiment#edu)
+   (case-include 3.0+5.5i 'cthinking#stu)]
 
   [#:tree (jump-to 6+8i '#:Student)
-   [=> (actor-use 2 -7pi/8 'dup#stu)
-       (actor-use 3.2 -5pi/8 'experiment#stu)
-       (actor-use 'report#stu)]
-   [=> (actor-use 'deploy)]]
-  
+   [=> [#:with-zone 'JrLab
+        (actor-use 2 -7pi/8 'dup#stu)
+        (actor-use 3.2 -5pi/8 'experiment#stu)
+        (actor-use 'report#stu)]]
+   [=> [#:with-zone 'JrLab
+        (actor-use 'deploy)]]]
+
   [#:with-zone 'JrLab
-   [(extend 'fit#edu 'cthinking#stu)
-    (extend 'dup#stu 'cthinking#stu)
-    (extend 'dup#stu 'experiment#stu)]]
+   (extend 'fit#edu 'cthinking#stu)
+   (extend 'dup#stu 'cthinking#stu)
+   (extend 'dup#stu 'experiment#stu)]
 
   (jump-to 6+6i '#:Parent)
   (note '#:Parent 1 pi/4 "首任老师" "表现出重视" "支持孩子学习"))

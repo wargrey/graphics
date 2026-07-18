@@ -38,6 +38,7 @@
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
+           #:unit-desc [unit-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:desc [axis-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:range [tick-hint : (U Real (Pairof Real Real) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-real-ticks*)]
@@ -102,9 +103,9 @@
     
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label axis-desc 0.0+0.0i Vself))])
+                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc 0.0+0.0i Vself))])
                 (if (car lbl)
-                    (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color)]
+                    (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color)]
                           [angle.rad (case/eq (plot-axis-style-label-placement axis-style)
                                        [(digit  digit-mirror) (if (positive? (geo-dot-line-orientation-test digit-offset Vself))  pi/2 -pi/2)]
                                        [(mirror mirror-digit) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
@@ -174,6 +175,7 @@
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
+           #:unitdesc [unit-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:desc [axis-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]
@@ -228,13 +230,13 @@
 
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label axis-desc flaxis-min flaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
+                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc flaxis-min flaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
                 (if (car lbl)
-                    (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) desc-font desc-color (* em 0.382))])
+                    (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color (* em 0.382))])
                       (case/eq (plot-axis-style-label-placement axis-style)
                         [(digit  digit-mirror) (plot-axis-sticker-cons* lbl.geo digit-anchor (+ (cadr lbl) digit-offset) view-offset labels)]
                         [(mirror mirror-digit) (plot-axis-sticker-cons* lbl.geo miror-anchor (+ (cadr lbl) miror-offset) view-offset labels)]
-                        [else (plot-axis-sticker-cons* lbl.geo (cadddr lbl) (make-rectangular (cadr lbl) 0.0) view-offset labels)]))
+                        [else (plot-axis-sticker-cons* lbl.geo (cadr (cdddr lbl)) (make-rectangular (cadr lbl) 0.0) view-offset labels)]))
                     labels))
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])

@@ -6,6 +6,7 @@
 
 (require geofun/font)
 (require geofun/color)
+(require geofun/resize)
 (require geofun/composite)
 
 (require geofun/digitama/self)
@@ -31,24 +32,33 @@
     (geo-rich-text-realize #:id id label font color)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-x-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text (Option Font) (Option Color) Flonum Geo)
-  (lambda [name font color desc desc-font desc-color gapsize]
-    (cond [(zero? gapsize) (plot-y-axis-label name font color desc desc-font desc-color)]
+(define plot-x-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text Geo-Option-Rich-Text (Option Font) (Option Color) Flonum Geo)
+  (lambda [name font color unit-desc axis-desc desc-font desc-color gapsize]
+    (cond [(zero? gapsize) (plot-y-axis-label name font color unit-desc axis-desc desc-font desc-color)]
           [else (geo-hc-append #:gapsize (- gapsize 1.0)
                                the-void-geo
-                               (plot-y-axis-label name font color desc desc-font desc-color)
+                               (plot-y-axis-label name font color unit-desc axis-desc desc-font desc-color)
                                the-void-geo)])))
 
-(define plot-y-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text (Option Font) (Option Color) Geo)
-  (lambda [name font color desc desc-font desc-color]
-    (if (or desc)
-        (let ([dfont (or desc-font font)]
-              [dcolor (or desc-color color)])
-          (geo-hc-append (geo-rich-text-realize name font color)
-                         (geo-text " (" dfont #:color dcolor)
-                         (geo-rich-text-realize desc dfont dcolor)
-                         (geo-text ")" dfont #:color dcolor)))
-        (geo-rich-text-realize name font color))))
+(define plot-y-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text Geo-Option-Rich-Text (Option Font) (Option Color) Geo)
+  (lambda [name font color unit-desc axis-desc description-font description-color]
+    (define dfnt (or description-font font))
+    (define dclr (or description-color color))
+    
+    (define name/unit : Geo
+      (cond [(or unit-desc)
+             (geo-hc-append (geo-rich-text-realize name font color #:ink? #true)
+                            (geo-hc-append (geo-text "/" dfnt #:color dclr)
+                                           (geo-rich-text-realize unit-desc dfnt dclr)))]
+            [(or axis-desc) (geo-rich-text-realize name font color #:ink? #true)]
+            [else (geo-rich-text-realize name font color)]))
+    
+    (if (or axis-desc)
+        (geo-hc-append name/unit
+                       (geo-text " (" dfnt #:color dclr)
+                       (geo-rich-text-realize axis-desc dfnt dclr)
+                       (geo-text ")" dfnt #:color dclr))
+        name/unit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-tick-db : (Weak-HashTable Any Geo:Path:Self) (make-weak-hash))

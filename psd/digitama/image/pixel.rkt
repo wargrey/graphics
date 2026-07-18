@@ -69,7 +69,7 @@
         #xFF))))
 
 ;;; WARNING
-; No matter how Adoble claimed that 16bit is actually 15bit + 1bit,
+; No matter how Adoble claimed that 16bit is actually 15bit + unused 1bit,
 ;   the values stored in file are full 16bit.
 ; Adobe's API provides 15bit values and uses them in memory,
 ;   but it has nothing to do with the way they store the values.

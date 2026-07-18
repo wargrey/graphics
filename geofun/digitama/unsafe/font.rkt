@@ -38,6 +38,15 @@
 
     font-desc)
 
+  (define (font_get_baseline font-desc)
+    (start-atomic)
+    (define layout (the-layout))
+    (pango_layout_set_font_description layout font-desc)
+    (define baseline (pango_layout_get_baseline layout))
+    (end-atomic)
+
+    (~pango-metric baseline))
+
   (define (font_get_unknown_glyphs_count font-desc content)
     (start-atomic)
     (define layout (the-layout))
@@ -54,11 +63,12 @@
     (define-values (xy xw xh) (get-extent "x"))
     (define-values (Oy Ow Oh) (get-extent "O"))
     (define-values (0y ch 0h) (get-extent "0"))
-    (define-values (wy ic wh wW wH) (get-extent "水" #true))
+    (define-values (wx wy ic wh wW wH) (get-extent "水" #true))
     (end-atomic)
     
     (define ex  (unsafe-fx- baseline xy))
     (define cap (unsafe-fx- baseline Oy))
+    
     (list (cons 'em (~pango-metric (pango_font_description_get_size font-desc)))
           (cons 'ex (~pango-metric ex))
           (cons 'cap (~pango-metric cap))
@@ -69,7 +79,7 @@
   (define (font_get_metrics_lines font-desc content)
     (start-atomic)
     (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-    (define-values (meanline xw eh)      (get-extent "x"))
+    (define-values (meanline xw xh)      (get-extent "x"))
     (define-values (capline  Ow Oh)      (get-extent "O"))
     (define-values (ascender cw height)  (get-extent content))
     (end-atomic)
@@ -85,15 +95,32 @@
   (define (font_get_text_extent font-desc content)
     (start-atomic)
     (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-    (define-values (ascent _ height Width Height) (get-extent content #true))
+    (define-values (whocares ascent width height Width Height) (get-extent content #true))
     (end-atomic)
     
     (values (~pango-metric Width) (~pango-metric Height)))
 
+  (define (font_get_text_ink_extent font-desc content)
+    (start-atomic)
+    (define-values (baseline get-extent) (font-desc->get-extent font-desc))
+    (define-values (ascent width height) (get-extent content #false))
+    (end-atomic)
+    
+    (values (~pango-metric width) (~pango-metric height)))
+
+  (define (font_get_text_ink_extent* font-desc content)
+    (start-atomic)
+    (define-values (baseline get-extent) (font-desc->get-extent font-desc))
+    (define-values (x y width height W H) (get-extent content #true))
+    (end-atomic)
+    
+    (values (~pango-metric width) (~pango-metric height)
+            (~pango-metric x) (~pango-metric y)))
+
   (define (font_get_text_extent* font-desc content)
     (start-atomic)
     (define-values (baseline get-extent) (font-desc->get-extent font-desc))
-    (define-values (ascent _ height Width Height) (get-extent content #true))
+    (define-values (whocares ascent width height Width Height) (get-extent content #true))
     (end-atomic)
     
     (values (~pango-metric Width) (~pango-metric Height) (~pango-metric (unsafe-fx- Height baseline))
@@ -140,21 +167,46 @@
   
   (define (font-desc->get-extent font-desc)
     (define layout (the-layout))
+    
     (pango_layout_set_font_description layout font-desc)
     
     (let ([baseline (pango_layout_get_baseline layout)])
       (values baseline
-              (λ [hint-char [full? #false]]
-                (~extent layout baseline hint-char full?)))))
+              (λ [hint-char [both? #false]]
+                (~extent layout hint-char both?)))))
 
-  (define (~extent layout baseline hint-char full?)
+  (define (~extent layout hint-char both?)
     (pango_layout_set_text layout hint-char)
     (pango_layout_get_extents layout &ink &logical)
 
-    (cond [(not full?) (values (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink))]
-          [else (values (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink)
-                        (PangoRectangle-width &logical) (PangoRectangle-height &logical))]))
+    (if (not both?)
+        (values (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink))
+        (values (PangoRectangle-x &ink) (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink)
+                (PangoRectangle-width &logical) (PangoRectangle-height &logical))))
 
+  
+  (define (~ink-size layout ink?)
+    (start-atomic)
+    (pango_layout_get_extents layout &ink &logical)
+    (define-values (width height)
+      (if (or ink?)
+          (values (PangoRectangle-width &ink) (PangoRectangle-height &ink))
+          (values (PangoRectangle-width &logical) (PangoRectangle-height &logical))))
+    (end-atomic)
+    
+    (values (~pango-metric width)
+            (~pango-metric height)))
+  
+  (define (~ink-position layout ink? x0 y0)
+    (cond [(not ink?) (values x0 y0)]
+          [else (begin (start-atomic)
+                       (pango_layout_get_extents layout &ink &logical)
+                       (define-values (x y) (values (PangoRectangle-x &ink) (PangoRectangle-y &ink)))
+                       (end-atomic)
+                       
+                       (values (unsafe-fl- x0 (~pango-metric x))
+                               (unsafe-fl- y0 (~pango-metric y))))]))
+                
   (define (family-faces++ family faces0)
     (define fname. (string-append (pango_font_family_get_name family) ", "))
 
@@ -173,12 +225,15 @@
  [PANGO_SCALE Index]
  [system-ui (-> Symbol (-> String) String)]
  [geo_create_font_desc (-> String Real (Option Integer) (Option Integer) (Option Integer) (Option Integer) Font-Description)]
+ [font_get_baseline (-> Font-Description Flonum)]
  [font_get_unknown_glyphs_count (-> Font-Description String Natural)]
  [font_get_metrics_lines (-> Font-Description String (Values Index Index Index Index Index))]
  [font_get_metrics_lines* (-> Font-Description String (Values Flonum Flonum Flonum Flonum Flonum))]
  [font_get_metrics (-> Font-Description (Listof (Pairof Font-Unit Nonnegative-Flonum)))]
  [font_get_text_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum))]
  [font_get_text_extent* (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))]
+ [font_get_text_ink_extent (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum))]
+ [font_get_text_ink_extent* (-> Font-Description String (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum))]
  [font_list_families (-> (Listof Font-Raw-Family))]
  [font_list_faces (-> (Listof String))]
  [pango_font_family_is_monospace (-> Font-Raw-Family Boolean)]

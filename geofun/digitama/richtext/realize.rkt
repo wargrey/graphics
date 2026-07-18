@@ -23,6 +23,7 @@
            #:alignment [alignment : Geo-Text-Alignment 'center]
            #:precision [precision : (U Integer (List '= Integer)) 3]
            #:radix [base : (U (List 'up Integer) Integer) 10]
+           #:ink? [ink? : Boolean #false]
            [n : (U Complex Rich-Datum<%>)]
            [font : (Option Font)]
            [color : Option-Fill-Paint]] : Geo
@@ -48,6 +49,7 @@
            #:max-width [max-width : (Option Nonnegative-Flonum) #false]
            #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:radix [base : (U (List 'up Integer) Integer) 10]
+           #:ink? [ink? : Boolean #false]
            [text : Geo-Rich-Text]
            [font : (Option Font)]
            [color : Option-Fill-Paint]] : Geo
@@ -58,16 +60,16 @@
                               #:max-width  (or  max-width +inf.0)
                               #:max-height (or max-height +inf.0) 
                               text font)
-               (geo-text #:id text-id #:alignment alignment
+               (geo-text #:id text-id #:alignment alignment #:ink? ink?
                          #:color color #:background bg-paint
                          text font))]
           [(geo-markup-datum? text) ; TODO: deal with size limits
-           (geo-markup #:id text-id #:alignment alignment
+           (geo-markup #:id text-id #:alignment alignment #:ink? ink?
                        #:color color #:background bg-paint
                        #:error-color 'GhostWhite #:error-background 'Firebrick
                        text font)]
           [(geo? text) #;#:|TODO: deal with size limits| text]
-          [else (geo-rich-numerical-text-realize #:id text-id
+          [else (geo-rich-numerical-text-realize #:id text-id #:ink? ink?
                                                  #:background bg-paint #:alignment alignment
                                                  #:precision precision #:radix base
                                                  text font color)])))
@@ -80,11 +82,12 @@
            #:max-width [max-width : (Option Nonnegative-Flonum) #false]
            #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:radix [base : (U (List 'up Integer) Integer) 10]
+           #:ink? [ink? : Boolean #false]
            [text : (U T Geo-Rich-Text)]
            [font : (Option Font)]
            [color : Option-Fill-Paint]] : (U T Geo)
     (if (geo-rich-text? text)
-        (geo-rich-text-realize #:id text-id
+        (geo-rich-text-realize #:id text-id #:ink? ink?
                                #:background bg-paint #:alignment alignment
                                #:precision precision #:radix base
                                #:max-width max-width #:max-height max-height

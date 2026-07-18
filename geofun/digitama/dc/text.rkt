@@ -48,12 +48,13 @@
 (define geo-art-text
   (lambda [#:stroke [stroke : Maybe-Stroke-Paint (void)] #:fill [fill : Maybe-Fill-Paint (void)] #:background [bgsource : Maybe-Fill-Paint (void)]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
+           #:ink? [ink? : Boolean #false]
            [text : Any] [font : (Option Font) #false]] : Geo:Art-Text
     (define body : String (geo-text-content-from-object text))
     
     (create-geometry-object geo:art-text
-                            #:with [id (geo-draw-art-text font stroke fill bgsource)
-                                       (geo-art-text-extent font)
+                            #:with [id (geo-draw-art-text font stroke fill bgsource ink?)
+                                       (geo-art-text-extent font ink?)
                                        (geo-shape-bleed stroke)]
                             body lines align)))
 
@@ -62,12 +63,13 @@
            #:ascent [alsource : Maybe-Stroke-Paint #false] #:descent [dlsource : Maybe-Stroke-Paint #false] #:capline [clsource : Maybe-Stroke-Paint #false]
            #:meanline [mlsource : Maybe-Stroke-Paint #false] #:baseline [blsource : Maybe-Stroke-Paint #false]
            #:id [id : (Option Symbol) #false] #:lines [lines : (Listof Geo-Text-Line) null] #:alignment [align : Geo-Text-Alignment 'left]
+           #:ink? [ink? : Boolean #false]
            [text : Any] [font : (Option Font) #false]] : Geo:Text
     (define body : String (geo-text-content-from-object text))
     
     (create-geometry-object geo:text
-                            #:with [id (geo-draw-text font fgsource bgsource)
-                                       (geo-text-extent font)
+                            #:with [id (geo-draw-text font fgsource bgsource ink?)
+                                       (geo-text-extent font ink?)
                                        geo-zero-bleeds]
                             body lines align alsource dlsource clsource mlsource blsource)))
 
@@ -94,18 +96,22 @@
                             (paragraph-ellipsize-mode->integer smart-emode raise-argument-error))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-text-extent : (-> (Option Font) Geo-Calculate-Extent)
-  (lambda [alt-font]
+(define geo-text-extent : (-> (Option Font) Boolean Geo-Calculate-Extent)
+  (lambda [alt-font ink?]
+    (define box-size (if (not ink?) text-size text-ink-size))
+    
     (λ [self]
       (with-asserts ([self geo:text?])
-        (define-values (W H) (text-size (geo:string-body self) (or alt-font (default-font))))
+        (define-values (W H) (box-size (geo:string-body self) (or alt-font (default-font))))
         (values W H #false)))))
 
-(define geo-art-text-extent : (-> (Option Font) Geo-Calculate-Extent)
-  (lambda [alt-font]
+(define geo-art-text-extent : (-> (Option Font) Boolean Geo-Calculate-Extent)
+  (lambda [alt-font ink?]
+    (define box-size (if (not ink?) text-size text-ink-size))
+    
     (λ [self]
       (with-asserts ([self geo:art-text?])
-        (define-values (W H) (text-size (geo:string-body self) (or alt-font (default-art-font))))
+        (define-values (W H) (box-size (geo:string-body self) (or alt-font (default-art-font))))
         (values W H #false)))))
 
 (define geo-paragraph-extent : (-> (Option Font) Geo-Calculate-Extent)
@@ -119,25 +125,25 @@
                              (geo:para-ident self) (geo:para-space self) (geo:para-wmode self) (geo:para-emode self)))
         (values W H #false)))))
 
-(define geo-draw-text : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-font alt-fg alt-bg]
+(define geo-draw-text : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Boolean Geo-Surface-Draw!)
+  (lambda [alt-font alt-fg alt-bg ink?]
     (λ [self cr x0 y0 width height]
       (when (geo:text? self)
         (dc_text cr x0 y0 width height
                  (geo:string-body self) (geo-select-font-description alt-font default-font)
-                 (geo:string-lines self) (geo:string-alignment self)
+                 (geo:string-lines self) (geo:string-alignment self) ink?
                  (geo-select-font-source alt-fg) (geo-select-background-source alt-bg)
                  (stroke-paint->source* (geo:text-aline self)) (stroke-paint->source* (geo:text-cline self))
                  (stroke-paint->source* (geo:text-mline self))
                  (stroke-paint->source* (geo:text-bline self)) (stroke-paint->source* (geo:text-dline self)))))))
 
-(define geo-draw-art-text : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [alt-font alt-outl alt-fill alt-bg]
+(define geo-draw-art-text : (-> (Option Font) Maybe-Stroke-Paint Maybe-Fill-Paint Maybe-Fill-Paint Boolean Geo-Surface-Draw!)
+  (lambda [alt-font alt-outl alt-fill alt-bg ink?]
     (λ [self cr x0 y0 flwidth flheight]
       (when (geo:art-text? self)
         (dc_art_text cr x0 y0 flwidth flheight
                      (geo:string-body self) (geo-select-font-description alt-font default-art-font)
-                     (geo:string-lines self) (geo:string-alignment self)
+                     (geo:string-lines self) (geo:string-alignment self) ink?
                      (geo-select-stroke-paint alt-outl) (geo-select-fill-source alt-fill) (geo-select-background-source alt-bg))))))
 
 (define geo-draw-paragraph : (-> (Option Font) Option-Fill-Paint Maybe-Fill-Paint Geo-Surface-Draw!)

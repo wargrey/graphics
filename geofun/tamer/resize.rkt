@@ -55,4 +55,7 @@
   (geo-frame text)
   (geo-bounding-box text)
   (geo-frame trimed-text)
-  (geo-bounding-box trimed-text))
+  (geo-bounding-box trimed-text)
+
+  (geo-frame (geo-htrim text))
+  (geo-frame (geo-vtrim text)))

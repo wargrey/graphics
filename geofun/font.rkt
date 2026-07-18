@@ -142,6 +142,10 @@
     (let ([?m (assq unit metrics)])
       (if ?m (cdr ?m) +nan.0))))
 
+(define font-baseline : (-> Font Flonum)
+  (lambda [font]
+    (font_get_baseline (font-description font))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define text-metrics-lines : (->* (String) (Font) (Values Flonum Flonum Flonum Flonum Flonum))
   (lambda [content [font (default-font)]]
@@ -178,6 +182,14 @@
 (define text-size* : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum Flonum))
   (lambda [text [font (default-font)]]
     (font_get_text_extent* (font-description font) text)))
+
+(define text-ink-size : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum))
+  (lambda [text [font (default-font)]]
+    (font_get_text_ink_extent (font-description font) text)))
+
+(define text-ink-size* : (->* (String) (Font) (Values Nonnegative-Flonum Nonnegative-Flonum Flonum Flonum))
+  (lambda [text [font (default-font)]]
+    (font_get_text_ink_extent* (font-description font) text)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define find-font-families : (->* () ((U (-> String Boolean Boolean) Symbol)) (Listof String))

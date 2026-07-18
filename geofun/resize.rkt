@@ -72,6 +72,20 @@
     
     (geo-section self (real-part pos) (imag-part pos) width height)))
 
+(define geo-htrim : (-> Geo Geo)
+  (lambda [self]
+    (define-values (_w height ink) (geo-extent* self))
+    (define-values (pos width _h) (geo-ink-values ink))
+    
+    (geo-section self (real-part pos) 0.0 width height)))
+
+(define geo-vtrim : (-> Geo Geo)
+  (lambda [self]
+    (define-values (width _h ink) (geo-extent* self))
+    (define-values (pos _w height) (geo-ink-values ink))
+    
+    (geo-section self 0.0 (imag-part pos) width height)))
+
 (define-cropper geo-crop : (-> Geo Nonnegative-Real Nonnegative-Real Geo)
   (#:lambda [self width height left% top%]
    (define-values (W H) (geo-flsize self))

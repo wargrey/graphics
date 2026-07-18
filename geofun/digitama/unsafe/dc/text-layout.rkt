@@ -14,35 +14,36 @@
 
   (require racket/draw/unsafe/cairo)
   (require racket/unsafe/ops)
-
   (require racket/case)
-  
+
   (require "../pango.rkt")
   
   (require (submod "../paint.rkt" unsafe))
   (require (submod "../font.rkt" unsafe))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_text cr x0 y0 width height text font-desc lines align fgsource bgsource alsource clsource mlsource blsource dlsource)
+  (define (dc_text cr x0 y0 width height text font-desc lines align ink? fgsource bgsource alsource clsource mlsource blsource dlsource)
     (define layout (text_create_layout text font-desc lines align))
+    (define-values (ink-x ink-y) (~ink-position layout ink? x0 y0))
 
     (cairo-render-background cr bgsource x0 y0 width height)  
     (cairo-set-source cr fgsource)
-    (cairo_move_to cr x0 y0)
+    (cairo_move_to cr ink-x ink-y)
     (pango_cairo_show_layout cr layout)
     
     (when (or alsource clsource mlsource blsource dlsource)
       (define-values (ascent capline meanline baseline descent) (font_get_metrics_lines* font-desc text))
       (cairo_set_line_width cr 1.0)
 
-      (text_decorate cr clsource x0 y0 capline width)
-      (text_decorate cr alsource x0 y0 ascent width)
-      (text_decorate cr mlsource x0 y0 meanline width)
-      (text_decorate cr dlsource x0 y0 descent width)
-      (text_decorate cr blsource x0 y0 baseline width)))
+      (text_decorate cr clsource x0 ink-y capline width)
+      (text_decorate cr alsource x0 ink-y ascent width)
+      (text_decorate cr mlsource x0 ink-y meanline width)
+      (text_decorate cr dlsource x0 ink-y descent width)
+      (text_decorate cr blsource x0 ink-y baseline width)))
 
-  (define (dc_art_text cr x0 y0 width height text font-desc lines align stroke-source fill-source bgsource)
+  (define (dc_art_text cr x0 y0 width height text font-desc lines align ink? stroke-source fill-source bgsource)
     (define layout (text_create_layout text font-desc lines align))
+    (define-values (ink-x ink-y) (~ink-position layout ink? x0 y0))
 
     (cairo-render-background cr bgsource x0 y0 width height)
 
@@ -52,9 +53,9 @@
            [delta (unsafe-fl/ (unsafe-fl+ height (~pango-metric (pango_layout_get_spacing layout)))
                               (unsafe-fx->fl n))])
       (let draw_line ([idx 0]
-                      [y (unsafe-fl+ y0 (~pango-metric (pango_layout_get_baseline layout)))])
+                      [y (unsafe-fl+ ink-y (~pango-metric (pango_layout_get_baseline layout)))])
         (when (unsafe-fx< idx n)
-          (cairo_move_to cr x0 y)
+          (cairo_move_to cr ink-x y)
           (pango_cairo_layout_line_path cr (pango_layout_get_line_readonly layout idx))
           (draw_line (unsafe-fx+ idx 1) (unsafe-fl+ y delta)))))
     
@@ -86,25 +87,26 @@
                   (values max-width smart-flheight))]))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (define (dc_markup cr x0 y0 width height raw font-desc lines align fgsource bgsource)
+  (define (dc_markup cr x0 y0 width height raw font-desc lines align ink? fgsource bgsource)
     (define layout (text_create_empty_layout))
 
     ;;; NOTE: order matters
     (pango_layout_set_markup layout raw)
     (text_setup_layout! layout font-desc lines align)
-    
+
+    (define-values (ink-x ink-y) (~ink-position layout ink? x0 y0))
     (cairo-render-background cr bgsource x0 y0 width height)
     (cairo-set-source cr fgsource)
-    (cairo_move_to cr x0 y0)
+    (cairo_move_to cr ink-x ink-y)
     (pango_cairo_show_layout cr layout))
 
-  (define (dc_markup_parse raw font-desc lines align)
+  (define (dc_markup_parse raw font-desc lines align ink?)
     (define maybe-markup (pango_parse_markup raw))
 
     (if (pair? maybe-markup)
         (let*-values ([(layout) (text_create_layout_for_markup maybe-markup font-desc lines align)]
-                      [(pwidth pheight) (pango_layout_get_size layout)])
-          (values (~pango-metric pwidth) (~pango-metric pheight) (unsafe-cdr maybe-markup)))
+                      [(pwidth pheight) (~ink-size layout ink?)])
+          (values pwidth pheight (unsafe-cdr maybe-markup)))
 
         (values 0.0 0.0 maybe-markup)))
 
@@ -191,13 +193,14 @@
  (submod "." unsafe)
  [dc_art_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment
+      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Boolean
       (Option Pen) (Option Brush) (Option Brush)
       Any)]
  
  [dc_text
   (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Brush (Option Brush)
+      String Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Boolean
+      Brush (Option Brush)
       (Option Pen) (Option Pen) (Option Pen) (Option Pen) (Option Pen)
       Any)]
  
@@ -212,10 +215,11 @@
       (Values Nonnegative-Flonum Nonnegative-Flonum))]
 
  [dc_markup (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
-                Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Brush (Option Brush)
+                Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Boolean
+                Brush (Option Brush)
                 Any)]
  
- [dc_markup_parse (-> Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment (Values Nonnegative-Flonum Nonnegative-Flonum (U String Bytes)))]
+ [dc_markup_parse (-> Bytes Font-Description (Listof Geo-Text-Line) Geo-Text-Alignment Boolean (Values Nonnegative-Flonum Nonnegative-Flonum (U String Bytes)))]
  [dc_markup_plain_text (-> Bytes (Option String))]
  [dc_markup_plain_text* (-> Bytes (Values (U String Bytes) Boolean))])
 

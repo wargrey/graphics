@@ -58,7 +58,7 @@
    [label-font : (Option Font) plot-preset-axis-label-font]
    [label-color : (Option Color) #false]
    [label-placement : Plot-Axis-Label-Placement 'axis]
-   [desc-font : (Option Font) #false]
+   [desc-font : (Option Font) plot-preset-axis-desc-font]
    [desc-color : (Option Color) #false]
    [tip : Plot-Axis-Tip-Style (default-plot-axis-tip-style)]))
 

@@ -46,14 +46,14 @@
                     (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
                     (~optional (~seq #:stereotype sotype) #:defaults ([sotype #'#false])))
               ...
-              [internal-move-expr ...]])
+              internal-move:expr ...])
      (quasisyntax/loc stx
        (parameterize ([current-flex-zone (geo-create-flex-zone! self id type desc anchor sotype)])
-         (gomamon-dsl self internal-move-expr) ...))]
-    [(_ self [#:with-zone id [internal-move-expr ...]])
+         (gomamon-dsl self internal-move) ...))]
+    [(_ self [#:with-zone id internal-move:expr ...])
      (quasisyntax/loc stx
        (parameterize ([current-flex-zone (geo-flex-zone-ref self id)])
-         (gomamon-dsl self internal-move-expr) ...))]
+         (gomamon-dsl self internal-move) ...))]
     [(_ self [(~or => #:=>) submove-expr ...])
      (with-syntax ([here (gensym 'goma:dsl:)])
        (quasisyntax/loc stx

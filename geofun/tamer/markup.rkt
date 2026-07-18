@@ -35,7 +35,7 @@
                                     "ب<span foreground=\"red\">ِ</span>ي<span foreground=\"green\">ّ</span>"
                                     "<span foreground=\"red\">َ</span>ة<span foreground=\"blue\">ُ</span>"))
                     font)
-        (geo-markup #:background 'GhostWhite #:alignment 'center #:lines '(undercurl)
+        (geo-markup #:background 'GhostWhite #:alignment 'center #:lines '(undercurl) #:ink? #true
                     (string->bytes/utf-8
                      (string-append "x<sub>n</sub> = x<sub>n<span style=\"normal\">-<span size=\"smaller\">1</span></span></sub><span style=\"normal\"> + 1</span>\n"
                                     "e<sup> i π</sup><span style=\"normal\"> + 1 = 0</span>"))
@@ -46,7 +46,7 @@
 (define pexprs : (Listof Geo)
   (for/list : (Listof Geo) ([pexpr (in-list pango-markup-xexprs)])
     (displayln (geo-markup-datum->text pexpr))
-    (geo-markup #:background 'Azure
+    (geo-markup #:background 'Azure #:ink? #true
                 pexpr font)))
 
 (module+ main

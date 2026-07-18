@@ -76,9 +76,9 @@
 
     ; NOTICE: the footprints are initially reversed
     (define-values (tracks blockdb)
-      (let stick : (Values (Listof (GLayerof Geo-Path)) (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))))
+      (let stick : (Values (Listof (GLayerof Geo-Path)) (Immutable-HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))))
         ([tracks : (Listof (GLayerof Geo-Path)) null]
-         [blocks : (HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
+         [blocks : (Immutable-HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (hasheq)]
          [prints : Geo-Path-Prints null]
          [target : (Option (GLayerof Dia:Block)) #false]
          [last-pt : (Option Float-Complex) #false]
@@ -129,16 +129,17 @@
             (values tracks blocks))))
 
     (define-values (bands zones)
-      (for/fold ([bands : (Listof (GLayerof Geo)) null]
-                 [zones : (Listof (GLayerof Geo)) null])
-                ([zone (in-list (geo:track-zones self))])
-        (cond [(geo:track:zone:flex? zone)
-               (define group (dia-flex-zone-realize zone blockdb tracks opacity))
-               (values bands (if (not group) zones (cons group zones)))]
-              [(geo:track:zone:fixed? zone)
-               (define group (dia-fixed-zone-realize zone blockdb tracks opacity))
-               (values (if (not group) bands (cons group bands)) zones)]
-              [else (values bands zones)])))
+      (let ([positions (geo-trace-positions gpath)])
+        (for/fold ([bands : (Listof (GLayerof Geo)) null]
+                   [zones : (Listof (GLayerof Geo)) null])
+                  ([zone (in-list (geo:track-zones self))])
+          (cond [(geo:track:zone:flex? zone)
+                 (define group (dia-flex-zone-realize  zone positions blockdb tracks opacity))
+                 (values bands (if (not group) zones (cons group zones)))]
+                [(geo:track:zone:fixed? zone)
+                 (define group (dia-fixed-zone-realize zone positions blockdb tracks opacity))
+                 (values (if (not group) bands (cons group bands)) zones)]
+                [else (values bands zones)]))))
 
     (values
      bands zones
