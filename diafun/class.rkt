@@ -61,6 +61,8 @@
            #:block-factory [block-factory : Cls-Block-Factory (default-cls-block-factory)]
            #:track-factory [track-factory : Cls-Track-Factory (default-cls-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
@@ -73,7 +75,8 @@
       (create-dia-track dia:class id self
                         #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory #false
-                                           note-factory note-desc scale opacity #false)))))
+                                           zone-factory zone-desc note-factory note-desc
+                                           scale opacity #false)))))
 
 (define #:forall (TS BS BM) dia-track-class*
   (lambda [#:id [id : (Option Symbol) #false]
@@ -82,6 +85,8 @@
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:relationship [class-type : (Option Cls-RelationShip-Identifier) (default-cls-relationship-identifier)]
@@ -94,7 +99,8 @@
       (create-dia-track dia:class id self
                         #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory #false
-                                           note-factory note-desc scale opacity #false)))))           
+                                           zone-factory zone-desc note-factory note-desc
+                                           scale opacity #false)))))           
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-class-block

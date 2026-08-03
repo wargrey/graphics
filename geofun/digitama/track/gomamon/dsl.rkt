@@ -38,21 +38,21 @@
                                           #:defaults [((submove-expr 1) null)])] ...])
      (quasisyntax/loc stx
        (begin (let ()
-                (geo-track-jump-to self pos-expr #false gomamon-grid-position)
+                (geo-track-jump-to self pos-expr gomamon-grid-position)
                 (gomamon-dsl self submove-expr) ...)
               ...))]
-    [(_ self [#:zone id type
+    [(_ self [#:zone id
+              (~optional type #:defaults ([type #'#false]))
               (~alt (~optional (~seq #:anchor anchor) #:defaults ([anchor #''ct]))
-                    (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
-                    (~optional (~seq #:stereotype sotype) #:defaults ([sotype #'#false])))
+                    (~optional (~seq #:desc desc) #:defaults ([desc #'#false])))
               ...
               internal-move:expr ...])
      (quasisyntax/loc stx
-       (parameterize ([current-flex-zone (geo-create-flex-zone! self id type desc anchor sotype)])
+       (parameterize ([current-rubber-zone (geo-create-rubber-zone! self id type desc anchor)])
          (gomamon-dsl self internal-move) ...))]
     [(_ self [#:with-zone id internal-move:expr ...])
      (quasisyntax/loc stx
-       (parameterize ([current-flex-zone (geo-flex-zone-ref self id)])
+       (parameterize ([current-rubber-zone (geo-rubber-zone-ref self id)])
          (gomamon-dsl self internal-move) ...))]
     [(_ self [(~or => #:=>) submove-expr ...])
      (with-syntax ([here (gensym 'goma:dsl:)])

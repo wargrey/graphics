@@ -10,7 +10,6 @@
 (require digimon/digitama/unsafe/ops)
 (require digimon/measure)
 
-(require racket/case)
 (require racket/list)
 (require racket/vector)
 
@@ -61,10 +60,9 @@
 
       (define (mtx-header [desc : Geo-Maybe-Rich-Text] [type : Mtx-Block-Type] [idx : Index]) : (Option Expr:Slot)
         (define-values (self-id indices)
-          (case/eq type
-            [(rhdr)     (values (expr-slot-cell-id id type idx   0) (mtx-hdr idx   0 'rc))]
-            [(chdr)     (values (expr-slot-cell-id id type   0 idx) (mtx-hdr 0   idx (if col-header-top? 'cb 'ct)))]
-            [else #;cnr (values (expr-slot-cell-id id type idx idx) (mtx-hdr idx idx 'cc))]))
+          (cond [(eq? type 'rhdr) (values (expr-slot-cell-id id type idx   0) (mtx-hdr idx   0 'rc))]
+                [(eq? type 'chdr) (values (expr-slot-cell-id id type   0 idx) (mtx-hdr 0   idx (if col-header-top? 'cb 'ct)))]
+                [else       #;cnr (values (expr-slot-cell-id id type idx idx) (mtx-hdr idx idx 'cc))]))
         (define style (cons (dia-mtx-header-style-make self-id type indices) backstop))
         
         (dia-mtx-slot-make self-id (void) style indices
@@ -98,20 +96,18 @@
         (cond [(procedure? rheader-desc) (build-vector nrows (λ [[idx : Index]] (let ([r (unsafe-idx+ idx 1)]) (mtx-header (rheader-desc r) 'rhdr r))))]
               [(procedure? header-desc) (build-vector nrows (λ [[idx : Index]] (let ([r (unsafe-idx+ idx 1)]) (mtx-header (header-desc r 0) 'rhdr r))))]
               [(string? row-desc) (build-vector nrows (λ [[idx : Index]] (let ([r (unsafe-idx+ idx 1)]) (mtx-header (format row-desc r) 'rhdr r))))]
-              [(and row-desc)
-               (for/vector : (Vectorof (Option Expr:Slot)) ([bdy (if (list? row-desc) (in-list row-desc) (in-vector row-desc))]
-                                                                 [idx (in-range 1 (add1 nrows))] #:when (index? idx))
-                 (mtx-header bdy 'rhdr idx))]
+              [(and row-desc) (for/vector : (Vectorof (Option Expr:Slot)) ([bdy (if (list? row-desc) (in-list row-desc) (in-vector row-desc))]
+                                                                           [idx (in-range 1 (add1 nrows))] #:when (index? idx))
+                                (mtx-header bdy 'rhdr idx))]
               [else #()]))
       
       (define col-headers : (Listof (Option Expr:Slot))
         (cond [(procedure? cheader-desc) (build-list ncols (λ [[idx : Index]] (let ([c (unsafe-idx+ idx 1)]) (mtx-header (cheader-desc c) 'chdr c))))]
               [(procedure? header-desc) (build-list ncols (λ [[idx : Index]] (let ([c (unsafe-idx+ idx 1)]) (mtx-header (header-desc 0 c) 'chdr c))))]
               [(string? col-desc) (build-list ncols (λ [[idx : Index]] (let ([c (unsafe-idx+ idx 1)]) (mtx-header (format col-desc c) 'chdr c))))]
-              [(and col-desc)
-               (for/list : (Listof (Option Expr:Slot)) ([bdy (if (list? col-desc) (in-list col-desc) (in-vector col-desc))]
-                                                        [idx (in-range 1 (add1 ncols))] #:when (index? idx))
-                 (mtx-header bdy 'chdr idx))]
+              [(and col-desc) (for/list : (Listof (Option Expr:Slot)) ([bdy (if (list? col-desc) (in-list col-desc) (in-vector col-desc))]
+                                                                       [idx (in-range 1 (add1 ncols))] #:when (index? idx))
+                                (mtx-header bdy 'chdr idx))]
               [else null]))
 
       (define nrowhdrs : Index (vector-count values row-headers))

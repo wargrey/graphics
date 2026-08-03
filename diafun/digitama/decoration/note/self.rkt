@@ -20,7 +20,7 @@
 (require "../../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Note-Metadata (Option Keyword))
+(define-type Dia-Note-Metadata (Option Keyword)) ; usually interpreted as `stereotype`
 (define-type Dia-Note-Typesetter (-> Symbol Geo-Rich-Text (Dia-Block-Style-Spec Dia-Note-Block-Style) Nonnegative-Flonum Nonnegative-Flonum (Option Geo)))
 (define-type Dia-Note-Describer (Dia-Block-Describer Dia-Note-Block-Style Dia-Note-Metadata))
 
@@ -71,7 +71,7 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-(define-phantom-struct dia~block~note~style : Dia~Block~Note~~Style #:-> dia-note-track-style #:for dia-track-style
+(define-phantom-struct dia~block~note~style : Dia~Block~Note~Style #:-> dia-note-track-style #:for dia-track-style
   ([font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Length+%) #false]

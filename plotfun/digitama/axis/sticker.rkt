@@ -6,7 +6,6 @@
 
 (require geofun/font)
 (require geofun/color)
-(require geofun/resize)
 (require geofun/composite)
 
 (require geofun/digitama/self)

@@ -15,7 +15,7 @@
                      (desc-font #:family face))))
 
 
-  (define mfont (desc-font #:size 32.0 #:family 'math))
+  (define mfont (desc-font #:size 64.0 #:family 'math))
 
-  (geo-hb-append (geo-text "f" mfont #:ink? #true)
-                 (geo-text "  f  " mfont #:ink? #false)))
+  (geo-text "f" mfont #:ink? #true)
+  (geo-text "  f  " mfont #:ink? #false))

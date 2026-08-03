@@ -59,6 +59,8 @@
            #:track-factory [track-factory : Flow-Track-Factory (default-flow-track-factory)]
            #:block-factory [block-factory : Flow-Block-Factory (default-flow-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) flow-zone-factory]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
@@ -71,7 +73,7 @@
     (create-dia-track dia:flowchart id self
                       #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
-                                         note-factory note-desc
+                                         zone-factory zone-desc note-factory note-desc
                                          scale opacity home-name))))
 
 (define #:forall (TS BS BM) dia-track-flow*
@@ -80,12 +82,14 @@
            #:desc [desc : (Option String) #false]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
            #:block-desc [block-desc : (Option (Dia-Block-Describer BS BM)) #false]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) flow-zone-factory]
            #:note-factory [note-factory : (Option Dia-Note-Factory) flow-note-factory]
            [master : Dia-Track-Datum]] : Dia:FlowChart
     (define self (dia-track-unbox master))
@@ -93,7 +97,7 @@
     (create-dia-track dia:flowchart id self
                       #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
-                                         note-factory note-desc
+                                         zone-factory zone-desc note-factory note-desc
                                          scale opacity home-name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

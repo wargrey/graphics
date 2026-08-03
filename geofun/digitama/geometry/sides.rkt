@@ -12,6 +12,8 @@
 (define-type Geo-Insets-Datum (U Nonnegative-Real (Listof Nonnegative-Real) (Immutable-Vectorof Nonnegative-Real) Geo-Standard-Insets))
 (define-type Geo-Insets-Datum+% (U Length+% (Listof Length+%) (Immutable-Vectorof Length+%) Geo-Standard-Insets))
 
+(define-type Geo-Insets-Mask (Immutable-Vector Boolean Boolean Boolean Boolean))
+
 (struct geo-standard-insets
   ([top : Nonnegative-Flonum]
    [right : Nonnegative-Flonum]
@@ -70,8 +72,8 @@
           [else (values 0.0 0.0 0.0 0.0)])))
 
 (define geo-inset*-values : (-> (Option Geo-Insets-Datum+%) Nonnegative-Flonum
-                                 (Values Nonnegative-Flonum Nonnegative-Flonum
-                                         Nonnegative-Flonum Nonnegative-Flonum))
+                                (Values Nonnegative-Flonum Nonnegative-Flonum
+                                        Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self 100%]
     (define-values (top right bottom left)
       (cond [(vector? self) (vector->4:values self 0.0)]
@@ -85,12 +87,19 @@
             [else (values 0.0 0.0 0.0 0.0)]))
     (values (~dimension top 100%) (~dimension right 100%) (~dimension bottom 100%) (~dimension left 100%))))
 
-(define geo-insets*->insets : (-> (Option Geo-Insets-Datum+%) Nonnegative-Flonum Geo-Standard-Insets)
-  (lambda [self 100%]
-    (define-values (top right bottom left) (geo-inset*-values self 100%))
-    
-    (geo-standard-insets (~dimension top 100%) (~dimension right 100%)
-                         (~dimension bottom 100%) (~dimension left 100%))))
+(define geo-insets*->insets : (case-> [(Option Geo-Insets-Datum+%) Nonnegative-Flonum -> Geo-Standard-Insets]
+                                      [(Option Geo-Insets-Datum+%) Nonnegative-Flonum Geo-Insets-Mask -> Geo-Standard-Insets])
+  (case-lambda
+    [(self 100%)
+     (let-values ([(top right bottom left) (geo-inset*-values self 100%)])    
+       (geo-standard-insets (~dimension top 100%) (~dimension right 100%)
+                            (~dimension bottom 100%) (~dimension left 100%)))]
+    [(self 100% mask)
+     (let-values ([(top right bottom left) (geo-inset*-values self 100%)])
+       (geo-standard-insets (if (vector-ref mask 0) (~dimension top 100%) 0.0)
+                            (if (vector-ref mask 1) (~dimension right 100%) 0.0)
+                            (if (vector-ref mask 2) (~dimension bottom 100%) 0.0)
+                            (if (vector-ref mask 3) (~dimension left 100%) 0.0)))]))
 
 (define geo-insets-scale : (case-> [Geo-Standard-Insets Real -> Geo-Standard-Insets]
                                    [Geo-Standard-Insets Real Real -> Geo-Standard-Insets]

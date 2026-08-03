@@ -16,6 +16,9 @@
 (define dia-preset-track-stroke : Pen (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
 (define dia-preset-free-track-stroke : Pen (desc-stroke #:width 1.5 #:color 'DimGrey #:dash 'long-dash  #:join 'round #:cap 'round))
 
+(define dia-preset-zone-font : Font dia-preset-header-font)
+(define dia-preset-zone-stroke : Pen (desc-stroke #:width 2.0 #:color 'DimGrey #:join 'round #:cap 'round))
+
 (define dia-preset-note-font : Font (desc-font #:family 'monospace #:size 'normal))
 (define dia-preset-note-track-stroke : Pen (desc-stroke #:width 1.0 #:color 'Grey #:dash #(3.0 3.0) #:join 'round #:cap 'round))
 (define dia-preset-note-block-stroke : Pen (desc-stroke #:width 1.0 #:color 'DimGrey #:join 'round #:cap 'round))

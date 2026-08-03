@@ -30,7 +30,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-track-anchor->sticker : Geo-Track-Anchor->Sticker
   (lambda [anchor pos Width Height]
-    (define-values (text stereotype) (dia-anchor-extract anchor))
+    (define-values (text stereotype) (geo-anchor-extract anchor))
     
     (if (symbol? anchor)
         (geo-text text #:color 'RoyalBlue)

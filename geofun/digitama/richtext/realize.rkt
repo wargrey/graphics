@@ -25,7 +25,7 @@
            #:radix [base : (U (List 'up Integer) Integer) 10]
            #:ink? [ink? : Boolean #false]
            [n : (U Complex Rich-Datum<%>)]
-           [font : (Option Font)]
+           [font : Option-Font]
            [color : Option-Fill-Paint]] : Geo
     (define (geo-plain-string [v : String]) : Geo
       (geo-text #:id text-id #:alignment alignment
@@ -51,7 +51,7 @@
            #:radix [base : (U (List 'up Integer) Integer) 10]
            #:ink? [ink? : Boolean #false]
            [text : Geo-Rich-Text]
-           [font : (Option Font)]
+           [font : Option-Font]
            [color : Option-Fill-Paint]] : Geo
     (cond [(or (string? text) (symbol? text))
            (if (or max-width max-height)
@@ -93,3 +93,27 @@
                                #:max-width max-width #:max-height max-height
                                text font color)
         text)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-rich-text-try-realize
+  (lambda [#:id [text-id : (Option Symbol) #false]
+           #:alignment [alignment : Geo-Text-Alignment 'center]
+           #:max-width [max-width : (Option Nonnegative-Flonum) #false]
+           #:max-height [max-height : (Option Nonnegative-Flonum) #false]
+           #:trim? [trim? : Boolean #true]
+           [desc : Geo-Rich-Text]
+           [font : Option-Font]
+           [color : Option-Fill-Paint]] : (Option Geo)
+    (define text : Geo-Rich-Text
+      (cond [(not trim?) desc]
+            [(string? desc) (string-trim desc)]
+            [(bytes? desc) (regexp-replace* #px"((^\\s*)|(\\s*$))" desc #"")]
+            [else desc]))
+    
+    (and (cond [(string? text) (> (string-length text) 0)]
+               [(bytes? text)  (> (bytes-length text) 0)]
+               [else #true])
+         (geo-rich-text-realize #:id text-id
+                                #:max-width max-width #:max-height max-height
+                                #:alignment alignment
+                                text font color))))

@@ -30,15 +30,14 @@
 (define-type Option-Track-Halo-Paint (U False Halo-Pen))
 (define-type Maybe-Track-Halo-Paint (U Void Option-Track-Halo-Paint))
 
-(define current-flex-zone : (Parameterof (Option Geo:Track:Zone:Flex)) (make-parameter #false))
+(define current-rubber-zone : (Parameterof (Option Geo:Track:Zone:Rubber)) (make-parameter #false))
 (define default-track-halo-stroke : (Parameterof Option-Track-Halo-Paint) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct geo:track:zone
   ([id : Symbol]
-   [type : Symbol]
-   [stereotype : (Option Keyword)]
-   [desc : Geo-Rich-Text])
+   [type : (Option Symbol)]
+   [desc : Geo-Option-Rich-Text])
   #:type-name Geo:Track:Zone
   #:transparent)
 
@@ -47,11 +46,11 @@
   #:type-name Geo:Track:Zone:Fixed
   #:transparent)
 
-(struct geo:track:zone:flex geo:track:zone
+(struct geo:track:zone:rubber geo:track:zone
   ([caption-anchor : Geo-Pin-Anchor]
    [anchors : (Listof Geo-Anchor-Name)]
-   [children : (Listof Geo:Track:Zone:Flex)])
-  #:type-name Geo:Track:Zone:Flex
+   [children : (Listof Geo:Track:Zone:Rubber)])
+  #:type-name Geo:Track:Zone:Rubber
   #:transparent
   #:mutable)
 
@@ -62,7 +61,7 @@
    [here : Float-Complex]
    [footprints : Geo-Path-Prints]
    [foot-infos : Geo-Track-Infobase]
-   [zones : (Listof Geo:Track:Zone:Flex)]
+   [zones : (Listof Geo:Track:Zone:Rubber)]
    [stickers : (Listof (Pairof Geo-Sticker-Datum Float-Complex))])
   #:type-name Geo:Track
   #:transparent
@@ -87,52 +86,49 @@
            (fit (cdr ctrls)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-create-flex-zone! : (-> Geo:Track Symbol Symbol Geo-Option-Rich-Text Geo-Pin-Anchor (Option Keyword) Geo:Track:Zone:Flex)
-  (lambda [master id type desc anchor keyword]
-    (define maybe-zone (geo-find-flex-zone master id))
+(define geo-create-rubber-zone! : (-> Geo:Track Symbol (Option Symbol) Geo-Option-Rich-Text Geo-Pin-Anchor Geo:Track:Zone:Rubber)
+  (lambda [master id type desc anchor]
+    (define maybe-zone (geo-find-rubber-zone master id))
 
     (when (and maybe-zone)
-      (raise-user-error 'geo-create-flex-zone! "duplicate zone name: ~a" id))
+      (raise-user-error 'geo-create-rubber-zone! "duplicate zone name: ~a" id))
 
-    (define parent-zone (current-flex-zone))
-    (define self-zone
-      (geo:track:zone:flex id type keyword
-                           (or desc (symbol->immutable-string id))
-                           anchor null null))
+    (define parent-zone (current-rubber-zone))
+    (define self-zone (geo:track:zone:rubber id type desc anchor null null))
 
     (if (not parent-zone)
         (set-geo:track-zones! master (cons self-zone (geo:track-zones master)))
-        (set-geo:track:zone:flex-children! parent-zone (cons self-zone (geo:track:zone:flex-children parent-zone))))
+        (set-geo:track:zone:rubber-children! parent-zone (cons self-zone (geo:track:zone:rubber-children parent-zone))))
     
     self-zone))
 
-(define geo-flex-zone-ref : (-> Geo:Track Symbol Geo:Track:Zone:Flex)
+(define geo-rubber-zone-ref : (-> Geo:Track Symbol Geo:Track:Zone:Rubber)
   (lambda [master id]
-    (define the-zone (geo-find-flex-zone master id))
+    (define the-zone (geo-find-rubber-zone master id))
 
     (when (not the-zone)
-      (raise-user-error 'geo-extend-flex-zone! "no such a zone: ~a" id))
+      (raise-user-error 'geo-extend-rubber-zone! "no such a zone: ~a" id))
     
     the-zone))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-find-flex-zone : (-> Geo:Track Symbol (Option Geo:Track:Zone:Flex))
+(define geo-find-rubber-zone : (-> Geo:Track Symbol (Option Geo:Track:Zone:Rubber))
   (lambda [master id]
-    (let find ([zones : (Listof Geo:Track:Zone:Flex) (geo:track-zones master)])
+    (let find ([zones : (Listof Geo:Track:Zone:Rubber) (geo:track-zones master)])
       (and (pair? zones)
-           (let subfind ([self : Geo:Track:Zone:Flex (car zones)])
+           (let subfind ([self : Geo:Track:Zone:Rubber (car zones)])
              (cond [(eq? (geo:track:zone-id self) id) self]
-                   [else (or (ormap subfind (geo:track:zone:flex-children self))
+                   [else (or (ormap subfind (geo:track:zone:rubber-children self))
                              (find (cdr zones)))]))))))
 
 (define geo-current-zone-try-push-anchor! : (-> Geo-Anchor-Name Void)
   (lambda [anchor]
-    (define the-zone (current-flex-zone))
+    (define the-zone (current-rubber-zone))
 
     (when (and the-zone)
-      (define anchors (geo:track:zone:flex-anchors the-zone))
+      (define anchors (geo:track:zone:rubber-anchors the-zone))
       (unless (memq anchor anchors)
-        (set-geo:track:zone:flex-anchors! the-zone (cons anchor anchors))))))
+        (set-geo:track:zone:rubber-anchors! the-zone (cons anchor anchors))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define geo-track-extent : Geo-Calculate-Extent

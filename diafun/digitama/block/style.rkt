@@ -5,9 +5,6 @@
 (require digimon/measure)
 (require digimon/struct)
 
-(require racket/string)
-(require racket/list)
-
 (require geofun/font)
 (require geofun/stroke)
 (require geofun/fill)
@@ -103,19 +100,10 @@
     (define font : Font (or alt-font (dia-block-resolve-font style)))
     (define paint : Option-Fill-Paint (or alt-color (dia-block-resolve-font-paint style)))
     
-    (define text : Geo-Rich-Text
-      (cond [(not trim?) desc]
-            [(string? desc) (string-trim desc)]
-            [(bytes? desc) (regexp-replace* #px"((^\\s*)|(\\s*$))" desc #"")]
-            [else desc]))
-    
-    (and (cond [(string? text) (> (string-length text) 0)]
-               [(bytes? text)  (> (bytes-length text) 0)]
-               [else #true])
-         (geo-rich-text-realize #:id (dia-block-caption-id (or id (gensym 'dia:block:caption:)))
-                                #:max-width max-width #:max-height max-height
-                                #:alignment alignment
-                                text font paint))))
+    (geo-rich-text-try-realize #:id (dia-block-caption-id (or id (gensym 'dia:block:caption:)))
+                               #:max-width max-width #:max-height max-height
+                               #:alignment alignment #:trim? trim?
+                               desc font paint)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-block-resolve-font : (-> (Dia-Block-Style-Spec S) Font)
@@ -254,24 +242,6 @@
 (define dia-block-shape-id : (-> Geo-Anchor-Name Symbol)
   (lambda [anchor]
     (string->symbol (string-append "&" (geo-anchor->string anchor)))))
-
-(define dia-block-caption-split-for-stereotype : (-> String (Values String (Option Keyword)))
-  (lambda [text]
-    (define has-hash? (regexp-match? #px"#" text))
-
-    (cond [(not has-hash?) (values text #false)]
-          [else (let ([tokens (string-split text #px"#")])
-                  (define-values (cname stype)
-                    (cond [(not (pair? tokens)) (values text #false)]
-                          [(null? (cdr tokens)) (values "" (string-trim (car tokens)))]
-                          [(null? (cddr tokens)) (values (car tokens) (string-trim (cadr tokens)))]
-                          [else (let-values ([(cnames tag) (split-at-right tokens 1)])
-                                  (values (string-join cnames "#") (string-trim (car tag))))]))
-                  (values cname
-                          (and stype
-                               (and (non-empty-string? stype)
-                                    (cond [(eq? (string-ref stype 0) #\.) #false]
-                                          [else (string->keyword stype)])))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S M) dia-block-theme-adjust : (-> (Dia-Block-Style S) Geo-Anchor-Name (Option (Dia-Block-Theme-Adjuster S M)) M

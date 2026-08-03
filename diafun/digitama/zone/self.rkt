@@ -8,62 +8,36 @@
 (require geofun/font)
 (require geofun/paint)
 
-(require geofun/digitama/self)
-(require geofun/digitama/path/tip/self)
-(require geofun/digitama/richtext/self)
-
-(require "../block/dc.rkt")
-(require "../block/style.rkt")
-(require "../block/interface.rkt")
-(require "../track/style.rkt")
+(require "style.rkt")
+(require "interface.rkt")
 
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Dia-Zone-Metadata (Option Keyword))
-(define-type Dia-Zone-Typesetter (-> Symbol Geo-Rich-Text (Dia-Block-Style-Spec Dia-Zone-Block-Style) Nonnegative-Flonum Nonnegative-Flonum (Option Geo)))
-(define-type Dia-Zone-Describer (Dia-Block-Describer Dia-Zone-Block-Style Dia-Zone-Metadata))
-
-(define-type Dia-Zone-Track-Theme-Adjuster (Dia-Track-Theme-Adjuster Dia-Zone-Track-Style))
-(define-type Dia-Zone-Block-Theme-Adjuster (Dia-Block-Theme-Adjuster Dia-Zone-Block-Style Dia-Zone-Metadata))
-
-(define-type Dia-Zone-Builder
-  (-> Symbol Geo (Dia-Block-Style-Spec Dia-Zone-Block-Style) Geo-Standard-Insets (Option Flonum) Dia-Zone-Metadata
-      ; Yes, the engine doesn't provide a fallback
-      (Option Dia:Block:Note)))
-
-(struct dia-note-track-style () #:type-name Dia-Zone-Track-Style #:transparent)
-
-(define default-dia-note-track-theme-adjuster : (Parameterof (Option Dia-Zone-Track-Theme-Adjuster)) (make-parameter #false))
-(define default-dia-note-block-theme-adjuster : (Parameterof (Option Dia-Zone-Block-Theme-Adjuster)) (make-parameter #false))
+(define default-dia-flex-zone-theme-adjuster  : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
+(define default-dia-fixed-zone-theme-adjuster : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration dia-note-block-backstop-style : Dia-Zone-Backstop-Style #:as dia-block-backstop-style
-  #:format "default-dia-note-~a"
-  ([width : Nonnegative-Flonum 128.0]
-   [height : Nonnegative-Flonum +inf.0]
-   [padding : Dia-Block-Padding (&L 1.0 'ex)]
-   [font : Font dia-preset-note-font]
+(define-configuration dia-zone-backstop-style : Dia-Zone-Backstop-Style #:as #%dia-zone-backstop-style
+  #:format "default-dia-zone-~a"
+  ([padding : Dia-Zone-Padding (&L 1.0 'em)]
+   [font : Font dia-preset-zone-font]
    [font-paint : Fill-Paint 'DimGray]
-   [stroke-paint : Option-Stroke-Paint dia-preset-note-block-stroke]
-   [fill-paint : Option-Fill-Paint 'WhiteSmoke]))
-
-(define-configuration dia-note-track-backstop-style : Dia-Zone-Track-Backstop-Style #:as dia-track-backstop-style
-  #:format "default-dia-note-track-~a"
-  ([font : Font dia-preset-track-label-font]
-   [font-paint : Fill-Paint 'DimGray]
-   [line-paint : Stroke-Paint dia-preset-note-track-stroke]
-   [source-tip : Option-Geo-Tip #false]
-   [target-tip : Option-Geo-Tip #false]
-   [label-rotate? : Boolean #true]
-   [label-inline? : Boolean #true]
-   [label-distance : (Option Length+%) #false]))
+   [stroke-paint : Option-Stroke-Paint dia-preset-zone-stroke]
+   [fill-paint : Option-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-phantom-struct dia-note-block-style : Dia-Zone-Block-Style #:for dia-block-style
-  ([width : Dia-Block-Option-Size  #false]
-   [height : Dia-Block-Option-Size #false]
-   [padding : Dia-Block-Option-Padding #false]
+(define-phantom-struct dia-flex-zone-style : Dia-Flex-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
+  ([padding : Dia-Zone-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color (void)]
+   [stroke-dash : (Option Stroke-Dash+Offset) 'long-dash]
+   [fill-paint : Maybe-Fill-Paint (void)]))
+
+(define-phantom-struct dia-fixed-zone-style : Dia-Fixed-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
+  ([padding : Dia-Zone-Option-Padding #false]
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Length+%) #false]
@@ -71,34 +45,11 @@
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint (void)]))
 
-(define-phantom-struct dia~block~note~style : Dia~Block~Note~~Style #:-> dia-note-track-style #:for dia-track-style
-  ([font : (Option Font+Tweak) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Length+%) #false]
-   [color : Maybe-Color #false]
-   [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
-   [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Length+%) (void)]))
-
-(define-phantom-struct dia~track~note~style : Dia~Track~Note~Style #:-> dia-note-track-style #:for dia-track-style
-  ([font : (Option Font+Tweak) #false]
-   [font-paint : Option-Fill-Paint #false]
-   [width : (Option Length+%) #false]
-   [color : Maybe-Color #false]
-   [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip 'circle]
-   [label-rotate? : (U Boolean Void) (void)]
-   [label-inline? : (U Boolean Void) (void)]
-   [label-distance : (U Void Length+%) (void)]))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-struct dia-note-factory : Dia-Zone-Factory
-  ([typesetter : (Option Dia-Zone-Typesetter) #false]
-   [builder : (Option Dia-Zone-Builder) #false]
-   [λtrack-backstop-style : (-> Dia-Zone-Track-Backstop-Style) make-dia-note-track-backstop-style]
-   [λblock-backstop-style : (-> Dia-Block-Backstop-Style) make-dia-note-block-backstop-style])
+(define-struct dia-zone-factory : Dia-Zone-Factory
+  ([identifier : (Dia-Zone-Identifier Dia-Zone-Style) void]
+   [typesetter : (Option (Dia-Zone-Typesetter Dia-Zone-Style)) #false]
+   [builder : (Option (Dia-Zone-Builder Dia-Zone-Style)) #false]
+   [fallback-builder : (Dia-Zone-Builder Dia-Zone-Style) void]
+   [λbackstop-style : (-> Dia-Zone-Backstop-Style) make-dia-zone-backstop-style])
   #:transparent)

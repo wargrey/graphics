@@ -32,7 +32,7 @@
         (keyword->immutable-string anchor))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-anchor-extract : (->* (Geo-Anchor-Name) (String) (Values String (Option Keyword)))
+(define geo-anchor-extract : (->* (Geo-Anchor-Name) (String) (Values String (Option Keyword)))
   (lambda [anchor [sep "#"]]
     (define text (geo-anchor->string anchor))
     (define has-hash? (string-contains? text sep))

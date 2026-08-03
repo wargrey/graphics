@@ -6,6 +6,7 @@
 
 (require/provide "gomamon.rkt")
 (require/provide "freetrack/self.rkt")
-
 (require/provide "note/self.rkt")
-(require/provide "note/uml.rkt")
+
+(require/provide "note/instance/flow.rkt")
+(require/provide "note/instance/uml.rkt")

@@ -64,19 +64,6 @@
          (begin (let ([p (if (<= P 0) 0 (random 0 P))])
                   (cond [(< p accum%) (renamon-dsl self submove-expr) ...]
                         ...)))))]
-    [(_ self [#:zone id type
-              (~alt (~optional (~seq #:anchor anchor) #:defaults ([anchor #''ct]))
-                    (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
-                    (~optional (~seq #:stereotype sotype) #:defaults ([sotype #'#false])))
-              ...
-              [internal-move-expr ...]])
-     (quasisyntax/loc stx
-       (parameterize ([current-flex-zone (geo-create-flex-zone! self id type desc anchor sotype)])
-         (renamon-dsl self internal-move-expr) ...))]
-    [(_ self [#:with-zone id [internal-move-expr ...]])
-     (quasisyntax/loc stx
-       (parameterize ([current-flex-zone (geo-flex-zone-ref self id)])
-         (renamon-dsl self internal-move-expr) ...))]
     [(_ self [(~or => #:=>) submove-expr ...])
      (with-syntax ([here (gensym 'rena:dsl:)]
                    [info (gensym 'rena:dsl:)])

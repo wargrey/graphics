@@ -3,8 +3,6 @@
 (provide (all-defined-out))
 
 (require geofun/digitama/self)
-
-(require geofun/digitama/dc/text)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/layer/type)

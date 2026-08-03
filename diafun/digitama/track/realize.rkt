@@ -30,24 +30,28 @@
 (require "../block/interface.rkt")
 (require "../block/backstop.rkt")
 
+(require "../zone/self.rkt")
+(require "../zone/interface.rkt")
+(require "../zone/realize.rkt")
+(require "../zone/backstop.rkt")
+
 (require "../decoration/freetrack/self.rkt")
 (require "../decoration/freetrack/backstop.rkt")
 
 (require "../decoration/note/self.rkt")
 (require "../decoration/note/realize.rkt")
 
-(require "../zone/realize.rkt")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (TS BS BM) dia-track-realize : (-> Geo:Track
                                                     (Dia-Track-Factory TS) (Option Dia-Free-Track-Factory)
                                                     (Dia-Block-Factory BS BM) (Option (Dia-Block-Describer BS BM))
+                                                    (Option Dia-Zone-Factory) (Option Dia-Zone-Describer)
                                                     (Option Dia-Note-Factory) (Option Dia-Note-Describer)
                                                     Real (Option Nonnegative-Real) (Option Geo-Rich-Text)
                                                     (Values (Listof (GLayerof Geo)) (Listof (GLayerof Geo))
                                                             (Listof (GLayerof Geo))
                                                             (Listof (GLayerof Geo)) (Listof (GLayerof Geo))))
-  (lambda [self track-factory free-factory block-factory block-desc0 note-factory note-desc scale opacity0 home-name]
+  (lambda [self track-factory free-factory block-factory block-desc0 zone-factory zone-desc note-factory note-desc scale opacity0 home-name]
     (define gpath : Geo-Trace (geo:track-trace self))
     (define anchor-base : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (geo-trace-anchored-positions gpath))
     (define block-scale (and (> scale 0.0) (not (= scale 1.0)) (real->double-flonum scale)))
@@ -67,7 +71,7 @@
     (define block-rootstyle (dia-block-factory-λroot-style block-factory))
     (define block-backstyle ((dia-block-factory-λbackstop-style block-factory)))
     (define make-block (dia-block-builder-compose (dia-block-factory-builder block-factory) (dia-block-factory-fallback-builder block-factory)))
-    (define make-caption (dia-block-typesetter-compose (dia-block-factory-typesetter block-factory)))
+    (define make-caption (dia-block-typesetter-compose (dia-block-factory-typesetter block-factory)))                      
 
     (define free-adjuster (or (default-free-track-theme-adjuster) (and free-factory (dia-free-track-factory-adjuster free-factory))))
     (define make-free-path (dia-free-track-builder-compose (and free-factory (dia-free-track-factory-builder free-factory))))
@@ -129,17 +133,22 @@
             (values tracks blocks))))
 
     (define-values (bands zones)
-      (let ([positions (geo-trace-positions gpath)])
-        (for/fold ([bands : (Listof (GLayerof Geo)) null]
-                   [zones : (Listof (GLayerof Geo)) null])
-                  ([zone (in-list (geo:track-zones self))])
-          (cond [(geo:track:zone:flex? zone)
-                 (define group (dia-flex-zone-realize  zone positions blockdb tracks opacity))
-                 (values bands (if (not group) zones (cons group zones)))]
-                [(geo:track:zone:fixed? zone)
-                 (define group (dia-fixed-zone-realize zone positions blockdb tracks opacity))
-                 (values (if (not group) bands (cons group bands)) zones)]
-                [else (values bands zones)]))))
+      (cond [(not zone-factory) (values null null)]
+            [else (let ([positions (geo-trace-positions gpath)]
+                        [identify (dia-zone-factory-identifier zone-factory)]
+                        [typeset (dia-zone-typesetter-compose (dia-zone-factory-typesetter zone-factory))]
+                        [build (dia-zone-builder-compose (dia-zone-factory-builder zone-factory) (dia-zone-factory-fallback-builder zone-factory))]
+                        [backstop ((dia-zone-factory-λbackstop-style zone-factory))])
+                    (for/fold ([bands : (Listof (GLayerof Geo)) null]
+                               [zones : (Listof (GLayerof Geo)) null])
+                              ([zone (in-list (geo:track-zones self))])
+                      (cond [(geo:track:zone:rubber? zone)
+                             (define group (dia-rubber-zone-realize  zone positions blockdb tracks opacity identify typeset build backstop zone-desc))
+                             (values bands (if (not group) zones (cons group zones)))]
+                            [(geo:track:zone:fixed? zone)
+                             (define group (dia-fixed-zone-realize zone positions blockdb tracks opacity identify typeset build backstop zone-desc))
+                             (values (if (not group) bands (cons group bands)) zones)]
+                            [else (values bands zones)])))]))
 
     (values
      bands zones

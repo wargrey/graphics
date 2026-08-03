@@ -13,6 +13,7 @@
 (require "interface.rkt")
 (require "backstop.rkt")
 
+(require "../stereotype.rkt")
 (require "../decoration/note/self.rkt")
 (require "../decoration/note/realize.rkt")
 
@@ -23,8 +24,7 @@
                                                 Geo-Anchor-Name (Option Flonum) (Option Nonnegative-Flonum) (Option Nonnegative-Flonum) 
                                                 (Option Dia:Block))
   (lambda [block-identifier make-block make-caption root-style backstop-style block-desc note-factory note-desc anchor direction scale opacity]
-    (define full-text : String (geo-anchor->string anchor))
-    (define-values (text stereotype) (dia-block-caption-split-for-stereotype full-text))
+    (define-values (text stereotype) (dia-identity-extract anchor))
     (define size : Index (string-length text))
     (define ch0 : (Option Char) (and (> size 0) (string-ref text 0)))
 

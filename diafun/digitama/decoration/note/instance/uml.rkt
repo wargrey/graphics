@@ -7,12 +7,12 @@
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/geometry/sides)
 
-(require "self.rkt")
-(require "../../presets.rkt")
+(require "../self.rkt")
+(require "../../../presets.rkt")
 
-(require "../../block/dc.rkt")
-(require "../../block/dc/node.rkt")
-(require "../../block/style.rkt")
+(require "../../../block/dc.rkt")
+(require "../../../block/dc/node.rkt")
+(require "../../../block/style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uml-note-build : Dia-Note-Builder

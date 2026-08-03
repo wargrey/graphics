@@ -61,9 +61,11 @@
            #:block-factory [block-factory : UC-Block-Factory (default-uc-block-factory)]
            #:track-factory [track-factory : UC-Track-Factory (default-uc-track-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
            #:block-desc [block-desc : (Option UC-Block-Describer) #false]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
@@ -74,7 +76,8 @@
       (create-dia-track dia:use-case id self
                         #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory block-desc
-                                           note-factory note-desc scale opacity home-name)))))
+                                           zone-factory zone-desc note-factory note-desc
+                                           scale opacity home-name)))))
 
 (define #:forall (TS BS BM) dia-track-use-case*
   (lambda [#:id [id : (Option Symbol) #false]
@@ -83,9 +86,11 @@
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:start-name [home-name : (Option Geo-Rich-Text) #false]
            #:block-desc [block-desc : (Option (Dia-Block-Describer BS BM)) #false]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-scale [scale : Nonnegative-Real 1.0]
            #:opacity [opacity : (Option Nonnegative-Real) #false]
@@ -96,7 +101,8 @@
       (create-dia-track dia:use-case id self
                         #:with frame (or desc (geo-desc self))
                         (dia-track-realize self track-factory free-factory block-factory block-desc
-                                           note-factory note-desc scale opacity home-name)))))
+                                           zone-factory zone-desc note-factory note-desc
+                                           scale opacity home-name)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-use-case-block

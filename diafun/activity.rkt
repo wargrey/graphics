@@ -7,9 +7,12 @@
 (provide (all-from-out "digitama/activity/self.rkt"))
 (provide (all-from-out "digitama/activity/style.rkt"))
 (provide (all-from-out "digitama/activity/parameter.rkt"))
+
 (provide (all-from-out geofun/constructor))
 (provide (rename-out [dia-track-activate dia-track-act]
                      [dia-track-activate* dia-track-act*]))
+
+(require geofun/constructor)
 
 (require "digitama/track/dc.rkt")
 (require "digitama/track/base.rkt")
@@ -26,8 +29,6 @@
 (require "digitama/activity/self.rkt")
 (require "digitama/activity/style.rkt")
 (require "digitama/activity/parameter.rkt")
-
-(require geofun/constructor)
 
 (require (for-syntax racket/base))
 (require (for-syntax syntax/parse))
@@ -66,6 +67,8 @@
            #:track-factory [track-factory : Act-Track-Factory (default-act-track-factory)]
            #:block-factory [block-factory : Act-Block-Factory (default-act-block-factory)]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            #:block-desc [block-desc : (Option Act-Block-Describer) #false]
@@ -77,7 +80,8 @@
     (create-dia-track dia:activity id self
                       #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
-                                         note-factory note-desc scale opacity #false))))
+                                         zone-factory zone-desc note-factory note-desc
+                                         scale opacity #false))))
 
 (define #:forall (TS BS BM) dia-track-activate*
   (lambda [#:id [id : (Option Symbol) #false]
@@ -88,8 +92,10 @@
            #:opacity [opacity : (Option Nonnegative-Real) #false]
            #:track-factory [track-factory : (Dia-Track-Factory TS)]
            #:block-factory [block-factory : (Dia-Block-Factory BS BM)]
+           #:zone-factory [zone-factory : (Option Dia-Zone-Factory) uml-zone-factory]
            #:free-track-factory [free-factory : (Option Dia-Free-Track-Factory) (default-dia-free-track-factory)]
            #:note-factory [note-factory : (Option Dia-Note-Factory) uml-note-factory]
+           #:zone-desc [zone-desc : (Option Dia-Zone-Describer) #false]
            #:note-desc [note-desc : (Option Dia-Note-Describer) #false]
            [master : Dia-Track-Datum]] : Dia:Activity
     (define self (dia-track-unbox master))
@@ -97,7 +103,8 @@
     (create-dia-track dia:activity id self
                       #:with frame (or desc (geo-desc self))
                       (dia-track-realize self track-factory free-factory block-factory block-desc
-                                         note-factory note-desc scale opacity #false))))
+                                         zone-factory zone-desc note-factory note-desc
+                                         scale opacity #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-activity-block

@@ -13,6 +13,7 @@
 (require geofun/constructor)
 
 (require geofun/digitama/self)
+(require geofun/digitama/paint/self)
 (require geofun/digitama/dc/resize)
 (require geofun/digitama/geometry/sides)
 
@@ -172,19 +173,23 @@
                                  tags)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-block-stereotype : (-> Any (Dia-Block-Style-Spec S) (Option Font+Tweak) Flonum Geo)
-  (lambda [stereotype style stereotype-font max-width]
-    (define stereotype.txt : Geo:Text
-      (geo-text #:color (dia-block-resolve-font-paint style)
-                (format "«~a»" (if (keyword? stereotype) (keyword->immutable-string stereotype) stereotype))
-                (cond [(font? stereotype-font) stereotype-font]
-                      [(not stereotype-font) (dia-block-resolve-font style)]
-                      [else (desc-font* (dia-block-resolve-font style) #:tweak stereotype-font)])))
-
-    (cond[(<= max-width 0.0) stereotype.txt]
-         [else (let ([swidth (geo-width stereotype.txt)])
-                 (cond [(<= swidth max-width) stereotype.txt]
-                       [else (geo-scale stereotype.txt (/ max-width swidth) 1.0)]))])))
+(define #:forall (S) dia-block-stereotype : (case-> [Any (Dia-Block-Style-Spec S) (Option Font+Tweak) Flonum -> Geo]
+                                                    [Any Font Brush (Option Font+Tweak) Flonum -> Geo])
+  (case-lambda
+    [(stereotype style stereotype-font max-width)
+     (dia-block-stereotype stereotype (dia-block-resolve-font style) (dia-block-resolve-font-paint style) stereotype-font max-width)]
+    [(stereotype font color stereotype-font max-width)
+     (define stereotype.txt : Geo:Text
+       (geo-text #:color color
+                 (format "«~a»" (if (keyword? stereotype) (keyword->immutable-string stereotype) stereotype))
+                 (cond [(font? stereotype-font) stereotype-font]
+                       [(not stereotype-font) font]
+                       [else (desc-font* font #:tweak stereotype-font)])))
+     
+     (cond[(<= max-width 0.0) stereotype.txt]
+          [else (let ([swidth (geo-width stereotype.txt)])
+                  (cond [(<= swidth max-width) stereotype.txt]
+                        [else (geo-scale stereotype.txt (/ max-width swidth) 1.0)]))])]))
 
 (define #:forall (S) dia-polygon-shape : (-> (Option Symbol) (Dia-Block-Style-Spec S) (Listof Float-Complex) Geo)
   (lambda [key style vertices]
