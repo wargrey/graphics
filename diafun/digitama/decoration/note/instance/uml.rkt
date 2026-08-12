@@ -17,7 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uml-note-build : Dia-Note-Builder
   (lambda [key body style padding direction sotype]
-    (define stereotype (and sotype (dia-block-stereotype sotype style dia-preset-note-tag-font-tweak +inf.0)))
+    (define stereotype (and sotype (dia-block-stereotype sotype style dia-preset-tag-font-tweak +inf.0)))
     (define-values (bdwidth bdheight) (geo-size body))
     (define-values (stwidth stheight) (if (not stereotype) (values 0.0 0.0) (geo-size stereotype)))
     (define-values (top rgt bot lft) (geo-inset-values padding))

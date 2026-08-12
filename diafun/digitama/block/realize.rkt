@@ -26,7 +26,6 @@
   (lambda [block-identifier make-block make-caption root-style backstop-style block-desc note-factory note-desc anchor direction scale opacity]
     (define-values (text stereotype) (dia-identity-extract anchor))
     (define size : Index (string-length text))
-    (define ch0 : (Option Char) (and (> size 0) (string-ref text 0)))
 
     (and (> size 0)
          (let ([ch0 (string-ref text 0)])
@@ -36,10 +35,11 @@
                     (and blk-info
                          (let-values ([(text metadata style) (values (car blk-info) (cadr blk-info) (caddr blk-info))])
                            (and style
-                                (let ([style-spec ((inst make-dia-block-style-spec S) #:custom style #:backstop backstop-style
-                                                                                      #:root (and root-style (root-style style))
-                                                                                      #:scale scale #:opacity opacity)])
-                                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-block-resolve-font style-spec) unit))])
+                                (let* ([style-spec ((inst make-dia-block-style-spec S) #:custom style #:backstop backstop-style
+                                                                                       #:root (and root-style (root-style style))
+                                                                                       #:scale scale #:opacity opacity)]
+                                       [block-font (dia-block-resolve-font style-spec)])
+                                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref block-font unit))])
                                     (define-values (width height) (dia-block-resolve-size style-spec))
                                     
                                     (let* ([id (geo-anchor->symbol anchor)]

@@ -226,9 +226,10 @@
                     [else (free-adjuster style0 source target ctracks label-text extra-track-info)]))
 
             (and style-self
-                 (let ([style-spec ((inst make-dia-track-style-spec Dia-Free-Track-Style)
-                                    #:custom (if (void? style-self) style0 style-self) #:backstop backstyle #:opacity opacity)])
-                   (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-track-resolve-font style-spec) unit))])
+                 (let* ([style-spec ((inst make-dia-track-style-spec Dia-Free-Track-Style)
+                                     #:custom (if (void? style-self) style0 style-self) #:backstop backstyle #:opacity opacity)]
+                        [track-font (dia-track-resolve-font style-spec)])
+                   (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref track-font unit))])
                      (let ([labels (dia-track-label-info->label make-label style-spec label-sofni)]
                            [path (make-path source target ctracks style-spec)])
                        (and (geo? path)

@@ -14,7 +14,7 @@
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-dia-flex-zone-theme-adjuster  : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
+(define default-dia-rubber-zone-theme-adjuster  : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
 (define default-dia-fixed-zone-theme-adjuster : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,7 +27,7 @@
    [fill-paint : Option-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-phantom-struct dia-flex-zone-style : Dia-Flex-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
+(define-phantom-struct dia-rubber-zone-style : Dia-Rubber-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
   ([padding : Dia-Zone-Option-Padding #false]
    [font : (Option Font+Tweak) #false]
    [font-paint : Option-Fill-Paint #false]

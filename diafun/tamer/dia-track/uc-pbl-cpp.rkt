@@ -5,6 +5,7 @@
 (require diafun/usecase)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define JrLab : Symbol 'JrLab#subsystem)
 (define title : String "JrPLT and PBL Practice")
 
 (define pbl-colorize : UC-Block-Theme-Adjuster
@@ -47,7 +48,7 @@
 (define-use-case-diagram! role.dia #:start '#:Engineer
   #:parameterize ([default-uc-block-theme-adjuster pbl-colorize])
   [#:frame 'White #:start-name "Software\nEngineer" #:block-desc pbl-desc] #:-
-  [#:zone 'JrLab 'system #:desc title
+  [#:zone JrLab 'system #:desc title
    (actor-use 2 -pi/4 'arch#dev)
    (actor-use 2 0 'code#dev)
    (actor-use 2 +pi/4 'train)
@@ -66,7 +67,7 @@
    (case-extend 2 +5pi/12 'develop#edu)]
    
   (jump-to -0.5+8i '#:Teacher)
-  [#:with-zone 'JrLab
+  [#:with-zone JrLab
    (actor-use 2 -pi/6 'fit#edu)
    (actor-use 3 0 'deploy)
    (actor-use 3+9i 'report#stu)]
@@ -78,20 +79,20 @@
    [=> (actor-generalize '#:Teacher)]]
 
   (jump-to 'develop#edu)
-  [#:with-zone 'JrLab
+  [#:with-zone JrLab
    (case-include 2.5 -pi/12 'trade-off#edu)
    (case-extend 2.0 +pi/8 'experiment#edu)
    (case-include 3.0+5.5i 'cthinking#stu)]
 
   [#:tree (jump-to 6+8i '#:Student)
-   [=> [#:with-zone 'JrLab
+   [=> [#:with-zone JrLab
         (actor-use 2 -7pi/8 'dup#stu)
         (actor-use 3.2 -5pi/8 'experiment#stu)
         (actor-use 'report#stu)]]
-   [=> [#:with-zone 'JrLab
+   [=> [#:with-zone JrLab
         (actor-use 'deploy)]]]
 
-  [#:with-zone 'JrLab
+  [#:with-zone JrLab
    (extend 'fit#edu 'cthinking#stu)
    (extend 'dup#stu 'cthinking#stu)
    (extend 'dup#stu 'experiment#stu)]

@@ -56,8 +56,9 @@
            (and style
                 (let* ([backstop-style ((dia-note-factory-λblock-backstop-style note-factory))]
                        [typeset (or (dia-note-factory-typesetter note-factory) dia-note-typeset)]
-                       [style-spec ((inst make-dia-block-style-spec Dia-Note-Block-Style) #:custom style #:backstop backstop-style #:scale scale #:opacity opacity)])
-                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-block-resolve-font style-spec) unit))])
+                       [style-spec ((inst make-dia-block-style-spec Dia-Note-Block-Style) #:custom style #:backstop backstop-style #:scale scale #:opacity opacity)]
+                       [note-font (dia-block-resolve-font style-spec)])
+                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref note-font unit))])
                     (define-values (max-width max-height) (dia-block-resolve-size/inf style-spec))
                     
                     (let* ([id (geo-anchor->symbol anchor)]

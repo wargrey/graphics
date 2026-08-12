@@ -37,7 +37,8 @@
 (struct geo:track:zone
   ([id : Symbol]
    [type : (Option Symbol)]
-   [desc : Geo-Option-Rich-Text])
+   [desc : Geo-Option-Rich-Text]
+   [options : (Listof Any)])
   #:type-name Geo:Track:Zone
   #:transparent)
 
@@ -47,8 +48,7 @@
   #:transparent)
 
 (struct geo:track:zone:rubber geo:track:zone
-  ([caption-anchor : Geo-Pin-Anchor]
-   [anchors : (Listof Geo-Anchor-Name)]
+  ([anchors : (Listof Geo-Anchor-Name)]
    [children : (Listof Geo:Track:Zone:Rubber)])
   #:type-name Geo:Track:Zone:Rubber
   #:transparent
@@ -86,15 +86,19 @@
            (fit (cdr ctrls)))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-create-rubber-zone! : (-> Geo:Track Symbol (Option Symbol) Geo-Option-Rich-Text Geo-Pin-Anchor Geo:Track:Zone:Rubber)
-  (lambda [master id type desc anchor]
+(define geo-create-rubber-zone! : (-> Geo:Track Symbol (Option Symbol) Geo-Option-Rich-Text Any Geo:Track:Zone:Rubber)
+  (lambda [master id type desc options]
     (define maybe-zone (geo-find-rubber-zone master id))
 
     (when (and maybe-zone)
       (raise-user-error 'geo-create-rubber-zone! "duplicate zone name: ~a" id))
 
     (define parent-zone (current-rubber-zone))
-    (define self-zone (geo:track:zone:rubber id type desc anchor null null))
+    (define self-zone
+      (geo:track:zone:rubber id type desc
+                             (cond [(list? options) options]
+                                   [else (list options)])
+                             null null))
 
     (if (not parent-zone)
         (set-geo:track-zones! master (cons self-zone (geo:track-zones master)))

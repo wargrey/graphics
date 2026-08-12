@@ -68,14 +68,11 @@
            #:alignment [alignment : Geo-Text-Alignment 'center]
            #:trim? [trim? : Boolean #true]
            [desc : Geo-Rich-Text]
-           [style : (Dia-Zone-Style-Spec S)]
-           [max-width : Nonnegative-Flonum]
-           [max-height : Nonnegative-Flonum]] : (Option Geo)
+           [style : (Dia-Zone-Style-Spec S)]] : (Option Geo)
     (define font : Font (or alt-font (dia-zone-resolve-font style)))
     (define paint : Option-Fill-Paint (or alt-color (dia-zone-resolve-font-paint style)))
     
     (geo-rich-text-try-realize #:id (dia-zone-title-id (or id (gensym 'dia:zone:title:)) type)
-                               #:max-width max-width #:max-height max-height
                                #:alignment alignment #:trim? trim?
                                desc font paint)))
 

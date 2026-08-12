@@ -33,31 +33,39 @@
         Dia-Zone-Backstop-Style (Option Dia-Zone-Describer)
         (Option (GLayerof Geo)))
   (lambda [self positions blockdb tracks opacity identify typeset build backstop-style zone-desc]
-    (let resolve-zone-boundary ([lx : Flonum +inf.0] [lfixed? : Boolean #false]
-                                [ty : Flonum +inf.0] [tfixed? : Boolean #false]
-                                [rx : Flonum -inf.0] [rfixed? : Boolean #false]
-                                [by : Flonum -inf.0] [bfixed? : Boolean #false]
-                                [anchors : (Listof Geo-Anchor-Name) (geo:track:zone:rubber-anchors self)])
-      (if (pair? anchors)
-          (let*-values ([(anchor rest) (values (car anchors) (cdr anchors))]
-                        [(rect) (dia-anchor->boundary anchor blockdb positions)])
-            (if (and rect)
-                (let*-values ([(pin?) (dia-anchor-pin? anchor)]
-                              [(x y) (values (vector-ref rect 0) (vector-ref rect 1))]
-                              [(x+w y+h) (values (+ x (vector-ref rect 2)) (+ y (vector-ref rect 3)))]
-                              [(lx++ lfixed?) (if (<= x lx) (values x (or pin? lfixed?)) (values lx lfixed?))]
-                              [(rx++ rfixed?) (if (>= x+w rx) (values x+w (or pin? rfixed?)) (values rx rfixed?))]
-                              [(ty++ tfixed?) (if (<= y ty) (values y (or pin? tfixed?)) (values ty tfixed?))]
-                              [(by++ bfixed?) (if (>= y+h by) (values y+h (or pin? bfixed?)) (values by bfixed?))])
-                  (resolve-zone-boundary lx++ lfixed? ty++ tfixed? rx++ rfixed? by++ bfixed? rest))
-                (resolve-zone-boundary lx lfixed? ty tfixed? rx rfixed? by bfixed? rest)))
-          (let-values ([(width height) (values (- rx lx) (- by ty))])
-            (and (>= width 0.0) (>= height 0.0)
-                 (dia-zone-realize self width height (make-rectangular lx ty) opacity
-                                   identify typeset build backstop-style zone-desc
-                                   (vector-immutable (not tfixed?) (not rfixed?) (not bfixed?) (not lfixed?))
-                                   make-dia-flex-zone-style default-dia-flex-zone-theme-adjuster)))))))
+    (define-values (style name stereotype)
+      (dia-zone-resolve-style self identify backstop-style opacity
+                              make-dia-rubber-zone-style
+                              default-dia-rubber-zone-theme-adjuster))
 
+    (and style
+         (let ([zone-font (dia-zone-resolve-font style)])
+           (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref zone-font unit))])
+             (define maybe-title (dia-zone-title self name stereotype style typeset zone-desc))
+             
+             (let resolve-zone-boundary ([lx : Flonum +inf.0] [lfixed? : Boolean #false]
+                                         [ty : Flonum +inf.0] [tfixed? : Boolean #false]
+                                         [rx : Flonum -inf.0] [rfixed? : Boolean #false]
+                                         [by : Flonum -inf.0] [bfixed? : Boolean #false]
+                                         [anchors : (Listof Geo-Anchor-Name) (geo:track:zone:rubber-anchors self)])
+               (if (pair? anchors)
+                   (let*-values ([(anchor rest) (values (car anchors) (cdr anchors))]
+                                 [(rect) (dia-anchor->boundary anchor blockdb positions)])
+                     (if (and rect)
+                         (let*-values ([(pin?) (dia-anchor-pin? anchor)]
+                                       [(x y) (values (vector-ref rect 0) (vector-ref rect 1))]
+                                       [(x+w y+h) (values (+ x (vector-ref rect 2)) (+ y (vector-ref rect 3)))]
+                                       [(lx++ lfixed?) (if (<= x lx) (values x (or pin? lfixed?)) (values lx lfixed?))]
+                                       [(rx++ rfixed?) (if (>= x+w rx) (values x+w (or pin? rfixed?)) (values rx rfixed?))]
+                                       [(ty++ tfixed?) (if (<= y ty) (values y (or pin? tfixed?)) (values ty tfixed?))]
+                                       [(by++ bfixed?) (if (>= y+h by) (values y+h (or pin? bfixed?)) (values by bfixed?))])
+                           (resolve-zone-boundary lx++ lfixed? ty++ tfixed? rx++ rfixed? by++ bfixed? rest))
+                (resolve-zone-boundary lx lfixed? ty tfixed? rx rfixed? by bfixed? rest)))
+                   (let-values ([(width height) (values (- rx lx) (- by ty))])
+                     (and (>= width 0.0) (>= height 0.0)
+                          (dia-zone-realize self maybe-title stereotype style width height (make-rectangular lx ty) build
+                                            (vector-immutable (not tfixed?) (not rfixed?) (not bfixed?) (not lfixed?))))))))))))
+    
 (define dia-fixed-zone-realize : (-> Geo:Track:Zone:Fixed (HashTable Geo-Anchor-Name Float-Complex) (Immutable-HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block)))
                                      (Listof (GLayerof Geo-Path)) (Option Nonnegative-Flonum)
                                      (Dia-Zone-Identifier Dia-Zone-Style) (Dia-Zone-Typesetter Dia-Zone-Style) (Dia-Zone-Builder Dia-Zone-Style)
@@ -84,27 +92,41 @@
                      [(w h) (geo-layer-size block)])
           (vector-immutable x y w h)))))
 
-(define dia-zone-realize : (-> Geo:Track:Zone Nonnegative-Flonum Nonnegative-Flonum Float-Complex (Option Nonnegative-Flonum)
-                               (Dia-Zone-Identifier Dia-Zone-Style) (Dia-Zone-Typesetter Dia-Zone-Style) (Dia-Zone-Builder Dia-Zone-Style)
-                               Dia-Zone-Backstop-Style (Option Dia-Zone-Describer) Geo-Insets-Mask
-                               (-> (#%Dia-Zone-Style Dia-Zone-Style)) (-> (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata)))
-                               (Option (GLayerof Geo)))
-  (lambda [self width height position opacity zone-identify mk-title mk-zone backstop-style zone-desc mask make-style default-adjuster]
-    (define-values (id type desc) (values (geo:track:zone-id self) (geo:track:zone-type self) (geo:track:zone-desc self)))
-    (define-values (text stereotype) (dia-identity-extract id))
-    (define initial-style (zone-identify id type stereotype))
+(define dia-zone-resolve-style : (-> Geo:Track:Zone (Dia-Zone-Identifier Dia-Zone-Style) Dia-Zone-Backstop-Style (Option Nonnegative-Flonum)
+                                     (-> (#%Dia-Zone-Style Dia-Zone-Style)) (-> (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata)))
+                                     (Values (Option (Dia-Zone-Style-Spec Dia-Zone-Style)) String Dia-Zone-Metadata))
+  (lambda [self zone-identify backstop-style opacity make-style default-adjuster]
+    (define-values (id type) (values (geo:track:zone-id self) (geo:track:zone-type self)))
+    (define-values (name stereotype) (dia-identity-extract id))
+    (define options : Dia-Zone-Metadata (cons stereotype (geo:track:zone-options self)))
 
-    (and initial-style
-         (let* ([style (if (void? initial-style) (make-style) initial-style)]
-                [style ((inst dia-zone-theme-adjust Dia-Zone-Style Dia-Zone-Metadata) style id type (default-adjuster) stereotype)])
-           (and style
-                (let ([style-spec ((inst make-dia-zone-style-spec Dia-Zone-Style) #:custom style #:backstop backstop-style #:opacity opacity)])
-                  (parameterize ([default-font-metrics (λ [[unit : Font-Unit]] (font-metrics-ref (dia-zone-resolve-font style-spec) unit))])
-                    (let* ([maybe-title (cond [(not text) desc]
-                                              [(not zone-desc) (void)]
-                                              [(hash? zone-desc) (hash-ref zone-desc id void)]
-                                              [else (zone-desc id type text style-spec stereotype)])]
-                           [title (and maybe-title (mk-title id type (if (void? maybe-title) (or desc text) maybe-title) style-spec width height))]
-                           [zone (mk-zone id type title style-spec width height stereotype mask)])
-                      (cond [(pair? zone) (geo-sticker->layer #:default-anchor 'lt (car zone) position (cdr zone))]
-                            [else #false])))))))))
+    (values (and (> (string-length name) 0)
+                 (not (eq? (string-ref name 0) #\.))
+                 (let ([initial-style (zone-identify id type options)])
+                   (and initial-style
+                        (let* ([style (if (void? initial-style) (make-style) initial-style)]
+                               [style ((inst dia-zone-theme-adjust Dia-Zone-Style Dia-Zone-Metadata) style id type (default-adjuster) options)])
+                          (and style ((inst make-dia-zone-style-spec Dia-Zone-Style) #:custom style #:backstop backstop-style #:opacity opacity))))))
+            name options)))
+
+(define dia-zone-title : (-> Geo:Track:Zone String Dia-Zone-Metadata (Dia-Zone-Style-Spec Dia-Zone-Style)
+                             (Dia-Zone-Typesetter Dia-Zone-Style) (Option Dia-Zone-Describer)
+                             (Option Geo))
+  (lambda [self name stereotype style mk-title zone-desc]
+    (define-values (id type desc) (values (geo:track:zone-id self) (geo:track:zone-type self) (geo:track:zone-desc self)))
+    (define maybe-title
+      (cond [(hash? zone-desc) (hash-ref zone-desc id void)]
+            [(and zone-desc) (zone-desc id type name style stereotype)]))
+    
+    (and maybe-title
+         (mk-title id type (if (void? maybe-title) (or desc name) maybe-title) style))))
+    
+(define dia-zone-realize : (-> Geo:Track:Zone (Option Geo) Dia-Zone-Metadata (Dia-Zone-Style-Spec Dia-Zone-Style)
+                               Nonnegative-Flonum Nonnegative-Flonum Float-Complex (Dia-Zone-Builder Dia-Zone-Style) Geo-Insets-Mask
+                               (Option (GLayerof Geo)))
+  (lambda [self title stereotype style width height position mk-zone mask]
+    (define-values (id type) (values (geo:track:zone-id self) (geo:track:zone-type self)))
+    (define zone (mk-zone id type title style width height stereotype mask))
+
+    (cond [(pair? zone) (geo-sticker->layer #:default-anchor 'lt (car zone) position (cdr zone))]
+          [else #false])))

@@ -7,9 +7,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-zone-typeset : (Dia-Zone-Typesetter S)
-  (lambda [id type text style width height]
+  (lambda [id type text style]
     (dia-zone-text->title #:id id #:type type
-                          text style width height)))
+                          text style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-zone-typesetter-compose : (case-> [(Option (Dia-Zone-Typesetter S)) -> (Dia-Zone-Typesetter S)]
