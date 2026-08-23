@@ -7,6 +7,7 @@
 
 (require "../block/dc.rkt")
 (require "../block/interface.rkt")
+(require "../block/predicate.rkt")
 (require "../track/interface.rkt")
 
 (require "style.rkt")

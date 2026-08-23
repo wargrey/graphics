@@ -27,3 +27,4 @@
 (require/provide digimon/flonum)
 
 (require/provide "presets.rkt")
+(require/provide "block/predicate.rkt")

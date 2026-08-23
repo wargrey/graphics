@@ -14,8 +14,10 @@
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-dia-rubber-zone-theme-adjuster  : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
-(define default-dia-fixed-zone-theme-adjuster : (Parameterof (Option (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))) (make-parameter #false))
+(define-type Dia-Zone-Theme-Adjuster (#%Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))
+
+(define default-dia-rubber-zone-theme-adjuster  : (Parameterof (Option Dia-Zone-Theme-Adjuster)) (make-parameter #false))
+(define default-dia-fixed-zone-theme-adjuster : (Parameterof (Option Dia-Zone-Theme-Adjuster)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-configuration dia-zone-backstop-style : Dia-Zone-Backstop-Style #:as #%dia-zone-backstop-style

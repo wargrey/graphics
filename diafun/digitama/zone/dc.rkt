@@ -78,7 +78,7 @@
                          [cx (+ l (* dw pos))])
                      (if (>= headsep 0.0)
                          (if (or stretch?)
-                             (values Width content-height hcoff (- (+ headsep caption-height)) 0.0 (+ headsep caption-height) cx headsep #false)
+                             (values Width content-height hcoff (- headsep caption-height t) 0.0 (+ headsep caption-height) cx headsep #false)
                              (values Width content-height hcoff 0.0 0.0 0.0 cx headsep #false))
                          (values Width content-height hcoff (- headsep caption-height) 0.0 0.0 cx (- headsep caption-height) #false)))]
                   [(eq? side 'b)
@@ -95,7 +95,7 @@
                          [cy (+ t (* dh pos))])
                      (if (>= headsep 0.0)
                          (if (or stretch?)
-                             (values content-width Height (- headsep caption-height) vcoff (+ headsep caption-height) 0.0 headsep cy -pi/2)
+                             (values content-width Height (- headsep caption-height l) vcoff (+ headsep caption-height) 0.0 headsep cy -pi/2)
                              (values content-width Height 0.0 vcoff 0.0 0.0 headsep cy -pi/2))
                          (values content-width Height (- headsep caption-height) vcoff 0.0 0.0 (- headsep caption-height) cy -pi/2)))]
                   [(eq? side 'r)
@@ -106,12 +106,12 @@
                          (if (or stretch?)
                              (values content-width Height 0.0 vcoff (+ tailsep caption-height) 0.0 rx cy pi/2)
                              (values content-width Height 0.0 vcoff 0.0 0.0 (- rx tailsep caption-height) cy pi/2))
-                         (values content-width Height 0.0 vcoff 0.0 0.0 (+ rx (- tailsep)) cy pi/2)))]
+                         (values content-width Height 0.0 vcoff 0.0 0.0 (- rx tailsep) cy pi/2)))]
                   [else '#:deadcode (values Width Height 0.0 0.0 0.0 0.0 0.0 0.0 #false)]))
           
           (values (+ l  width wext r)
                   (+ t height hext b)
-                  (make-rectangular (+ xoff (- l)) (+ yoff (- t)))
+                  (make-rectangular (- xoff l) (- yoff t))
                   cx cy rad))
         (values (+ l  content-width r)
                 (+ t content-height b)

@@ -18,10 +18,9 @@
 (require "../interface.rkt")
 
 (require "../../block/dc/node.rkt")
-(require "../../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type UML-Zone-Theme-Adjuster (Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))
+(define-type UML-Zone-Theme-Adjuster (#%Dia-Zone-Theme-Adjuster Dia-Zone-Style Dia-Zone-Metadata))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct uml-system-zone-style : UML-System-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
@@ -42,12 +41,13 @@
   (lambda [id type title style width height options mask]
     (define sotype : (Option Keyword) (car options))
     (define caption : (Option Geo)
-      (and sotype
-           (let ([stereotype (dia-block-stereotype sotype
-                                                   (dia-zone-resolve-font style)
-                                                   (dia-zone-resolve-font-paint style)
-                                                   #false +inf.0)])
-             (uml-title-attach-stereotype title stereotype))))
+      (if (or sotype)
+          (let ([stereotype (dia-block-stereotype sotype
+                                                  (dia-zone-resolve-font style)
+                                                  (dia-zone-resolve-font-paint style)
+                                                  #false +inf.0)])
+            (uml-title-attach-stereotype title stereotype))
+          title))
 
     (define-values (zone offset)
       (create-dia-zone #:zone dia:zone

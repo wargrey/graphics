@@ -2,17 +2,24 @@
 
 (provide (all-defined-out))
 
-(require geofun/digitama/self)
-(require geofun/digitama/dc/dingbat)
-(require geofun/digitama/dc/composite)
-(require geofun/digitama/geometry/sides)
+(require geofun/digitama/dc/rect)
 
+(require "../dc.rkt")
 (require "../self.rkt")
-(require "../../presets.rkt")
-
-(require "../../block/dc.rkt")
-(require "../../block/dc/node.rkt")
-(require "../../block/style.rkt")
+(require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define flow-zone-factory : Dia-Zone-Factory (make-dia-zone-factory #:builder #false))
+(define #:forall (S) default-flow-zone-build : (Dia-Zone-Builder S)
+  (lambda [id type title style width height options mask]
+    (define-values (zone offset)
+      (create-dia-zone #:zone dia:zone
+                       #:id id type
+                       #:options options
+                       #:create-with title style width height mask
+                       (geo-rectangle)))
+
+    (cons zone offset)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define flow-zone-factory : Dia-Zone-Factory
+  (make-dia-zone-factory #:builder default-flow-zone-build))

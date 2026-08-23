@@ -20,7 +20,7 @@
 (require geofun/digitama/geometry/sides)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Dia-Zone-Theme-Adjuster Style Metadata)
+(define-type (#%Dia-Zone-Theme-Adjuster Style Metadata)
   (-> (#%Dia-Zone-Style Style) Symbol (Option Symbol) Metadata
       (U (#%Dia-Zone-Style Style) False Void)))
 
@@ -150,7 +150,7 @@
     (string->symbol (string-append "&" (dia-zone-identifier id type)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S M) dia-zone-theme-adjust : (-> (#%Dia-Zone-Style S) Symbol (Option Symbol) (Option (Dia-Zone-Theme-Adjuster S M)) M
+(define #:forall (S M) dia-zone-theme-adjust : (-> (#%Dia-Zone-Style S) Symbol (Option Symbol) (Option (#%Dia-Zone-Theme-Adjuster S M)) M
                                                    (Option (#%Dia-Zone-Style S)))
   (lambda [the-style id type maybe-adjuster property]
     (if (and maybe-adjuster)

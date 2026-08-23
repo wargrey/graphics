@@ -9,15 +9,16 @@
 
 @defmodule*/no-declare[(geofun/vector)]
 
-The @the-name is a typed functional picture library which employs @cite{Cairo} and @cite{Pango} via
-@racketmodname[ffi/unsafe] directly.
+The @the-name is a typed functional 2d graphics library
+that employs @cite{Cairo} and @cite{Pango} via @racketmodname[ffi/unsafe] directly.
 The initial motivation is to provide efficient, professional,
-yet handy graphics APIs that lay the foundation for my @racketmodname[css] engine and @racketmodname[svg]
-engine as well as to be used standalone for developers and artists.
+yet handy tools for generating technical graphics for writing papers and textbooks.
 
 @emph{WARNING: This library is still experimental and everything is subject to change.}
 
 @emph{WARNING: To keep compatible with other Racket picture libraries is not the goal.}
+
+@emph{NOTE: Rendering the resulting image in DrRacket for the first time might take minutes.}
 
 @;tamer-smart-summary[]
 

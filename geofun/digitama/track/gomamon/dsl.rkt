@@ -42,13 +42,13 @@
                 (gomamon-dsl self submove-expr) ...)
               ...))]
     [(_ self [#:zone id
-              (~optional type #:defaults ([type #'#false]))
+              (~optional type:id #:defaults ([type #'#false]))
               (~alt (~optional (~seq #:desc desc) #:defaults ([desc #'#false]))
                     (~optional (~seq #:options options) #:defaults ([options #'null])))
               ...
               internal-move:expr ...])
      (quasisyntax/loc stx
-       (parameterize ([current-rubber-zone (geo-create-rubber-zone! self id type desc options)])
+       (parameterize ([current-rubber-zone (geo-create-rubber-zone! self id 'type desc options)])
          (gomamon-dsl self internal-move) ...))]
     [(_ self [#:with-zone id internal-move:expr ...])
      (quasisyntax/loc stx

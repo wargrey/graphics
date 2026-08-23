@@ -98,7 +98,8 @@
                 (cond [(or (not anchor) (not next-pt)) (values #false blocks)]
                       [(hash-has-key? blocks anchor) (values (hash-ref blocks anchor) blocks)]
                       [else (let* ([direction (and last-pt (angle (- last-pt next-pt)))]
-                                   [new-block (dia-block-layer-realize block-identifier make-block make-caption block-rootstyle block-backstyle block-desc
+                                   [new-block (dia-block-layer-realize block-identifier make-block make-caption
+                                                                       block-rootstyle block-backstyle block-desc
                                                                        note-factory note-desc anchor next-pt direction block-scale opacity)])
                               (values new-block (hash-set blocks anchor new-block)))]))
             
@@ -144,10 +145,10 @@
                               ([zone (in-list (geo:track-zones self))])
                       (cond [(geo:track:zone:rubber? zone)
                              (define group (dia-rubber-zone-realize  zone positions blockdb tracks opacity identify typeset build backstop zone-desc))
-                             (values bands (if (not group) zones (cons group zones)))]
+                             (values bands (if (null? group) zones (append zones group)))]
                             [(geo:track:zone:fixed? zone)
                              (define group (dia-fixed-zone-realize zone positions blockdb tracks opacity identify typeset build backstop zone-desc))
-                             (values (if (not group) bands (cons group bands)) zones)]
+                             (values (if (null? group) bands (append bands group)) zones)]
                             [else (values bands zones)])))]))
 
     (values
@@ -172,12 +173,15 @@
         (geo-sticker->layer (car s) (cdr s))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-track-cons : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo-Path)) Geo-Track-Infobase
-                                          (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S)) (Dia-Track-Annotator S) (Dia-Track-Builder S)
-                                          (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
-                                          (Option Dia-Note-Factory)
-                                          (Listof (GLayerof Geo-Path)))
-  (lambda [src-layer tgt-layer prints tracks infobase track-identify track-dangling-identify make-label make-path rootstyle backstyle opacity note-factory]
+(define #:forall (S) dia-track-cons
+  : (-> (Option (GLayerof Dia:Block)) (Option (GLayerof Dia:Block)) Geo-Path-Prints (Listof (GLayerof Geo-Path)) Geo-Track-Infobase
+        (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S)) (Dia-Track-Annotator S) (Dia-Track-Builder S)
+        (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+        (Option Dia-Note-Factory)
+        (Listof (GLayerof Geo-Path)))
+  (lambda [src-layer tgt-layer prints tracks infobase
+                     track-identify track-dangling-identify make-label make-path
+                     rootstyle backstyle opacity note-factory]
     (define ctracks : Geo-Path-Clean-Prints (gpp-cleanse prints))
 
     (or
@@ -238,11 +242,12 @@
      tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) dia-track-realize* : (-> (Option Dia:Block) (Option Dia:Block) Geo-Path-Clean-Prints (Pairof Geo-Path-Clean-Prints* (Pairof Index Index))
-                                              Geo-Track-Infobase (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S))
-                                              (Dia-Track-Annotator S) (Dia-Track-Builder S)
-                                              (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
-                                              (Option Geo-Path))
+(define #:forall (S) dia-track-realize*
+  : (-> (Option Dia:Block) (Option Dia:Block) Geo-Path-Clean-Prints (Pairof Geo-Path-Clean-Prints* (Pairof Index Index))
+        Geo-Track-Infobase (Dia-Track-Identifier S) (Option (Dia-Dangling-Track-Identifier S))
+        (Dia-Track-Annotator S) (Dia-Track-Builder S)
+        (Option (Dia-Track-Link-Root-Style S)) Dia-Track-Backstop-Style (Option Nonnegative-Flonum)
+        (Option Geo-Path))
   (lambda [source target ctracks retracks infobase track-identify track-dangling-identify make-label make-path rootstyle backstyle opacity]
     (define-values (label-text label-sofni extra-track-info) (dia-track-label-info-filter infobase ctracks (cadr retracks) (cddr retracks)))
     (define style-self

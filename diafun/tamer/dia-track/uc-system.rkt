@@ -5,121 +5,101 @@
 (require diafun/usecase)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define Skeleton : Symbol 'Skeleton#像工程师一样实践)
-(define title : String "剑龙骨架项目")
+(define JrLab : Symbol 'JrLab#subsystem)
+(define title : String "JrPLT and PBL Practice")
 
 (define pbl-colorize : UC-Block-Theme-Adjuster
   (lambda [style id stereotype]
     (if (keyword? id)
         (case id
-          [(#:Teacher) (remake-dia-block-style style #:fill-paint 'DeepSkyBlue)]
-          [(#:Assistant) (remake-dia-block-style style #:fill-paint 'SkyBlue)]
-          [(#:StuHead #:StuVertebra #:StuOrgans #:StuLimbs) (remake-dia-block-style style #:height 50 #:fill-paint 'Gold)])
+          [(#:Researcher #:Teacher) (remake-dia-block-style style #:fill-paint 'Yellow)]
+          [(#:Engineer) (remake-dia-block-style style #:fill-paint 'DeepSkyBlue)]
+          [(#:Parent) (remake-dia-block-style style #:fill-paint 'MediumOrchid)])
         (case stereotype
-          [(#:edu) (remake-dia-block-style style #:fill-paint 'LightSkyBlue #:stroke-color 'transparent)]
-          [(#:grp) (remake-dia-block-style style #:fill-paint 'LemonChiffon #:stroke-color 'transparent)]
+          [(#:dev) (remake-dia-block-style style #:fill-paint 'DeepSkyBlue #:stroke-color 'transparent)]
+          [(#:edu) (remake-dia-block-style style #:fill-paint 'LemonChiffon #:stroke-color 'transparent)]
           [(#:stu) (remake-dia-block-style style #:fill-paint 'LightGreen #:stroke-color 'transparent)]))))
 
-(define sys-colorize : UML-Zone-Theme-Adjuster
-  (lambda [style id type property]
-    (remake-dia-zone-style style #:fill-paint 'Lavender #:stroke-color 'transparent)))
-
 (define pbl-desc
-  #hasheq((#:Teacher . "主教老师")
-          (#:Assistant . "助教老师")
-          (#:Student . "全体学生")
-          (#:StuHead . "头部模型组")
-          (#:StuVertebra . "脊椎模型组")
-          (#:StuOrgans . "内脏模型组")
-          (#:StuLimbs . "四肢模型组")
-          (set#edu . "启动学期项目")
-          (survey . "学情摸底")
-          (search . "搜索科普文")
-          (module#edu . "设计 PBL 教学流程")
-          (assign#edu . "布置小论文作业")
-          (assist . "示范、协助学生")
-          (do-homework#stu . "完成小论文\n恐龙何以如此大")
-          (study#stu . "听讲\n梳理理论知识")
-          (experiment#edu . "准备项目物料")
-          (experiment#stu . "实验验证\n平方-立方定律")
-          (create#stu  . "完成剑龙骨架模型")
-          (optimize#stu . "评估与优化模型")
-          (report#stu . "项目总结与报告")
-          
-          (divide#grp . "小组分工")
-          (head#grp . "制作头骨和细牙")
-          (vertebra#grp . "制作脊椎和背骨")
-          (organs#grp . "制作气囊呼吸系统\n和消化系统")
-          (limbs#grp . "制作四肢和脚趾")))
+  #hasheq((#:Researcher . "Curriculum Designer")
+          (#:Teacher . "Instructor")
+          (#:Student . "Student")
+          (#:Parent . "Parent")
+          (arch#dev . "设计教学引擎")
+          (code#dev . "实现教学引擎")
+          (asset . "预制素材资源")
+          (api#dev . "规范命名 API")
+          (train . "培训系统用法")
+          (doc . "编写用户文档")
+          (example#edu . "编写范例项目")
+          (bdd#dev . "行为驱动开发")
+          (deploy . "部署系统\n同步课程源码")
+          (develop#edu . "研发课程")
+          (demo#edu . "编写演示程序")
+          (fit#edu . "裁剪课程项目")
+          (dup#stu . "完成课程项目")
+          (experiment#edu . "设计实验\n准备实验环境")
+          (experiment#stu . "做实验")
+          (cthinking#stu . "分解、识别\n抽象、建模")
+          (trade-off#edu  . "权衡新旧知识点")
+          (report#stu . "项目总结与报告")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-use-case-diagram! skeleton.dia #:start '#:Teacher
-  #:parameterize ([default-uc-block-theme-adjuster pbl-colorize]
-                  [default-dia-rubber-zone-theme-adjuster sys-colorize])
-  [#:frame 'White #:block-desc pbl-desc] #:-
-  [#:zone Skeleton 'system #:desc title
-   (actor-use 2.5 -pi/3 'set#edu)
-   (actor-use 2.5 +pi/3 'assist)
+(define-use-case-diagram! role.dia #:start '#:Engineer
+  #:parameterize ([default-uc-block-theme-adjuster pbl-colorize])
+  [#:frame 'White #:start-name "Software\nEngineer" #:block-desc pbl-desc] #:-
+  [#:zone JrLab system #:desc title
+   (actor-use 2 -pi/4 'arch#dev)
+   (actor-use 2 0 'code#dev)
+   (actor-use 2 +pi/4 'train)
    
-   (jump-to 'set#edu)
-   (case-include 2.25 -pi/12 'survey)
-   (case-include 2.25 +pi/12 'assign#edu)
-   (case-include 2 +pi/4 'module#edu)
-   (case-include 2 +pi/2 'experiment#edu)]
+   (jump-to 'code#dev)
+   (case-include 2.5 -pi/8 'bdd#dev)
+   (case-extend 2.5 +0 'asset)
    
-  (jump-left-down '#:Teacher 'assist '#:Assistant)
-  [#:with-zone Skeleton
-   (actor-use 'assist)]
-
-  (jump-to 6.5+0.5i '#:Student)
-  [#:with-zone Skeleton
-   (actor-use 2.0 -5pi/6 'do-homework#stu)
-   (actor-use 2.0 pi 'study#stu)
-   (actor-use 2.0 +5pi/6 'create#stu)
-
-   (jump-to 'do-homework#stu)
-   (case-extend 2.0 -pi/2 'search)
+   (jump-to 'arch#dev)
+   (case-include 2.5 -pi/12 'api#dev)
+   (case-include 'bdd#dev)
    
-   (jump-to 'study#stu)
-   (case-extend -2.0 0 'experiment#stu)
-
-   (jump-to 'create#stu)
-   (case-extend 2.0 pi 'optimize#stu)
-   (case-include 2.0 4pi/5 'report#stu)]
-
-  (jump-to 6+3.5i '#:StuHead)
-  [=> [#:with-zone Skeleton
-       (actor-use 1.5 +pi 'head#grp)
-       (jump-to 'head#grp)
-       (case-include 3.0 +3pi/4 'divide#grp)]]
-  [=> (move-rightward '#:Student)
-      (turn-right-up)
-      (actor-generalize '#:Student)]
+   (jump-to 'train)
+   (case-include 2 -pi/12 'doc)
+   (case-include 2 +pi/12 'example#edu)
+   (case-extend 2 +5pi/12 'develop#edu)]
+   
+  (jump-to -0.5+8i '#:Teacher)
+  [#:with-zone JrLab
+   (actor-use 2 -pi/6 'fit#edu)
+   (actor-use 3 0 'deploy)
+   (actor-use 3+9i 'report#stu)]
   
-  (jump-to 6+5.0i '#:StuVertebra)
-  [=> [#:with-zone Skeleton
-       (actor-use 1.5 +pi 'vertebra#grp)
-       (include 'vertebra#grp 'divide#grp)]]
-  [=> (move-rightward '#:Student)
-      (turn-right-up)
-      (actor-generalize '#:Student)]
+  [#:tree (jump-to -0.5+4i '#:Researcher)
+   [=> (actor-use 2.0 +pi/8 'demo#edu)
+       (actor-use 'develop#edu)
+       (case-include 'example#edu)]
+   [=> (actor-generalize '#:Teacher)]]
 
-  (jump-to 6+6.5i '#:StuOrgans)
-  [=> [#:with-zone Skeleton
-       (actor-use 1.5 +pi 'organs#grp)
-       (include 'organs#grp 'divide#grp)]]
-  [=> (move-rightward '#:Student)
-      (turn-right-up)
-      (actor-generalize '#:Student)]
-  
-  (jump-to 6+8.0i '#:StuLimbs)
-  [=> [#:with-zone Skeleton
-       (actor-use 1.5 +pi 'limbs#grp)
-       (include 'limbs#grp 'divide#grp)]]
-  [=> (move-rightward '#:Student)
-      (turn-right-up)
-      (actor-generalize '#:Student)])
+  (jump-to 'develop#edu)
+  [#:with-zone JrLab
+   (case-include 2.5 -pi/12 'trade-off#edu)
+   (case-extend 2.0 +pi/8 'experiment#edu)
+   (case-include 3.0+5.5i 'cthinking#stu)]
+
+  [#:tree (jump-to 6+8i '#:Student)
+   [=> [#:with-zone JrLab
+        (actor-use 2 -7pi/8 'dup#stu)
+        (actor-use 3.2 -5pi/8 'experiment#stu)
+        (actor-use 'report#stu)]]
+   [=> [#:with-zone JrLab
+        (actor-use 'deploy)]]]
+
+  [#:with-zone JrLab
+   (extend 'fit#edu 'cthinking#stu)
+   (extend 'dup#stu 'cthinking#stu)
+   (extend 'dup#stu 'experiment#stu)]
+
+  (jump-to 6+6i '#:Parent)
+  (note '#:Parent 1 pi/4 "首任老师" "表现出重视" "支持孩子学习"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  skeleton.dia)
+  role.dia)
