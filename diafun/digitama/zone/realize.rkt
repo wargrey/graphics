@@ -9,7 +9,6 @@
 
 (require geofun/font)
 (require geofun/digitama/self)
-(require geofun/digitama/geometry/sides)
 
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)

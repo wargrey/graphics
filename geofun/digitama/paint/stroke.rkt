@@ -14,14 +14,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define solid-dash : (Immutable-Vectorof Nonnegative-Flonum) '#())
 
+;; NOTE: don't forget to update the `Stroke-Dash-Datum` in geofun/digitama/base.rkt when added new style.
 (define-enumeration* stroke-dash-style #:as Stroke-Dash-Style 
   line-dash->array #:-> [linewidth Nonnegative-Flonum] (Values Flonum (Immutable-Vectorof Nonnegative-Flonum))
-  [(dot)        (values (* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
-  [(dot-dash)   (values (* 4.0 linewidth) (dasharray-normalize #(1.0 2.0 4.0 2.0) linewidth))]
-  [(short-dash) (values (* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
-  [(long-dash)  (values (* 2.0 linewidth) (dasharray-normalize #(4.0 2.0) linewidth))]
-  [(solid)      (values 0.0 solid-dash)]
-  [#:else       (values 0.0 solid-dash)])
+  [(dot)          (values (* 2.0 linewidth) (dasharray-normalize #(0.1 2.0) linewidth))]
+  [(dot-dash)     (values (* 4.0 linewidth) (dasharray-normalize #(0.1 2.0 4.0 2.0) linewidth))]
+  [(short-dash)   (values (* 2.0 linewidth) (dasharray-normalize #(2.0 2.0) linewidth))]
+  [(long-dash)    (values (* 2.0 linewidth) (dasharray-normalize #(4.0 2.0) linewidth))]
+  [(solid)        (values 0.0 solid-dash)]
+
+  ; custom style
+  [(dot-dot-dash) (values (* 4.0 linewidth) (dasharray-normalize #(0.1 2.0 0.1 2.0 4.0 2.0) linewidth))]
+
+  [#:else         (values 0.0 solid-dash)])
 
 (define-enumeration* stroke-line-cap-option #:+> Stroke-Cap-Style ; order matters
   line-cap->integer integer->line-cap

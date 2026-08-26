@@ -310,7 +310,7 @@
    [font-paint : Option-Fill-Paint 'DarkGreen]
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'YellowGreen]
-   [dash : (Option Stroke-Dash+Offset) #false]
+   [dash : (Option Stroke-Dash+Offset) 'dot-dash]
    [source-tip : Maybe-Geo-Tip (void)]
    [target-tip : Maybe-Geo-Tip (void)]
    [label-rotate? : (U Boolean Void) (void)]
