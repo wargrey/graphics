@@ -34,7 +34,7 @@
   (lambda [self positions blockdb tracks opacity identify typeset build backstop-style zone-desc]
     (define-values (style name stereotype)
       (dia-zone-resolve-style self identify backstop-style opacity
-                              make-dia-rubber-zone-style
+                              default-dia-rubber-zone-style
                               default-dia-rubber-zone-theme-adjuster))
 
     (if (and style)

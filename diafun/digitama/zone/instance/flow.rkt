@@ -16,7 +16,7 @@
                        #:id id type
                        #:options options
                        #:create-with title style width height mask
-                       (geo-rectangle)))
+                       (geo-rounded-rectangle)))
 
     (cons zone offset)))
 

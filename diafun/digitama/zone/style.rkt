@@ -37,7 +37,8 @@
    [stroke-width : (Option Length+%)]
    [stroke-color : Maybe-Color]
    [stroke-dash : (Option Stroke-Dash+Offset)]
-   [fill-paint : Maybe-Fill-Paint])
+   [fill-paint : Maybe-Fill-Paint]
+   [corner-radius : (Option Length+%)])
   #:transparent)
 
 (struct #%dia-zone-backstop-style
@@ -45,7 +46,8 @@
    [font : Font]
    [font-paint : Fill-Paint]
    [stroke-paint : Option-Stroke-Paint]
-   [fill-paint : Option-Fill-Paint])
+   [fill-paint : Option-Fill-Paint]
+   [corner-radius : Length+%])
   #:type-name #%Dia-Zone-Backstop-Style
   #:transparent)
 
@@ -79,12 +81,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) dia-zone-resolve-font : (-> (Dia-Zone-Style-Spec S) Font)
   (lambda [self]
-    (define bsf : Font (let ([b (dia-zone-style-spec-backstop self)]) (#%dia-zone-backstop-style-font b)))
+    (define bsf : Font (#%dia-zone-backstop-style-font (dia-zone-style-spec-backstop self)))
     (define myf : (Option Font+Tweak) (#%dia-zone-style-font (dia-zone-style-spec-custom self)))
 
     (cond [(not myf) bsf]
           [(font? myf) myf]
           [else (desc-font* bsf #:tweak myf)])))
+
+(define #:forall (S) dia-zone-resolve-corner-radius : (-> (Dia-Zone-Style-Spec S) Length+%)
+  (lambda [self]
+    (or (#%dia-zone-style-corner-radius (dia-zone-style-spec-custom self))
+        (#%dia-zone-backstop-style-corner-radius (dia-zone-style-spec-backstop self)))))
 
 (define #:forall (S) dia-zone-resolve-padding : (->* ((Dia-Zone-Style-Spec S) Nonnegative-Flonum Nonnegative-Flonum Geo-Insets-Mask)
                                                      (#:padding Dia-Zone-Option-Padding)

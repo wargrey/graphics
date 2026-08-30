@@ -51,7 +51,7 @@
     (define text (substring raw-text 2)) ; meanwhile it must be prefixed with "//"
     
     (and make-note
-         (let* ([note-info (dia-note-block-info anchor text make-dia-note-block-style stereotype)]
+         (let* ([note-info (dia-note-block-info anchor text default-dia-note-block-style stereotype)]
                 [style (values (caddr note-info))])
            (and style
                 (let* ([backstop-style ((dia-note-factory-λblock-backstop-style note-factory))]

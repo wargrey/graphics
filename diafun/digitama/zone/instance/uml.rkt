@@ -30,12 +30,24 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'solid]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [corner-radius : (Option Length+%) 0.0]))
+
+(define-phantom-struct uml-region-zone-style : UML-Region-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
+  ([padding : Dia-Zone-Option-Padding #false]
+   [font : (Option Font+Tweak) #false]
+   [font-paint : Option-Fill-Paint #false]
+   [stroke-width : (Option Length+%) #false]
+   [stroke-color : Maybe-Color (void)]
+   [stroke-dash : (Option Stroke-Dash+Offset) 'long-dash]
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [corner-radius : (Option Length+%) (&L 0.618 'em)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-uml-zone-identify : (Dia-Zone-Identifier Dia-Zone-Style)
   (lambda [id type sotype]
-    (cond [(eq? type 'system) (make-uml-system-zone-style)])))
+    (cond [(eq? type 'system) (default-uml-system-zone-style)]
+          [(eq? type 'region) (default-uml-region-zone-style)])))
 
 (define #:forall (S) default-uml-zone-build : (Dia-Zone-Builder S)
   (lambda [id type title style width height options mask]
@@ -54,7 +66,7 @@
                        #:id id type
                        #:options options
                        #:create-with caption style width height mask
-                       (geo-rectangle)))
+                       (geo-rounded-rectangle)))
 
     (cons zone offset)))
 

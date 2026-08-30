@@ -26,7 +26,8 @@
    [font : Font dia-preset-zone-font]
    [font-paint : Fill-Paint 'DimGray]
    [stroke-paint : Option-Stroke-Paint dia-preset-zone-stroke]
-   [fill-paint : Option-Fill-Paint #false]))
+   [fill-paint : Option-Fill-Paint #false]
+   [corner-radius : Length+% 0.0]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct dia-rubber-zone-style : Dia-Rubber-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
@@ -36,7 +37,8 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'long-dash]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [corner-radius : (Option Length+%) #false]))
 
 (define-phantom-struct dia-fixed-zone-style : Dia-Fixed-Zone-Style #:-> dia-zone-style #:for #%dia-zone-style
   ([padding : Dia-Zone-Option-Padding #false]
@@ -45,7 +47,8 @@
    [stroke-width : (Option Length+%) #false]
    [stroke-color : Maybe-Color (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
-   [fill-paint : Maybe-Fill-Paint (void)]))
+   [fill-paint : Maybe-Fill-Paint (void)]
+   [corner-radius : (Option Length+%) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct dia-zone-factory : Dia-Zone-Factory

@@ -5,5 +5,6 @@
 (require "digitama/misc.rkt")
 
 (require/provide "digitama/track/base.rkt")
+(require/provide "digitama/track/anchor.rkt")
 (require/provide "digitama/track/gomamon.rkt")
 (require/provide "digitama/track/renamon.rkt")

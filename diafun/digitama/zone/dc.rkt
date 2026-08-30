@@ -33,7 +33,8 @@
                      [(shape) (make-shape #:id (dia-zone-shape-id id type)
                                           #:stroke (dia-zone-resolve-stroke-paint style)
                                           #:fill (dia-zone-resolve-fill-paint style)
-                                          zwidth zheight shape-argl ...)])
+                                          zwidth zheight (dia-zone-resolve-corner-radius style)
+                                          shape-argl ...)])
          (values (create-geometry-group make-zone id #false #false
                                         #:bleed (geo<%>-bleed shape)
                                         #:desc (geo-group-desc-from-caption #false)

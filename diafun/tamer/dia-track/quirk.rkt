@@ -39,7 +39,13 @@
    [=> (move-down '|<   >|)
        (move-leftwards '|<   >| #false '#:U-turn)
        (turn-up-left-down)
-       (turn-down-right-up)]])
+       (turn-down-right-up)]]
+
+  (jump-to '#:/doc/pptx)
+  (move-right 0.5)
+  (move-down 0.6)
+  (move-left 0.5)
+  (move-up 0.6))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
