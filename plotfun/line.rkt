@@ -63,10 +63,12 @@
     (define e^αi : Float-Complex (make-polar 1.0 α))
     (define cosα : Flonum (cos α))
 
-    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
+    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
+      (plot-axis-visual-values axis-style))
+    (define-values (digit-position digit-anchor miror-anchor)
+      (plot-axis-digit-position-values axis-style 'x))
+    
     (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
-
     (define fltick-thickness : Nonnegative-Flonum (~dimension (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~dimension (plot-axis-style-tick-length axis-style) flthickness))
     (define fltick-sublen : Nonnegative-Flonum (~dimension (plot-axis-style-minor-tick-length axis-style) fltick-length))
@@ -109,7 +111,7 @@
                           [angle.rad (case/eq (plot-axis-style-label-placement axis-style)
                                        [(digit  digit-mirror) (if (positive? (geo-dot-line-orientation-test digit-offset Vself))  pi/2 -pi/2)]
                                        [(mirror mirror-digit) (if (positive? (geo-dot-line-orientation-test digit-offset Vself)) -pi/2  pi/2)]
-                                       [else (if (cadddr lbl) 0.0 (- pi))])]
+                                       [else (* pi (cadr (cdddr lbl)))])]
                           [length (cond [(not label-at-axis?) em]
                                         [(flnear? cosα 0.0) (* em 0.5)]
                                         [else (* em 0.618)])])
@@ -183,23 +185,25 @@
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:mark-style [int-style : (Option Plot-Mark-Style) #false]
            #:mark-template [desc-int : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
-           #:exclude-zero? [exclude-zero? : Boolean #true]
+           #:exclude-zero? [ex-zero? : Boolean #true]
            #:frame [frame : Geo-Frame-Datum #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))
     (define-values (tick-range origin flunit)
       (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
-                         (plot-axis-integer-range number-sequence exclude-zero?)
+                         (plot-axis-integer-range number-sequence ex-zero?)
                          maybe-origin used-length maybe-unit))
     
     (define-values (actual-ticks maybe-stable-step minor-count) (plot-ticks-generate ticks-engine tick-range alt-format))
     (define actual-tick-values (filter exact-integer? (map plot-tick-value actual-ticks)))
 
-    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color) (plot-axis-visual-values axis-style))
-    (define-values (digit-position digit-anchor miror-anchor) (plot-axis-digit-position-values axis-style 'x))
-    (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
+    (define-values (axis-font digit-font label-font desc-font axis-pen flthickness digit-color tick-color label-color desc-color)
+      (plot-axis-visual-values axis-style))
+    (define-values (digit-position digit-anchor miror-anchor)
+      (plot-axis-digit-position-values axis-style 'x))
     
+    (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define fltick-thickness : Nonnegative-Flonum (~dimension (plot-axis-style-tick-thickness axis-style) flthickness))
     (define fltick-length : Nonnegative-Flonum (~dimension (plot-axis-style-tick-length axis-style) flthickness))
     (define fltick-sublen : Nonnegative-Flonum (~dimension (plot-axis-style-minor-tick-length axis-style) fltick-length))
@@ -219,7 +223,7 @@
 
     (define tick-pen : Pen (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (soff eoff) (geo-path-endpoint-offsets main-axis))
-    (define label-at-axis? : Boolean (eq? (plot-axis-style-label-placement axis-style) 'axis))
+    (define label-offset : Flonum (if (eq? (plot-axis-style-label-placement axis-style) 'axis) (* em 0.618) 0.0))
     (define flaxis-min : Flonum (+ (- fltick-min neg-margin) (real-part soff)))
     (define flaxis-max : Flonum (+ fltick-max pos-margin (real-part eoff)))
 
@@ -230,7 +234,7 @@
 
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc flaxis-min flaxis-max (if (or label-at-axis?) (* em 0.618) 0.0) 'x))])
+                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc flaxis-min flaxis-max label-offset 'x))])
                 (if (car lbl)
                     (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color (* em 0.382))])
                       (case/eq (plot-axis-style-label-placement axis-style)
@@ -255,9 +259,9 @@
                            [(int-pin int-gap) (plot-mark-vector-values int-style -pi/2 -pi/2)])
                 (for/fold ([integers : (Listof (GLayerof Geo)) null])
                           ([mark (in-list (cond [(list? number-sequence) (plot-axis-list->marks number-sequence desc-int)]
-                                                [(vector? number-sequence) (plot-axis-vector->marks number-sequence desc-int (if (not exclude-zero?) 0 1))]
+                                                [(vector? number-sequence) (plot-axis-vector->marks number-sequence desc-int (if (not ex-zero?) 0 1))]
                                                 [else (plot-axis-produce-marks number-sequence actual-tick-values desc-int)]))]
-                           #:when (not (and exclude-zero? (zero? (plot:mark-point mark)))))
+                           #:when (not (and ex-zero? (zero? (plot:mark-point mark)))))
                   (plot-axis-sticker-cons (plot-marker #:pin-stroke pin-pen #:color int-color #:font int-font
                                                        #:fallback-pin int-pin #:fallback-gap int-gap
                                                        #:fallback-anchor int-anchor #:length-base em

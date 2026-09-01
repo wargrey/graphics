@@ -158,7 +158,7 @@
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text))
                                             Float-Complex Float-Complex
-                                            -> (Listof (List Geo-Option-Rich-Text Float-Complex Geo-Option-Rich-Text Geo-Option-Rich-Text Boolean))])
+                                            -> (Listof (List Geo-Option-Rich-Text Float-Complex Geo-Option-Rich-Text Geo-Option-Rich-Text Flonum))])
   (case-lambda
     [(label unit-desc axis-desc flmin flmax offset which)
      (let ([udescs (if (pair? unit-desc) unit-desc (cons #false unit-desc))]
@@ -171,9 +171,9 @@
      (let ([udescs (if (pair? unit-desc) unit-desc (cons #false unit-desc))]
            [adescs (if (pair? axis-desc) axis-desc (cons #false axis-desc))])
        (if (pair? label)
-           (list (list (car label) src (car udescs) (car adescs) #false)
-                 (list (cdr label) tgt (cdr udescs) (cdr adescs) #true))
-           (list (list label tgt (cdr udescs) (cdr adescs) #true))))]))
+           (list (list (car label) src (car udescs) (car adescs) -1.0)
+                 (list (cdr label) tgt (cdr udescs) (cdr adescs) 0.0))
+           (list (list label tgt (cdr udescs) (cdr adescs) 0.0))))]))
 
 (define plot-screen-axis-label-adjust : (-> (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) Boolean
                                             (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)))

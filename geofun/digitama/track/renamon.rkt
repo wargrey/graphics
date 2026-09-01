@@ -15,7 +15,8 @@
 (provide
  (rename-out [define-renamon-rule! define-renamon-primitive!])
  
- (rename-out [geo-track-close renamon-close!]
+ (rename-out [geo-track-stay renamon-stay!]
+             [geo-track-close renamon-close!]
              [renamon-stamp renamon-stamp!]
              [renamon-teleport! renamon-jump-to!])
  
