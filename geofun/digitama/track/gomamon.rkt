@@ -9,7 +9,8 @@
 (provide default-track-halo-stroke)
 
 (provide
- (rename-out [geo-track-close gomamon-close!]
+ (rename-out [geo-track-stay gomamon-stay!]
+             [geo-track-close gomamon-close!]
              [gomamon-jump-to! gomamon-focus!])
  
  (rename-out [gomamon-move-upwards! gomamon-move-upward!]

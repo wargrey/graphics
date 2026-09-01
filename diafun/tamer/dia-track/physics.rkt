@@ -30,28 +30,28 @@
                            style)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-activity-diagram! phy.dia #:start '.phy
+(define-activity-diagram! phy.dia
   #:parameterize ([default-act-track-theme-adjuster track-style]
                   [default-dia-rubber-zone-theme-adjuster zone-colorize])
   [#:block-scale scale] #:-
   [#:zone 'SPhy #:desc "高中物理" #:options (list (make-dz:dock #:side 't #:position 0.0))
 
    [#:zone 'JPhy #:desc "初中物理" #:options (list (make-dz:dock #:side 't #:position 0.0))
-    (jump-down 0.01 Qual.)
+    (stay Qual.)
     (move-down 1.0 phenomenon)
     (move-down 1.0 Expt.)
     (move-right 1.0 '-+)]
    
-   [=> (jump-to Qual.)
+   [=> (focus Qual.)
        (move-right 2.5 Quant)
        (move-down 1.0 model)
        (move-down Expt.)]
-   [=> (jump-to '-+)
+   [=> (focus '-+)
        [=> (move-right 1.5 Theor. "[精确、系统]")]
        [=> (move-up-left Qual. 0.75 #false "[启蒙、体验]")
            (move-left Qual.)]]]
 
-  (jump-to model)
+  (focus model)
   (move-right 1.5 '#:物理直觉 (cons '#:内化 #false))
 
   (jump-left-down '-+ 2.618 '#::测量仪器#device)

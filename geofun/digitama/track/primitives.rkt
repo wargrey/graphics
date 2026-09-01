@@ -39,6 +39,20 @@
       (set-geo:track-origin! self endpt))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-track-stay : (case-> [Geo:Track -> Void]
+                                 [Geo:Track (Option Geo-Anchor-Name) -> Void])
+  (case-lambda
+    [(self)
+     (define here (geo:track-here self))
+     (define maybe-anchor (geo-trace-anchor-name (geo:track-trace self) here))
+     
+     (when (or maybe-anchor)
+       (geo-current-zone-try-push-anchor! maybe-anchor))]
+    [(self anchor)
+     (cond [(not anchor) (geo-track-stay self)]
+           [else (let ([here (geo:track-here self)])
+                   (geo-track-try-fit! self anchor here))])]))
+
 (define #:forall (T) geo-track-drift : (-> (∩ T Geo:Track) Geo-Bezier-Datum (Listof Geo-Bezier-Datum) (Option Geo-Anchor-Name)
                                            (-> (∩ T Geo:Track) Number Float-Complex) Flonum)
   (lambda [goma end-step ctrl-steps anchor position]

@@ -54,6 +54,11 @@
     (set-geo-trace-ranchors! self (cons anchor (geo-trace-ranchors self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-trace-anchor-name : (-> Geo-Trace Float-Complex (Option Geo-Anchor-Name))
+  (lambda [self target]
+    (for/or : (Option Geo-Anchor-Name) ([(anchor pos) (in-hash (geo-trace-positions self))])
+      (and (eq? target pos) anchor))))
+
 (define geo-trace-anchored-positions : (-> Geo-Trace (Immutable-HashTable Float-Complex Geo-Anchor-Name))
   (lambda [self]
     (for/fold ([positions : (Immutable-HashTable Float-Complex Geo-Anchor-Name) (hasheqv)])

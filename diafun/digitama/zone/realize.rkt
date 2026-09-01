@@ -101,7 +101,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define dia-anchor-pin? : (-> Geo-Anchor-Name Boolean)
   (lambda [anchor]
-    (string-prefix? (geo-anchor->string anchor) ".")))
+    (define name (geo-anchor->string anchor))
+    (define size (string-length name))
+
+    (and (>= size 2)
+         (eq? (string-ref name 0) #\.)
+         (eq? (string-ref name (sub1 size)) #\.))))
 
 (define dia-anchor->boundary
   : (-> Geo-Anchor-Name (Immutable-HashTable Geo-Anchor-Name (Option (GLayerof Dia:Block))) (HashTable Geo-Anchor-Name Float-Complex)
