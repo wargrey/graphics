@@ -28,7 +28,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define default-plot-axis-tick->sticker : Plot-Axis-Tick->Sticker
   (lambda [id label font color]
-    (geo-rich-text-realize #:id id label font color)))
+    (geo-rich-text-realize #:id id #:ink? #false label font color)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-x-axis-label : (-> Geo-Rich-Text Font Color Geo-Option-Rich-Text Geo-Option-Rich-Text (Option Font) (Option Color) Flonum Geo)
@@ -48,14 +48,14 @@
       (cond [(or unit-desc)
              (geo-hc-append (geo-rich-text-realize name font color #:ink? #true)
                             (geo-hc-append (geo-text "/" dfnt #:color dclr)
-                                           (geo-rich-text-realize unit-desc dfnt dclr)))]
+                                           (geo-rich-text-realize unit-desc dfnt dclr #:ink? #false)))]
             [(or axis-desc) (geo-rich-text-realize name font color #:ink? #true)]
-            [else (geo-rich-text-realize name font color)]))
+            [else (geo-rich-text-realize name font color #:ink? #true)]))
     
     (if (or axis-desc)
         (geo-hc-append name/unit
                        (geo-text " (" dfnt #:color dclr)
-                       (geo-rich-text-realize axis-desc dfnt dclr)
+                       (geo-rich-text-realize axis-desc dfnt dclr #:ink? #false)
                        (geo-text ")" dfnt #:color dclr))
         name/unit)))
 

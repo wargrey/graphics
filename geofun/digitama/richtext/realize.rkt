@@ -28,7 +28,7 @@
            [font : Option-Font]
            [color : Option-Fill-Paint]] : Geo
     (define (geo-plain-string [v : String]) : Geo
-      (geo-text #:id text-id #:alignment alignment
+      (geo-text #:id text-id #:alignment alignment #:ink? ink?
                 #:color color #:background bg-paint
                 n font))
 
@@ -101,6 +101,7 @@
            #:max-width [max-width : (Option Nonnegative-Flonum) #false]
            #:max-height [max-height : (Option Nonnegative-Flonum) #false]
            #:trim? [trim? : Boolean #true]
+           #:ink? [ink? : Boolean #false]
            [desc : Geo-Rich-Text]
            [font : Option-Font]
            [color : Option-Fill-Paint]] : (Option Geo)
@@ -113,7 +114,7 @@
     (and (cond [(string? text) (> (string-length text) 0)]
                [(bytes? text)  (> (bytes-length text) 0)]
                [else #true])
-         (geo-rich-text-realize #:id text-id
+         (geo-rich-text-realize #:id text-id #:ink? ink?
                                 #:max-width max-width #:max-height max-height
                                 #:alignment alignment
                                 text font color))))
