@@ -69,7 +69,7 @@
 
 (define plot-bi-tip
   (make-plot-axis-tip-style #:negative-shape plot-preset-axis-arrow
-                            #:positive-margin (&% 10) #:negative-margin (&% 10)))
+                            #:positive-margin (&% 6.18) #:negative-margin (&% 6.18)))
 
 (define plot-std-tip
-  (make-plot-axis-tip-style #:positive-margin (&% 7) #:negative-margin (&% 3)))
+  (make-plot-axis-tip-style #:positive-margin (&% 6.18) #:negative-margin (&% 3.82)))
