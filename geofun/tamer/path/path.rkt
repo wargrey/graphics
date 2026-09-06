@@ -7,7 +7,7 @@
 (define pen : Pen (desc-stroke #:width 2.0))
 (define bezier-pen : Pen (desc-stroke #:width 1.5 #:dash 'long-dash #:color 'Orange))
 
-(define path-examplify : (->* ((Listof PolyCurve2D) Option-Geo-Tip Option-Geo-Tip Pen) ((Option String) Boolean) Geo)
+(define path-examplify : (->* ((Listof PolyCurve2D) Option-Geo-Marker Option-Geo-Marker Pen) ((Option String) Boolean) Geo)
   (lambda [path smkr emkr pen [label #false] [reverse? #false]]
     (define glabels
       (and label
@@ -35,50 +35,50 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (module+ main
-  (path-examplify path default-aggregation-tip default-arrow-tip pen)
-  (path-examplify path #false default-generalization-tip pen)
-  (path-examplify path default-arrow-tip #false pen)
-  (path-examplify path default-bullet-tip default-bullet-tip pen)
-  (path-examplify path default-circle-tip default-circle-tip pen)
-  (path-examplify path default-dot-tip default-dot-tip pen)
-  (path-examplify path default-odot-tip default-odot-tip pen)
-  (path-examplify path default-pixel-tip default-pixel-tip pen)
+  (path-examplify path 'diamond the-arrow.mrk pen)
+  (path-examplify path #false 'triangle pen)
+  (path-examplify path the-arrow.mrk #false pen)
+  (path-examplify path the-bullet.mrk the-bullet.mrk pen)
+  (path-examplify path the-circle.mrk the-circle.mrk pen)
+  (path-examplify path the-dot.mrk the-dot.mrk pen)
+  (path-examplify path the-odot.mrk the-odot.mrk pen)
+  (path-examplify path the-pixel.mrk the-pixel.mrk pen)
   
-  (path-examplify (list 0.0+0.0i) default-arrow-tip default-arrow-tip pen)
-  (path-examplify (list 1.0-1.0i) default-arrow-tip default-arrow-tip pen)
+  (path-examplify (list 0.0+0.0i) the-arrow.mrk the-arrow.mrk pen)
+  (path-examplify (list 1.0-1.0i) the-arrow.mrk the-arrow.mrk pen)
   
   (path-examplify (list (list 220+60i 20+110i 70+250i))
-                  default-bullet-tip default-generalization-tip
+                  the-bullet.mrk the-generalization.mrk
                   bezier-pen "quadratic bezier" #true)
 
   (path-examplify (list (list 25+128i 102.4+230.4i 153.6+25.6i 230.4+128i))
-                  default-bullet-tip default-bullet-tip
+                  the-bullet.mrk the-bullet.mrk
                   bezier-pen "cubic bezier")
   
   (path-examplify (list (list 198+18i   34+57i 18+156i 221+90i
                               186+177i   14+82i 12+236i 45+290i
                               218+294i 248+188i))
-                  default-aggregation-tip default-arrow-tip
+                  the-aggregation.mrk the-arrow.mrk
                   bezier-pen "high-order bezier")
 
   (geo-path #:stroke bezier-pen
             #:tip-placement 'inside
-            #:source-tip default-composition-tip
-            #:target-tip default-arrow-tip
+            #:source-tip the-composition.mrk
+            #:target-tip the-arrow.mrk
             #:labels (make-geo-path-labels #:index #false
                                            (map string (string->list "labels parameterized along the full path")) 0.02)
             (list 60+20i 60+140i 368+166i (list 368+166i 645+166i 645+0i 750+166i) 800+166i))
 
   (path-examplify (list 368+166i 645+166i +nan.0+nan.0i 645+0i 750+166i)
-                  default-bullet-tip default-generalization-tip
+                  the-bullet.mrk the-generalization.mrk
                   pen)
 
   (geo-scale (geo-path #:tip-placement 'inside
-                       #:target-tip default-arrow-tip
+                       #:target-tip the-arrow.mrk
                        (list 0 20))
              8)
 
   (geo-scale (geo-path #:tip-placement 'inside
-                       #:target-tip (make-geo:tip:arrow #:radius (&% 350) #:wing-angle 3pi/5 #:curved? 0.4)
+                       #:target-tip (make-geo:mrk:arrow #:radius (&% 350) #:wing-angle 3pi/5 #:curved? 0.4)
                        (list 0 20))
              8))

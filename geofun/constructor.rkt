@@ -9,7 +9,7 @@
 (provide (rename-out [geo-star-polygon geo-regular-star-polygon]))
 
 (provide (all-from-out "digitama/path/label.rkt"))
-(provide (all-from-out "digitama/path/tips.rkt"))
+(provide (all-from-out "digitama/path/markers.rkt"))
 (provide (all-from-out "digitama/skeleton/stickman/interface.rkt"))
 (provide (all-from-out "digitama/layer/void.rkt"))
 
@@ -81,7 +81,7 @@
 
 (require "digitama/path/dc.rkt")
 (require "digitama/path/label.rkt")
-(require "digitama/path/tips.rkt")
+(require "digitama/path/markers.rkt")
 (require "digitama/path/tick.rkt")
 (require "digitama/layer/void.rkt")
 

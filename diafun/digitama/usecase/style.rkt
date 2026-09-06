@@ -10,9 +10,8 @@
 (require geofun/font)
 (require geofun/paint)
 
-(require geofun/digitama/richtext/self)
-(require geofun/digitama/path/tip/self)
-(require geofun/digitama/path/tip/arrow)
+(require geofun/digitama/path/marker/self)
+(require geofun/digitama/path/marker/arrow)
 
 (require "../block/style.rkt")
 (require "../track/style.rkt")
@@ -73,8 +72,8 @@
   ([font : Font dia-preset-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint dia-preset-track-stroke]
-   [source-tip : Option-Geo-Tip #false]
-   [target-tip : Option-Geo-Tip default-arrow-tip]
+   [source-tip : Option-Geo-Marker #false]
+   [target-tip : Option-Geo-Marker the-arrow.mrk]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #false]
    [label-distance : (Option Length+%) #false]))
@@ -86,8 +85,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'DarkGray]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip #false]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (void)]))
@@ -98,8 +97,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumAquamarine]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (void)]))
@@ -110,8 +109,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'CornflowerBlue]
    [dash : (Option Stroke-Dash+Offset) 'short-dash]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip default-arrow-tip]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker the-arrow.mrk]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (void)]))
@@ -122,8 +121,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color 'MediumPurple]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip default-generalization-tip]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker the-generalization.mrk]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (void)]))

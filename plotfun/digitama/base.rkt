@@ -2,7 +2,8 @@
 
 (provide (all-defined-out))
 (provide (all-from-out diafun/digitama/base))
-(provide (all-from-out geofun/digitama/path/tips))
+(provide (all-from-out geofun/digitama/path/markers))
+
 (provide (all-from-out "presets.rkt"))
 (provide (all-from-out "axis/view.rkt"))
 (provide (all-from-out "axis/style.rkt"))
@@ -13,7 +14,7 @@
 (provide (all-from-out "axis/tick/engine.rkt"))
 
 (require diafun/digitama/base)
-(require geofun/digitama/path/tips)
+(require geofun/digitama/path/markers)
 
 (require "presets.rkt")
 (require "axis/view.rkt")

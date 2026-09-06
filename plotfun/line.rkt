@@ -7,7 +7,6 @@
 (provide (all-from-out "digitama/base.rkt"))
 
 (require racket/case)
-(require digimon/measure)
 
 (require geofun/digitama/path/dc)
 (require geofun/digitama/layer/type)
@@ -76,8 +75,8 @@
     (define fltick-max : Nonnegative-Flonum (+ fltick-min used-length))
     
     (define Vself : Float-Complex (make-polar fllength α))
-    (define src-tip (geo-tip-filter (plot-axis-tip-style-negative-shape tip)))
-    (define tgt-tip (geo-tip-filter (plot-axis-tip-style-positive-shape tip)))
+    (define src-tip (geo-marker-filter (plot-axis-tip-style-negative-shape tip)))
+    (define tgt-tip (geo-marker-filter (plot-axis-tip-style-positive-shape tip)))
     (define main-axis : Geo:Path:Self
       (geo-path* #:stroke axis-pen #:tip-placement 'inside
                  #:source-tip src-tip #:target-tip tgt-tip
@@ -177,7 +176,7 @@
            #:origin [maybe-origin : (Option Real) #false]
            #:style [axis-style : Plot-Axis-Style (default-plot-axis-style)]
            #:label [axis-label : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
-           #:unitdesc [unit-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
+           #:unit-desc [unit-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:desc [axis-desc : (U Geo-Option-Rich-Text (Pairof Geo-Option-Rich-Text Geo-Option-Rich-Text)) #false]
            #:range [tick-hint : (U Integer (Pairof Integer Integer) False) #false]
            #:ticks [ticks-engine : Plot-Tick-Engine (plot-integer-ticks)]

@@ -9,7 +9,6 @@
 (provide (all-from-out "digitama/visualizer/vaid/self.rkt"))
 
 (require racket/case)
-(require digimon/measure)
 
 (require geofun/digitama/path/dc)
 (require geofun/digitama/dc/grid)
@@ -75,6 +74,7 @@
            #:layer-order [layer-order : (Listof Plot-Cartesian-Layer) (default-plot-cartesian-layer-order)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:frame [frame : Geo-Frame-Datum #false]
+           #:hide-visualizer-label? [hide-label? : Boolean #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (border background margin padding open-sides) (geo-frame-values frame))
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
@@ -280,7 +280,8 @@
 
     (define annotation-layers
       ; visualizers' data labels
-      (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)] #:when (geo:visualizer-label self))
+      (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
+                                           #:when (and (not hide-label?) (geo:visualizer-label self)))
         (define-values (real-pin real-gap)
           (plot-mark-vector-values mark-style
                                    (or (geo:visualizer-pin-angle self) 0.0)

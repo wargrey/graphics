@@ -9,8 +9,8 @@
 (require geofun/paint)
 (require geofun/stroke)
 
-(require geofun/digitama/path/tip/self)
-(require geofun/digitama/path/tip/arrow)
+(require geofun/digitama/path/marker/self)
+(require geofun/digitama/path/marker/arrow)
 
 (require diafun/digitama/presets)
 (require diafun/digitama/flowchart/style)
@@ -27,8 +27,8 @@
   ([font : Font plt-flow-preset-track-font]
    [font-paint : Fill-Paint 'DodgerBlue]
    [line-paint : Stroke-Paint plt-flow-preset-track-stroke]
-   [source-tip : Option-Geo-Tip #false]
-   [target-tip : Option-Geo-Tip default-arrow-tip]
+   [source-tip : Option-Geo-Marker #false]
+   [target-tip : Option-Geo-Marker the-arrow.mrk]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #false]
    [label-distance : (Option Flonum) #false]))

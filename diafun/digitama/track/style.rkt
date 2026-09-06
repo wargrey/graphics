@@ -16,7 +16,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/path/label)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Dia-Track-Endpoint (U Geo-Anchor-Name Float-Complex))
@@ -31,8 +31,8 @@
    [width : (Option Length+%)]
    [color : (U Color Void False)]
    [dash : (Option Stroke-Dash+Offset)]
-   [source-tip : Maybe-Geo-Tip]
-   [target-tip : Maybe-Geo-Tip]
+   [source-tip : Maybe-Geo-Marker]
+   [target-tip : Maybe-Geo-Marker]
    [label-rotate? : (U Boolean Void)]
    [label-inline? : (U Boolean Void)]
    [label-distance : (U Length+% Void)])
@@ -42,8 +42,8 @@
   ([font : Font]
    [font-paint : Fill-Paint]
    [line-paint : Stroke-Paint]
-   [source-tip : Option-Geo-Tip]
-   [target-tip : Option-Geo-Tip]
+   [source-tip : Option-Geo-Marker]
+   [target-tip : Option-Geo-Marker]
    [label-rotate? : Boolean]
    [label-inline? : Boolean]
    [label-distance : (Option Length+%)])
@@ -82,18 +82,18 @@
                    (dia-track-backstop-style-line-paint
                     (dia-track-style-spec-backstop self))))))
 
-(define #:forall (S) dia-track-resolve-tips : (-> (Dia-Track-Style-Spec S) (Values Option-Geo-Tip Option-Geo-Tip))
+(define #:forall (S) dia-track-resolve-tips : (-> (Dia-Track-Style-Spec S) (Values Option-Geo-Marker Option-Geo-Marker))
   (lambda [self]
     (define rt (dia-track-style-spec-root self))
     (define bs (dia-track-style-spec-backstop self))
     (define me (dia-track-style-spec-custom self))
     
-    (define src : Maybe-Geo-Tip
+    (define src : Maybe-Geo-Marker
       (let ([tip (dia-track-style-source-tip me)])
         (cond [(void? tip) (if rt (dia-track-style-source-tip rt) (void))]
               [else tip])))
     
-    (define tgt : Maybe-Geo-Tip
+    (define tgt : Maybe-Geo-Marker
       (let ([tip (dia-track-style-target-tip me)])
         (cond [(void? tip) (if rt (dia-track-style-target-tip rt) (void))]
               [else tip])))

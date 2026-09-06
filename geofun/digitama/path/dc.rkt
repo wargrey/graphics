@@ -11,10 +11,10 @@
 (require "../convert.rkt")
 
 (require "../path/label.rkt")
-(require "../path/tip/self.rkt")
+(require "../path/marker/self.rkt")
 (require "../path/tick.rkt")
-(require "../path/tip.rkt")
-(require "../path/tips.rkt")
+(require "../path/marker.rkt")
+(require "../path/markers.rkt")
 
 (require "../layer/type.rkt")
 (require "../layer/combine.rkt")
@@ -60,8 +60,8 @@
            #:type [type : Any #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [fill : Maybe-Fill-Paint #false]
-           #:source-tip [src-tip : (Option Geo-Tip) #false]
-           #:target-tip [tgt-tip : (Option Geo-Tip) #false]
+           #:source-tip [src-tip : Option-Geo-Marker #false]
+           #:target-tip [tgt-tip : Option-Geo-Marker #false]
            #:tip-color [tip-clr : (Option Color) #false]
            #:tip-placement [tip-plm : Geo-Tip-Placement 'center]
            #:source-placement [src-plm : (Option Geo-Tip-Placement) #false]
@@ -74,8 +74,8 @@
     (define-values (ik.x ik.y ik.w ik.h) (gpp-ink-box footprints))
 
     (define thickness : Nonnegative-Flonum (pen-width (if (pen? stroke) stroke (default-stroke))))
-    (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-tip-shape (geo-tip-filter src-tip) thickness srad #false (or src-plm tip-plm)))
-    (define-values (tgt-shape t.x0 t.y0 t.w t.h t.off t.cfg) (geo-tip-shape (geo-tip-filter tgt-tip) thickness erad  #true (or tgt-plm tip-plm)))
+    (define-values (src-shape s.x0 s.y0 s.w s.h s.off s.cfg) (geo-marker-shape (geo-marker-filter src-tip) thickness srad #false (or src-plm tip-plm)))
+    (define-values (tgt-shape t.x0 t.y0 t.w t.h t.off t.cfg) (geo-marker-shape (geo-marker-filter tgt-tip) thickness erad  #true (or tgt-plm tip-plm)))
     (define-values (s.x s.y) (values (+ (real-part spt) (real-part s.off) s.x0) (+ (imag-part spt) (imag-part s.off) s.y0)))
     (define-values (t.x t.y) (values (+ (real-part ept) (real-part t.off) t.x0) (+ (imag-part ept) (imag-part t.off) t.y0)))
     
@@ -99,8 +99,8 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:fill [fill : Maybe-Fill-Paint #false]
-           #:source-tip [src-tip : (Option Geo-Tip) #false]
-           #:target-tip [tgt-tip : (Option Geo-Tip) #false]
+           #:source-tip [src-tip : Option-Geo-Marker #false]
+           #:target-tip [tgt-tip : Option-Geo-Marker #false]
            #:tip-color [tip-clr : (Option Color) #false]
            #:tip-placement [tip-plm : Geo-Tip-Placement 'center]
            #:source-placement [src-plm : (Option Geo-Tip-Placement) #false]
@@ -274,7 +274,7 @@
     (glayer master (real-part ppos) (imag-part ppos) width height)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-draw-path-self! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option Color) (Option Color) Geo-Tip-Config Geo-Tip-Config Geo-Surface-Draw!)
+(define geo-draw-path-self! : (-> Maybe-Stroke-Paint Maybe-Fill-Paint (Option Color) (Option Color) Geo-Marker-Config Geo-Marker-Config Geo-Surface-Draw!)
   (lambda [alt-stroke alt-fill alt-sclr alt-tclr scfg tcfg]
     (define alt-srgba (and alt-sclr (rgb* alt-sclr)))
     (define alt-trgba (and alt-tclr (rgb* alt-tclr)))
@@ -287,16 +287,16 @@
         (define sclr (or alt-srgba color))
         (define tclr (or alt-trgba color))
 
-        (define (tip-pen [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Pen)
-          (cond [(geo-tip-config-fill? cfg) #false]
+        (define (tip-pen [cfg : Geo-Marker-Config] [clr : (Option FlRGBA)]) : (Option Pen)
+          (cond [(geo-marker-config-fill? cfg) #false]
                 [else (and paint
-                           (desc-stroke #:width (geo-tip-config-thickness cfg)
+                           (desc-stroke #:width (geo-marker-config-thickness cfg)
                                         #:join 100.0 ; chamfered like a plane wing for wide width or being upscaled
                                         #:color clr #:dash 'solid
                                         paint))]))
 
-        (define (tip-brush [cfg : Geo-Tip-Config] [clr : (Option FlRGBA)]) : (Option Brush)
-          (and (geo-tip-config-fill? cfg)
+        (define (tip-brush [cfg : Geo-Marker-Config] [clr : (Option FlRGBA)]) : (Option Brush)
+          (and (geo-marker-config-fill? cfg)
                (desc-brush #:color clr #:opacity opacity)))
 
         (dc_edge cr x0 y0 width height

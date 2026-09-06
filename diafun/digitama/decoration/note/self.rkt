@@ -9,7 +9,7 @@
 (require geofun/paint)
 
 (require geofun/digitama/self)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 (require geofun/digitama/richtext/self)
 
 (require "../../block/dc.rkt")
@@ -53,8 +53,8 @@
   ([font : Font dia-preset-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint dia-preset-note-track-stroke]
-   [source-tip : Option-Geo-Tip #false]
-   [target-tip : Option-Geo-Tip #false]
+   [source-tip : Option-Geo-Marker #false]
+   [target-tip : Option-Geo-Marker #false]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #true]
    [label-distance : (Option Length+%) #false]))
@@ -77,8 +77,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color #false]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Length+%) (void)]))
@@ -89,8 +89,8 @@
    [width : (Option Length+%) #false]
    [color : Maybe-Color #false]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip 'circle]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker 'circle]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Length+%) (void)]))

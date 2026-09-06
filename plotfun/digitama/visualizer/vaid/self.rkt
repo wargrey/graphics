@@ -4,7 +4,7 @@
 
 (require digimon/struct)
 (require geofun/digitama/paint/self)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 
 (require "../../presets.rkt")
 
@@ -18,8 +18,8 @@
 (define-struct plot-aaline : Plot-AALine
   ([point : Complex]
    [pen : (Option Pen) #false]
-   [x-tip : (U Void False Geo-Tip) (void)]
-   [y-tip : (U Void False Geo-Tip) (void)]
+   [x-tip : Maybe-Geo-Marker (void)]
+   [y-tip : Maybe-Geo-Marker (void)]
    [axes : Plot-AALine-Visible-Axis 'both]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -10,7 +10,7 @@
 
 (require geofun/digitama/path/dc)
 (require geofun/digitama/path/label)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 (require geofun/digitama/track/metadata)
 (require geofun/digitama/geometry/footprint)
 
@@ -52,8 +52,8 @@
   ([font : Font dia-preset-track-label-font]
    [font-paint : Fill-Paint 'DimGray]
    [line-paint : Stroke-Paint dia-preset-free-track-stroke]
-   [source-tip : Option-Geo-Tip #false]
-   [target-tip : Option-Geo-Tip #false]
+   [source-tip : Option-Geo-Marker #false]
+   [target-tip : Option-Geo-Marker #false]
    [label-rotate? : Boolean #true]
    [label-inline? : Boolean #true]
    [label-distance : (Option Length+%) #false]))
@@ -65,8 +65,8 @@
    [width : (Option Flonum) #false]
    [color : Maybe-Color (void)]
    [dash : (Option Stroke-Dash+Offset) #false]
-   [source-tip : Maybe-Geo-Tip (void)]
-   [target-tip : Maybe-Geo-Tip (void)]
+   [source-tip : Maybe-Geo-Marker (void)]
+   [target-tip : Maybe-Geo-Marker (void)]
    [label-rotate? : (U Boolean Void) (void)]
    [label-inline? : (U Boolean Void) (void)]
    [label-distance : (U Void Length+%) (void)]))
@@ -77,8 +77,8 @@
    [width : (Option Flonum) #false]
    [color : Maybe-Color (void)]
    [dash : (Option Stroke-Dash+Offset) 'long-dash]
-   [source-tip : Maybe-Geo-Tip #false]
-   [target-tip : Maybe-Geo-Tip #false]
+   [source-tip : Maybe-Geo-Marker #false]
+   [target-tip : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (&% -100)]))
@@ -89,8 +89,8 @@
    [width : (Option Flonum) #false]
    [color : Maybe-Color (void)]
    [dash : (Option Stroke-Dash+Offset) 'solid]
-   [source-tip : Maybe-Geo-Tip #false]
-   [target-tip : Maybe-Geo-Tip #false]
+   [source-tip : Maybe-Geo-Marker #false]
+   [target-tip : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (&% -100)]

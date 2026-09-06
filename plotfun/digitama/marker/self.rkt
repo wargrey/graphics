@@ -12,7 +12,7 @@
 (require geofun/digitama/paint/self)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/sticker)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 (require geofun/digitama/richtext/self)
 
 (require "../axis/self.rkt")
@@ -30,7 +30,7 @@
 (define-struct plot:mark : Plot:Mark
   ([point : Complex 0]
    [desc : (Option Plot-Mark-Description) #false]
-   [shape : (Option Geo-Tip) #false]
+   [shape : Option-Geo-Marker #false]
    [pin : (Option Plot-Mark-Vector) #false]
    [gap : Plot-Mark-Vector plot-mark-null-vector]
    [anchor : (Option Geo-Pin-Anchor) #false]
@@ -49,7 +49,7 @@
 (define plot-integer
   (lambda [#:datum [datum : Any #false]
            #:desc [desc : (Option Plot-Mark-Description) plot-desc-real]
-           #:shape [shape : (Option Geo-Tip) 'dot]
+           #:shape [shape : Option-Geo-Marker 'dot]
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Length+%) #false] #:pin-angle [p-angle : (Option Real) -pi/2]
            #:gap-length [length : Length+% +nan.0] #:gap-angle [angle : Real +nan.0]
@@ -65,7 +65,7 @@
 (define plot-real
   (lambda [#:datum [datum : Any #false]
            #:desc [desc : (Option Plot-Mark-Description) plot-desc-real]
-           #:shape [shape : (Option Geo-Tip) 'dot]
+           #:shape [shape : Option-Geo-Marker 'dot]
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Length+%) #false] #:pin-angle [p-angle : (Option Real) -pi/2]
            #:gap-length [length : Length+% +nan.0] #:gap-angle [angle : Real +nan.0]
@@ -80,7 +80,7 @@
 
 (define plot-point
   (lambda [#:datum [datum : Any #false]
-           #:shape [shape : (Option Geo-Tip) 'dot]
+           #:shape [shape : Option-Geo-Marker 'dot]
            #:desc [desc : (Option Plot-Mark-Description) plot-desc-point]
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Length+%) #false] #:pin-angle [p-angle : (Option Real) #false]
@@ -96,7 +96,7 @@
 
 (define plot-label
   (lambda [#:datum [datum : Any #false]
-           #:shape [shape : (Option Geo-Tip) #false]
+           #:shape [shape : Option-Geo-Marker #false]
            #:at [x : Complex]
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Length+%) (&% 100)] #:pin-angle [p-angle : (Option Real) +nan.0]
@@ -111,7 +111,7 @@
                     #:debug? debug?)))
 
 (define plot-template
-  (lambda [#:shape [shape : (Option Geo-Tip) 'dot]
+  (lambda [#:shape [shape : Option-Geo-Marker 'dot]
            #:pin? [pin? : Boolean #true]
            #:pin-length [p-length : (Option Length+%) #false]
            #:pin-angle [p-angle : (Option Real) #false]

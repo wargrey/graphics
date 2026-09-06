@@ -10,7 +10,7 @@
 
 (require geofun/digitama/paint/self)
 (require geofun/digitama/path/tick)
-(require geofun/digitama/path/tip/self)
+(require geofun/digitama/path/marker/self)
 
 (require "../presets.rkt")
 
@@ -39,8 +39,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter plot-axis-tip-style : Plot-Axis-Tip-Style
-  ([positive-shape : (Option Geo-Tip) plot-preset-axis-arrow]
-   [negative-shape : (Option Geo-Tip) #false]
+  ([positive-shape : Option-Geo-Marker plot-preset-axis-arrow]
+   [negative-shape : Option-Geo-Marker #false]
    [positive-margin : Length+% (&% 8)]
    [negative-margin : Length+% 0.0]))
 
@@ -71,5 +71,5 @@
   (make-plot-axis-tip-style #:negative-shape plot-preset-axis-arrow
                             #:positive-margin (&% 6.18) #:negative-margin (&% 6.18)))
 
-(define plot-std-tip
+(define plot-strict-tip
   (make-plot-axis-tip-style #:positive-margin (&% 6.18) #:negative-margin (&% 3.82)))

@@ -1,6 +1,5 @@
 #lang typed/racket
 
-(require geofun/vector)
 (require geofun/markup)
 (require plotfun/cartesian)
 
