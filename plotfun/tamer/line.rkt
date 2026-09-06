@@ -45,6 +45,7 @@
 
 (define real-line
   (plot-real-line #:style (make-plot-axis-style #:label-placement 'axis)
+                  #:mark-style (make-plot-mark-style #:pin-length (&L 2 'em))
                   #:range (cons 0 6)
                   #:unit-length (&% 24)
                   #:label "R"

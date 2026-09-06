@@ -282,17 +282,19 @@
       ; visualizers' data labels
       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
                                            #:when (and (not hide-label?) (geo:visualizer-label self)))
-        (define-values (real-pin real-gap)
+        (define-values (this-pin this-gap)
           (plot-mark-vector-values mark-style
                                    (or (geo:visualizer-pin-angle self) 0.0)
                                    (or (geo:visualizer-gap-angle self) 0.0)))
         
         ;; visualizer should ensure its label being pinned at visible point
         (geo-path-self-pin-layer
-         (plot-marker #:color (geo:visualizer-color self) #:font mark-font #:pin-stroke pin-pen
-                      #:fallback-pin real-pin #:fallback-gap real-gap
+         (plot-marker #:color (or mark-color (geo:visualizer-color self))
+                      #:font mark-font #:pin-stroke pin-pen
+                      #:fallback-pin this-pin #:fallback-gap this-gap
                       #:fallback-anchor mark-anchor #:length-base em
-                      (assert (geo:visualizer-label self)) origin-dot->pos))))
+                      (assert (geo:visualizer-label self))
+                      origin-dot->pos))))
 
     (define layer-groups : (Immutable-HashTable Plot-Cartesian-Layer (Listof (GLayerof Geo)))
       ((inst make-immutable-hasheq Plot-Cartesian-Layer (Listof (GLayerof Geo)))

@@ -12,14 +12,14 @@
 (require "anchor.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-visual-values : (case-> [(Option Plot-Mark-Style) Font Pen (-> FlRGBA FlRGBA) -> (Values Pen Font FlRGBA Plot-Mark-Auto-Anchor)]
-                                          [(Option Plot-Mark-Style) Font Pen -> (Values Pen Font Color Plot-Mark-Auto-Anchor)])
+(define plot-mark-visual-values : (case-> [(Option Plot-Mark-Style) Font Pen (-> FlRGBA FlRGBA) -> (Values Pen Font (Option FlRGBA) Plot-Mark-Auto-Anchor)]
+                                          [(Option Plot-Mark-Style) Font Pen -> (Values Pen Font (Option Color) Plot-Mark-Auto-Anchor)])
   (case-lambda
     [(self fallback-font fallback-pen)
      (if (or self)
          (values (or (plot-mark-style-pin-pen self) fallback-pen)
                  (or (plot-mark-style-font self) fallback-font)
-                 (or (plot-mark-style-color self) (pen-color fallback-pen))
+                 (plot-mark-style-color self)
                  (plot-mark-style-anchor self))
          (plot-mark-visual-values (default-plot-mark-style) fallback-font fallback-pen))]
     [(self fallback-font fallback-pen adjust)
@@ -30,8 +30,7 @@
                        fallback-pen))
                  (or (plot-mark-style-font self) fallback-font)
                  (let ([c (plot-mark-style-color self)])
-                   (cond [(and c) (adjust (rgb* c))]
-                         [else (pen-color fallback-pen)]))
+                   (and c (adjust (rgb* c))))
                  (plot-mark-style-anchor self))
          (plot-mark-visual-values (default-plot-mark-style) fallback-font fallback-pen adjust))]))
 

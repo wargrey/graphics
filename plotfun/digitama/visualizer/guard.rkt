@@ -35,8 +35,9 @@
     (cond [(plot:mark? label)
            (let* ([origin (plot:mark-point label)]
                   [dot (plot-mark-point-guard origin fx idx total xmin xmax ymin ymax at-frac frac-rng)])
-             (and dot (cond [(and (= origin dot)) label]
-                            [else (remake-plot:mark label #:point dot)])))]
+             (cond [(not dot) #false]
+                   [(eq? origin dot) label]
+                   [else (remake-plot:mark label #:point dot)]))]
           [(or label)
            (let ([dot (plot-mark-point-guard +nan.0 fx idx total xmin xmax ymin ymax at-frac frac-rng)])
              (and dot (let ([func-name (if (eq? label 'name) (format "~a" (object-name fx)) label)])

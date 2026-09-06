@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide (all-defined-out))
+(provide (rename-out [f:linear f:kx+b]))
 
 (require racket/format)
 
@@ -19,6 +20,7 @@
 (require "../../calculus.rkt")
 
 (require "../../marker/self.rkt")
+(require "../../marker/style.rkt")
 (require "../../unsafe/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -143,8 +145,7 @@
                                       #:gap-angle dynamic-angle]
                            (list lft rgt))))
     
-    (plot-visualizer linear-realize xrange yrange
-                     linear-range (and strk-color #true))))
+    (plot-visualizer linear-realize xrange yrange linear-range (and strk-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-function-range : (-> (-> Real (Option Number)) Positive-Index Plot-Visualizer-Data-Range)

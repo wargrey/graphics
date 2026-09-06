@@ -17,6 +17,7 @@
 (require "../interface.rkt")
 
 (require "../../marker/self.rkt")
+(require "../../marker/style.rkt")
 (require "../../unsafe/line.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

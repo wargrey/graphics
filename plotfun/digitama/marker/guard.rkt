@@ -29,7 +29,7 @@
 (define plot-mark-fallback-vector-guard : (-> Length+% Real Plot-Mark-Fallback-Angle (Option Plot-Mark-Fallback-Vector))
   (lambda [length maybe-angle dynamic-angle]
     (and (&rational? length)
-         (cond [(rational? maybe-angle) (cons length (real->double-flonum maybe-angle))]
+         (cond [(&rational? maybe-angle) (cons length (real->double-flonum maybe-angle))]
                [(procedure? dynamic-angle) (cons length dynamic-angle)]
                [(rational? dynamic-angle) (cons length dynamic-angle)]
                [else #false]))))

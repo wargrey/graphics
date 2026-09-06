@@ -10,6 +10,7 @@
 
 (require "vaid/self.rkt")
 (require "../marker/self.rkt")
+(require "../marker/style.rkt")
 
 (require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
