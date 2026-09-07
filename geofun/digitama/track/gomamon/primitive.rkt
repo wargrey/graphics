@@ -269,7 +269,8 @@
       (if (> datum 0) (real->double-flonum datum) default-scale))
     
     (cond [(flonum? scale) (let ([s (turn-scale scale)]) (values s s))]
+          [(complex? scale) (values (turn-scale (real-part scale)) (turn-scale (imag-part scale)))]
           [(list? scale) (values (turn-scale (car scale)) (turn-scale (cadr scale)))]
           [(pair? scale) (values (turn-scale (car scale)) (turn-scale (cdr scale)))]
-          [else (values (turn-scale (real-part scale)) (turn-scale (imag-part scale)))])))
+          [else (values (turn-scale (vector-ref scale 0)) (turn-scale (vector-ref scale 1)))])))
 

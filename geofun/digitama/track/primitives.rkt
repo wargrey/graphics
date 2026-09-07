@@ -161,6 +161,7 @@
     (cond [(complex? dpos) (+ cpos (position self dpos))]
           [(list? dpos) (+ cpos (position self (make-rectangular (car dpos) (cadr dpos))))]
           [(pair? dpos) (+ cpos (position self (make-rectangular (car dpos) (cdr dpos))))]
+          [(vector? dpos) (+ cpos (position self (make-rectangular (vector-ref dpos 0) (vector-ref dpos 1))))]
           [else (geo-trace-ref (geo:track-trace self) dpos)])))
 
 (define geo-track-linear-bezier : (-> Geo:Track Float-Complex (Option Geo-Anchor-Name) Flonum)

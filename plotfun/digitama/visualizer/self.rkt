@@ -68,11 +68,11 @@
 (define-syntax (create-visualizer stx)
   (syntax-parse stx #:datum-literals [:]
     [(_ Geo
-        (~seq #:with [name draw!:expr extent:expr insets:expr
+        (~seq #:with [name draw!:expr extent:expr bleeds
                            desc ...])
         argl ...)
      (syntax/loc stx
-       (create-geometry-object Geo #:with [name draw! extent insets]
+       (create-geometry-object Geo #:with [name draw! extent bleeds]
                                (desc-geo:visualizer desc ...)
                                argl ...))]))
 

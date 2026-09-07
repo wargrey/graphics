@@ -84,7 +84,7 @@
         (define x (real-part pt))
         (define y (imag-part pt))
 
-        (cond [(not (or (nan? x) (nan? y))) (cairo_line_to cr (real-part pt) (imag-part pt))]
+        (cond [(not (or (nan? x) (nan? y))) (cairo_line_to cr x y)]
               [(not ignore-nan?) (cairo_new_sub_path cr)])))))
 
 (define cairo_path : (-> Cairo-Ctx Geo-Path-Prints Flonum Flonum Boolean Natural)

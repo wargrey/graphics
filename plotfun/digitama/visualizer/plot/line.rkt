@@ -18,7 +18,8 @@
 
 (require "../../marker/self.rkt")
 (require "../../marker/style.rkt")
-(require "../../unsafe/line.rkt")
+
+(require "../../unsafe/dot.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct plot:lines geo:line:visualizer

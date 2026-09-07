@@ -12,6 +12,11 @@
 
 (require racket/case)
 
+(require "../base.rkt")
+(require "../paint/self.rkt")
+(require "../../stroke.rkt")
+(require "../../fill.rkt")
+
 (require "marker/self.rkt")
 (require "marker/dot.rkt")
 (require "marker/arrow.rkt")
@@ -37,3 +42,20 @@
      [(odot) the-odot.mrk]
      [(pixel) the-pixel.mrk]
      [else #false])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define geo-marker-resolve-paints : (->* ((Option Pen) Geo-Marker-Config (Option Fill-Rule))
+                                         ((Option FlRGBA) (Option Stroke-Dash-Datum))
+                                         (Values (Option Pen) (Option Brush)))
+  (lambda [paint cfg fill-rule [alt-color #false] [alt-dash #false]]
+    (define color (or alt-color (and paint (pen-color paint))))
+    (define opacity (and paint (pen-opacity paint)))
+    (define fill? (geo-marker-config-fill? cfg))
+
+    (values (and paint (not fill?)
+                 (desc-stroke #:width (geo-marker-config-thickness cfg)
+                              #:color (or alt-color color)
+                              #:dash alt-dash
+                              #:join 100.0 ; chamfered like a plane wing for wide width or being upscaled
+                              paint))
+            (and fill? (desc-brush #:color color #:opacity opacity #:rule fill-rule)))))

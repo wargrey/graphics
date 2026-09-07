@@ -5,7 +5,7 @@
 (require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Point2D (U Complex (Pairof Real Real) (List Real Real)))
+(define-type Point2D (U Complex (Pairof Real Real) (List Real Real) (Vector Real Real)))
 (define-type PolyCurve2D (U Point2D (Listof Point2D)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -90,13 +90,15 @@
   (lambda [dt]
     (cond [(complex? dt) (values (real->double-flonum (real-part dt)) (real->double-flonum (imag-part dt)))]
           [(list? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cadr dt)))]
-          [else (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))])))
+          [(pair? dt) (values (real->double-flonum (car dt)) (real->double-flonum (cdr dt)))]
+          [else (values (real->double-flonum (vector-ref dt 0)) (real->double-flonum (vector-ref dt 1)))])))
 
 (define point2d-real-values : (-> Point2D (Values Real Real))
   (lambda [dt]
     (cond [(complex? dt) (values (real-part dt) (imag-part dt))]
           [(list? dt) (values (car dt) (cadr dt))]
-          [else (values (car dt) (cdr dt))])))
+          [(pair? dt) (values (car dt) (cdr dt))]
+          [else (values (vector-ref dt 0) (vector-ref dt 1))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define point2d-flip : (-> Float-Complex Flonum Flonum Flonum Flonum Boolean Boolean Float-Complex)

@@ -16,7 +16,7 @@
 
     (geo-hc-append #:gapsize 16.0
                    (geo-path #:stroke (desc-stroke pen #:color 'RoyalBlue)
-                             #:tip-placement 'inside
+                             #:tip-placement 'inside #:target-color 'Orange
                              #:source-tip smkr #:target-tip emkr
                              #:labels glabels
                              path)

@@ -282,25 +282,11 @@
     (λ [self cr x0 y0 width height]
       (with-asserts ([self geo:path:self?])
         (define paint (geo-select-stroke-paint alt-stroke))
-        (define color (and paint (pen-color paint)))
-        (define opacity (and paint (pen-opacity paint)))
-        (define sclr (or alt-srgba color))
-        (define tclr (or alt-trgba color))
-
-        (define (tip-pen [cfg : Geo-Marker-Config] [clr : (Option FlRGBA)]) : (Option Pen)
-          (cond [(geo-marker-config-fill? cfg) #false]
-                [else (and paint
-                           (desc-stroke #:width (geo-marker-config-thickness cfg)
-                                        #:join 100.0 ; chamfered like a plane wing for wide width or being upscaled
-                                        #:color clr #:dash 'solid
-                                        paint))]))
-
-        (define (tip-brush [cfg : Geo-Marker-Config] [clr : (Option FlRGBA)]) : (Option Brush)
-          (and (geo-marker-config-fill? cfg)
-               (desc-brush #:color clr #:opacity opacity)))
-
+        (define-values (spen sbrush) (geo-marker-resolve-paints paint scfg #false alt-srgba 'solid))
+        (define-values (tpen tbrush) (geo-marker-resolve-paints paint tcfg #false alt-trgba 'solid))
+        
         (dc_edge cr x0 y0 width height
                  (geo:path:self-footprints self) (geo:path:self-bbox-offset self) paint (geo-select-fill-source alt-fill)
-                 (geo:path:self-source-tip self) (tip-pen scfg sclr) (tip-brush scfg sclr) (car (geo:path:self-source self))
-                 (geo:path:self-target-tip self) (tip-pen tcfg tclr) (tip-brush tcfg tclr) (car (geo:path:self-target self))
+                 (geo:path:self-source-tip self) spen sbrush (car (geo:path:self-source self))
+                 (geo:path:self-target-tip self) tpen tbrush (car (geo:path:self-target self))
                  (geo:path:self-adjust-offset self))))))
