@@ -2,8 +2,6 @@
 
 (require diafun/activity)
 
-(require geofun/vector)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define scale : Nonnegative-Flonum 1.0)
 

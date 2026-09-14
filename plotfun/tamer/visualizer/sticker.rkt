@@ -13,7 +13,7 @@
 (define sticker-screen
   (plot-cartesian #:x-range (cons 0 800)
                   #:y-range (cons 0 600)
-                  #:screen? #true
+                  #:y-down? #true
                   vtree))
 
 (define sticker-cart

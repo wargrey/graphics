@@ -45,7 +45,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian
   (lambda [#:id [id : (Option Symbol) #false]
-           #:screen? [screen? : Boolean #false]
+           #:y-down? [y-downards? : Boolean #false]
            #:O [chO : Char #\O]
            #:origin [maybe-origin : (Option Complex) #false]
            #:unit-length [maybe-unit : (Option (Pairable Length+%)) #false]
@@ -74,7 +74,9 @@
            #:layer-order [layer-order : (Listof Plot-Cartesian-Layer) (default-plot-cartesian-layer-order)]
            #:fallback-range [fallback-dom : (Pairof Real Real) (default-plot-visualizer-domain-range)]
            #:frame [frame : Geo-Frame-Datum #false]
-           #:hide-visualizer-label? [hide-label? : Boolean #false]
+           #:hide-visualizer-label? [no-vlabel? : Boolean #false]
+           #:hide-x-axis? [no-xaxis? : Boolean #false]
+           #:hide-y-axis? [no-yaxis? : Boolean #false]
            . [tree : (U Plot-Visualizer Plot-Visualizer-Tree) *]] : Plot:Cartesian
     (define-values (border background margin padding open-sides) (geo-frame-values frame))
     (define-values (visualizers maybe-xivl maybe-yivl) (plot-visualizer-tree-flatten tree))
@@ -103,7 +105,7 @@
                                                  (- (cdr xview) (car xview)))
                                               yrel-scale))]))
 
-    (define-values (y-neg-margin y-pos-margin) (if (not screen?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
+    (define-values (y-neg-margin y-pos-margin) (if (not y-downards?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
     (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
     (define-values (ytick-range yO yU yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
 
@@ -141,9 +143,9 @@
     ;   instead of calculating vertical positions of real points on screen.
     ; Whereas the `Origin` is the math concept, along with `xunit` and `yunit`,
     ;   make the actual transformation be simplified and elegant.
-    (define y-cart-transform : (-> Flonum Flonum) (if (not screen?) - values))
+    (define y-cart-transform : (-> Flonum Flonum) (if (not y-downards?) - values))
     (define Origin : Float-Complex (make-rectangular (+ (* view-width xO) xtick-min) 0.0))
-    (define Oview : Float-Complex (+ Origin (flc-ri (+ (* view-height (if (not screen?) yO (- 1.0 yO))) ytick-min))))
+    (define Oview : Float-Complex (+ Origin (flc-ri (+ (* view-height (if (not y-downards?) yO (- 1.0 yO))) ytick-min))))
 
     (define tick-pen : Pen (desc-stroke axis-pen #:width fltick-thickness #:color tick-color))
     (define-values (xdigit-position xdigit-anchor xmiror-anchor) (plot-axis-digit-position-values axis-style 'x))
@@ -163,8 +165,8 @@
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (y-cart-transform flheight))))))
 
-    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em (if (not screen?) -1.0 +1.0))))
-    (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em (if (not screen?) +1.0 -1.0))))
+    (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em (if (not y-downards?) -1.0 +1.0))))
+    (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em (if (not y-downards?) +1.0 -1.0))))
     (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
     (define ymiror-offset : Float-Complex (make-rectangular (* ydigit-position (- em)) 0.0))
     
@@ -184,14 +186,15 @@
     (define-values (visible-xticks visible-xview) (plot-ticks-trim actual-xticks xO xunit  view-width xview))
     (define-values (visible-yticks visible-yview) (plot-ticks-trim actual-yticks yO yU    view-height yview))
     
-    (define 0-as-xdigit? : Boolean
-      (and (negative? (car visible-xview))
-           (< (+ (* view-height yO) fltick-min y-neg-margin0)
-              (* xdigit-position em -1.0))
-           #;(null? actual-yticks)))
+    (define O-as-xdigit? : Boolean
+      (or no-yaxis?
+          (and (negative? (car visible-xview))
+               (< (+ (* view-height yO) fltick-min y-neg-margin0)
+                  (* xdigit-position em -1.0))
+               #;(null? actual-yticks))))
 
     (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette chameleon bg-color))
-    (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview screen?))
+    (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview y-downards?))
     (define-values (visible-width visible-height) (values (abs (real-part visible-diag)) (abs (imag-part visible-diag))))
     
     (define xgrid : (Option Geo:Grid)
@@ -230,16 +233,16 @@
          (define-values (maybe-sticker gtick)
            (if (plot-tick-major? xtick)
                (values (xdigit->sticker id (plot-tick-desc xtick) digit-font digit-color)
-                       (plot-axis-xtick-sticker fltick-length (plot-axis-style-xtick-placement axis-style screen?) tick-pen))
+                       (plot-axis-xtick-sticker fltick-length (plot-axis-style-xtick-placement axis-style y-downards?) tick-pen))
                (values 'minor
-                       (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-xtick-placement axis-style screen?) tick-pen))))
+                       (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-xtick-placement axis-style y-downards?) tick-pen))))
 
          (cond [(not (flnear? xval 0.0))
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
                                         xdigit-offset xticks xtick-min real-part xtick-max gtick)]
-               [(or 0-as-xdigit?)
+               [(or O-as-xdigit?)
                 (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
-                                        xdigit-offset xticks xtick-min real-part xtick-max #false)]
+                                        xdigit-offset xticks xtick-min real-part xtick-max (and no-yaxis? gtick))]
                [else xticks]))))
 
     (define y-tick-layers : (Listof (GLayerof Geo))
@@ -251,9 +254,9 @@
       (append
        ; y-axis's labels.
        (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                 ([lbl (in-list (plot-axis-label-settings (plot-screen-axis-label-adjust y-label screen?)
-                                                          (plot-screen-axis-label-adjust y-unit-desc screen?)
-                                                          (plot-screen-axis-label-adjust y-desc screen?)
+                 ([lbl (in-list (plot-axis-label-settings (plot-screen-axis-label-adjust y-label y-downards?)
+                                                          (plot-screen-axis-label-adjust y-unit-desc y-downards?)
+                                                          (plot-screen-axis-label-adjust y-desc y-downards?)
                                                           yaxis-min yaxis-max (if (or label-at-axis?) (* em 0.618) (* em -0.5)) 'y))])
          (if (car lbl)
              (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color)])
@@ -274,14 +277,14 @@
                (values 'minor
                        (plot-axis-ytick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
 
-         (if (not (flnear? yval 0.0))
+         (if (or no-xaxis? (not (flnear? yval 0.0)))
              (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)
              yticks))))
 
     (define annotation-layers
       ; visualizers' data labels
       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
-                                           #:when (and (not hide-label?) (geo:visualizer-label self)))
+                                           #:when (and (not no-vlabel?) (geo:visualizer-label self)))
         (define-values (this-pin this-gap)
           (plot-mark-vector-values mark-style
                                    (or (geo:visualizer-pin-angle self) 0.0)
@@ -303,10 +306,15 @@
                                [(or xgrid) (list (geo-own-pin-layer 'lt visible-pos xgrid 0.0+0.0i))]
                                [(or ygrid) (list (geo-own-pin-layer 'lt visible-pos ygrid 0.0+0.0i))]
                                [else null]))
-             (cons 'axes (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
-                               (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview)))
              
-             (cons 'tick (append x-tick-layers y-tick-layers))
+             (cons 'axes (cond [(and no-xaxis? no-yaxis?) null]
+                               [(or no-yaxis?) (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i))]
+                               [(or no-xaxis?) (list (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview))]
+                               [else (list (geo-own-pin-layer 'lc 0.0+0.0i xaxis 0.0+0.0i)
+                                           (geo-own-pin-layer 'cb 0.0+0.0i yaxis Oview))]))
+             
+             (cons 'tick (append (if (or no-xaxis?) null x-tick-layers)
+                                 (if (or no-yaxis?) null y-tick-layers)))
 
              (cons 'aid null)
 
@@ -314,12 +322,12 @@
     
     (define layers : (Listof (GLayerof Geo)) (plot-cartesian-layers layer-groups plots layer-order))
     (define translated-layers : (Option (GLayer-Groupof Geo))
-      (if (not 0-as-xdigit?)
-          (geo-layers-try-push-back (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
-                                                       Origin zero (+ ydigit-offset xdigit-offset))
-                                    layers)
-          (and (pair? layers)
-               (geo-layers-try-extend layers 0.0 0.0))))
+      (cond [(and (not O-as-xdigit?) (not no-xaxis?))
+             (geo-layers-try-push-back (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
+                                                          Origin zero (+ ydigit-offset xdigit-offset))
+                                       layers)]
+            [else (and (pair? layers)
+                       (geo-layers-try-extend layers 0.0 0.0))]))
     
     (define delta-origin : Float-Complex
       (if (or translated-layers)

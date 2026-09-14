@@ -31,7 +31,7 @@
   (procedure-rename
    (λ [[x : Real]]
      (sin (+ x (* n 0.4))))
-   (string->symbol (format "sin(x+~a)" (* n 4/10)))))
+   (string->symbol (format "sin(φ+~a)" (* n 4/10)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vtree : (Listof Plot-Visualizer)
@@ -59,6 +59,7 @@
   (plot-cartesian
    #:x-ticks (plot-symbol-ticks* -3/2 3/2 1/2 1)
    #:y-ticks (plot-real-ticks*)
-   #:x-label "f"
+   #:x-label "φ"
+   #:y-label "ψ"
    (for/list : (Listof Plot-Visualizer) ([i (in-range 10)])
      (function (sin+n i) #false #false -1 +1))))
