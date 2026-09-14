@@ -105,9 +105,12 @@
                                                  (- (cdr xview) (car xview)))
                                               yrel-scale))]))
 
-    (define-values (y-neg-margin y-pos-margin) (if (not y-downards?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
-    (define-values (xtick-range xO xunit) (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
-    (define-values (ytick-range yO yU yunit) (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
+    (define-values (y-neg-margin y-pos-margin)
+      (if (not y-downards?) (values y-neg-margin0 y-pos-margin0) (values y-pos-margin0 y-neg-margin0)))
+    (define-values (xtick-range xO xunit)
+      (plot-axis-metrics  xview maybe-xorig  view-width maybe-xunit))
+    (define-values (ytick-range yO yU yunit)
+      (plot-axis-metrics* yview maybe-yorig view-height (if (rational? height) maybe-yunit (* xunit yrel-scale)) flc-ri))
 
     (define-values (actual-xticks maybe-xstep xminor-count) (plot-ticks-generate xticks-engine xtick-range xtick-format))
     (define-values (actual-yticks maybe-ystep yminor-count)
@@ -134,9 +137,6 @@
     (define ytick-min : Nonnegative-Flonum (+ fltick-min y-neg-margin))
     (define xtick-max : Nonnegative-Flonum (+ xtick-min view-width))
     (define ytick-max : Nonnegative-Flonum (+ ytick-min view-height))
-
-    (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
-    (define zero : Geo (geo-text (string chO) label-font #:color label-color))
 
     ; The x-axis is the major axis, which is placed at screen (0, 0)
     ; So, `Oview` is used to adjust the place of the y-axis,
@@ -165,6 +165,7 @@
                  #:target-tip (plot-axis-tip-style-positive-shape (or y-tip x-tip))
                  (list the-M0 (gpp:point #\L (flc-ri (y-cart-transform flheight))))))
 
+    (define em : Nonnegative-Flonum (font-metrics-ref digit-font 'em))
     (define xdigit-offset : Float-Complex (flc-ri (* xdigit-position em (if (not y-downards?) -1.0 +1.0))))
     (define xmiror-offset : Float-Complex (flc-ri (* xdigit-position em (if (not y-downards?) +1.0 -1.0))))
     (define ydigit-offset : Float-Complex (make-rectangular (* ydigit-position em) 0.0))
@@ -185,17 +186,30 @@
 
     (define-values (visible-xticks visible-xview) (plot-ticks-trim actual-xticks xO xunit  view-width xview))
     (define-values (visible-yticks visible-yview) (plot-ticks-trim actual-yticks yO yU    view-height yview))
-    
-    (define O-as-xdigit? : Boolean
+
+    (define O-belong-to-x? : Boolean
       (or no-yaxis?
-          (and (negative? (car visible-xview))
-               (< (+ (* view-height yO) fltick-min y-neg-margin0)
-                  (* xdigit-position em -1.0))
-               #;(null? actual-yticks))))
+          (and (< (car visible-xview) 0.0)
+               (>= (car visible-yview) 0.0)
+               (flnear? y-neg-margin0 0.0))))
+
+    (define O-belong-to-y? : Boolean
+      (or no-xaxis?
+          (and (< (car visible-yview) 0.0)
+               (>= (car visible-xview) 0.0)
+               (flnear? x-neg-margin 0.0))))
 
     (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette chameleon bg-color))
     (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview y-downards?))
     (define-values (visible-width visible-height) (values (abs (real-part visible-diag)) (abs (imag-part visible-diag))))
+
+    (define zero : Geo
+      (let ([maybe-zero (and (char-numeric? chO)
+                             (or (and O-belong-to-x? (xdigit->sticker id (string chO) digit-font digit-color))
+                                 (and O-belong-to-y? (ydigit->sticker id (string chO) digit-font digit-color))
+                                 (geo-text (string chO) digit-font #:color digit-color)))])
+        (cond [(geo? maybe-zero) maybe-zero]
+              [else (geo-text (string chO) label-font #:color label-color)])))
     
     (define xgrid : (Option Geo:Grid)
       (and (or xmajor-pen xminor-pen)
@@ -238,11 +252,9 @@
                        (plot-axis-xtick-sticker fltick-sublen (plot-axis-style-xtick-placement axis-style y-downards?) tick-pen))))
 
          (cond [(not (flnear? xval 0.0))
-                (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
-                                        xdigit-offset xticks xtick-min real-part xtick-max gtick)]
-               [(or O-as-xdigit?)
-                (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0)
-                                        xdigit-offset xticks xtick-min real-part xtick-max (and no-yaxis? gtick))]
+                (plot-axis-sticker-cons maybe-sticker xdigit-anchor (origin-dot->pos xval 0.0) xdigit-offset xticks xtick-min real-part xtick-max gtick)]
+               [(or O-belong-to-x?)
+                (plot-axis-sticker-cons zero xdigit-anchor (origin-dot->pos xval 0.0) xdigit-offset xticks xtick-min real-part xtick-max gtick)]
                [else xticks]))))
 
     (define y-tick-layers : (Listof (GLayerof Geo))
@@ -277,9 +289,11 @@
                (values 'minor
                        (plot-axis-ytick-sticker fltick-sublen (plot-axis-style-tick-placement axis-style) tick-pen))))
 
-         (if (or no-xaxis? (not (flnear? yval 0.0)))
-             (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)
-             yticks))))
+         (cond [(not (flnear? yval 0.0))
+                (plot-axis-sticker-cons* maybe-sticker ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)]
+               [(or O-belong-to-y?)
+                (plot-axis-sticker-cons* zero ydigit-anchor (origin-dot->pos 0.0 yval) ydigit-offset yticks gtick)]
+               [else yticks]))))
 
     (define annotation-layers
       ; visualizers' data labels
@@ -322,7 +336,7 @@
     
     (define layers : (Listof (GLayerof Geo)) (plot-cartesian-layers layer-groups plots layer-order))
     (define translated-layers : (Option (GLayer-Groupof Geo))
-      (cond [(and (not O-as-xdigit?) (not no-xaxis?))
+      (cond [(and (not O-belong-to-x?) (not O-belong-to-y?))
              (geo-layers-try-push-back (geo-own-pin-layer (geo-anchor-merge xdigit-anchor ydigit-anchor)
                                                           Origin zero (+ ydigit-offset xdigit-offset))
                                        layers)]
