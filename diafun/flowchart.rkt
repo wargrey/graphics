@@ -13,7 +13,6 @@
 (require "digitama/track/realize.rkt")
 (require "digitama/track/interface.rkt")
 
-(require "digitama/block/dc.rkt")
 (require "digitama/block/base.rkt")
 (require "digitama/block/realize.rkt")
 (require "digitama/block/interface.rkt")

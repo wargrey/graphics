@@ -25,4 +25,4 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-preset-marker-font : Font (desc-font #:family 'math #:size 12.0))
-(define plot-preset-marker-pin-pen : Pen (desc-stroke #:color 'grey #:width 1.0))
+(define plot-preset-marker-pin-pen : Pen (desc-stroke #:color 'DimGrey #:width 1.0))

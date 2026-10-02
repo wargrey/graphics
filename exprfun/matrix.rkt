@@ -8,7 +8,6 @@
 (provide (all-from-out "digitama/matrix/interface.rkt"))
 
 (require digimon/digitama/unsafe/ops)
-(require digimon/measure)
 
 (require racket/list)
 (require racket/vector)

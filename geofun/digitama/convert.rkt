@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require digimon/measure)
+
 (require "self.rkt")
 (require "paint.rkt")
 (require "composite.rkt")
@@ -67,36 +69,36 @@
   (lambda [self mime fallback]
     (with-asserts ([self geo<%>?])
       (case mime
-        [(pdf-bytes)     (geo-object->stream-bytes self 'pdf 1.0 '/dev/pdfout)]
-        [(svg-bytes)     (geo-object->stream-bytes self 'svg 1.0 '/dev/svgout)]
+        [(pdf-bytes)     (geo-object->stream-bytes self 'pdf +inf.0 '/dev/pdfout)]
+        [(svg-bytes)     (geo-object->stream-bytes self 'svg +inf.0 '/dev/svgout)]
         [(png@2x-bytes)  (geo-object->stream-bytes self 'png 2.0 '/dev/p2xout)]
         [(png-bytes)     (geo-object->stream-bytes self 'png 1.0 '/dev/pngout)]
         [(cairo-surface) (geo-object->surface self 1.0 cairo-create-abstract-surface*)]
         [else fallback]))))
 
 (define geo-object->stream-bytes : (->* (Geo<%> Symbol) (Positive-Flonum Symbol) Bytes)
-  (lambda [self format [density 1.0] [name #false]]
+  (lambda [self format [bitmap-density 1.0] [name #false]]
     (define /dev/geoout : Output-Port (open-output-bytes name))
-    (geo-object-save self /dev/geoout format density)
+    (geo-object-save self /dev/geoout format bitmap-density)
     (get-output-bytes /dev/geoout)))
 
 (define geo-object-save : (-> Geo<%> (U Path-String Output-Port) Symbol Positive-Flonum Void)
-  (lambda [self /dev/geoout format density]
+  (lambda [self /dev/geoout format bitmap-density]
     (case format
-      [(svg) (geo-object-save-vector-with cairo-svg-stream-write self /dev/geoout density)]
-      [(pdf) (geo-object-save-vector-with cairo-pdf-stream-write self /dev/geoout density)]
-      [else  (cairo-png-stream-write /dev/geoout (λ [] (values (geo-object->surface self density cairo-create-argb-image-surface*) #true)))])))
+      [(svg) (geo-object-save-vector-with cairo-svg-stream-write self /dev/geoout 1.0)]
+      [(pdf) (geo-object-save-vector-with cairo-pdf-stream-write self /dev/geoout 2.0)] ; TODO check this setting
+      [else  (cairo-png-stream-write /dev/geoout (λ [] (values (geo-object->surface self bitmap-density cairo-create-argb-image-surface*) #true)))])))
 
 (define geo-object-save-vector-with : (-> (Cairo-Vector-Stream-Write Geo<%>) Geo<%> (U Path-String Output-Port) Positive-Flonum Void)
-  (lambda [stream-write self /dev/strout density]
+  (lambda [stream-write self /dev/strout backing-scale]
     (define-values (xoff yoff width height Width Height) (geo-surface-region self))
+    (define s (/ 1.0 backing-scale))
   
-    (stream-write /dev/strout Width Height
+    (stream-write /dev/strout (* Width s) (* Height s)
                   (λ [[master : Geo<%>] [vec-cr : Cairo-Ctx]
                                         [x0 : Flonum] [y0 : Flonum]
                                         [flwidth : Nonnegative-Flonum] [flheight : Nonnegative-Flonum]] : Any
-                    (unless (= density 1.0)
-                      (define s (/ 1.0 density))
+                    (unless (= s 1.0)
                       (cairo_scale vec-cr s s))
 
                     (cairo_set_operator vec-cr (geo-operator->integer (default-pin-operator)))

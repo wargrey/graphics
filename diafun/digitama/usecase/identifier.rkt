@@ -5,7 +5,6 @@
 (require geofun/digitama/track/anchor)
 (require geofun/digitama/path/label)
 
-(require "../block/dc.rkt")
 (require "../block/interface.rkt")
 (require "../block/predicate.rkt")
 (require "../track/interface.rkt")

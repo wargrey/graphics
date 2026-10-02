@@ -1,5 +1,7 @@
 #lang typed/racket/base
 
+(provide (all-defined-out))
+
 (require geofun/vector)
 (require plotfun/line)
 
@@ -52,8 +54,7 @@
                   '(0 55/89 89/55 19/7 22/7 5)))
 
 (define seq-line
-  (plot-integer-line #:mark-template succ-desc
-                     #:mark-style (make-plot-mark-style #:pin-length 0.0)
+  (plot-integer-line #:mark-template (plot-template 0.0 #:desc succ-desc)
                      #:unit-length (&% 10)
                      #:exclude-zero? #false
                      #:label "n"

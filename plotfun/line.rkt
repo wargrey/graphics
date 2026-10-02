@@ -9,10 +9,12 @@
 (require racket/case)
 
 (require geofun/digitama/path/dc)
+(require geofun/digitama/layer/void)
 (require geofun/digitama/layer/type)
 (require geofun/digitama/layer/merge)
 (require geofun/digitama/layer/combine)
 
+(require geofun/digitama/dc/plain)
 (require geofun/digitama/dc/composite)
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/geometry/computation/line)
@@ -45,6 +47,7 @@
            #:tick->sticker [tick->sticker : Plot-Axis-Tick->Sticker default-plot-axis-tick->sticker]
            #:mark-style [real-style : (Option Plot-Mark-Style) #false]
            #:mark-template [desc-real : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
+           #:hide-axis? [no-axis? : Boolean #false]
            #:frame [frame : Geo-Frame-Datum #false]
            #:rotate [rotate : Real 0.0]
            [real-list : (U (Listof Plot-Axis-Real-Datum) (-> Real Any)) null]] : Plot:Line
@@ -104,7 +107,7 @@
     
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc 0.0+0.0i Vself))])
+                        ([lbl (in-list (if (not no-axis?) (plot-axis-label-settings axis-label unit-desc axis-desc 0.0+0.0i Vself) null))])
                 (if (car lbl)
                     (let ([lbl.geo (plot-y-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color)]
                           [angle.rad (case/eq (plot-axis-style-label-placement axis-style)
@@ -123,7 +126,7 @@
                     labels))
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
-                        ([tick (in-list actual-ticks)])
+                        ([tick (in-list (if (and no-axis?) null actual-ticks))])
                 (define-values (maybe-sticker gtick)
                   (if (plot-tick-major? tick)
                       (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color)
@@ -146,7 +149,7 @@
                                                        mark dot->pos)
                                           reals tick-bgn tick-end)))))
 
-    (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
+    (define the-main-axis-layer : (GLayerof Geo) (if (not no-axis?) (geo-own-layer main-axis) the-void-layer))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
     (define-values (border background margin padding open-sides) (geo-frame-values frame))
 
@@ -185,6 +188,7 @@
            #:mark-style [int-style : (Option Plot-Mark-Style) #false]
            #:mark-template [desc-int : (U Plot-Mark->Description Plot:Mark) plot-desc-real]
            #:exclude-zero? [ex-zero? : Boolean #true]
+           #:hide-axis? [no-axis? : Boolean #false]
            #:frame [frame : Geo-Frame-Datum #false]
            [number-sequence : (U (Listof Plot-Axis-Integer-Datum) (Vectorof Any) (-> Integer Any)) null]] : Plot:Line
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
@@ -233,7 +237,8 @@
 
     (define layers : (Listof (GLayerof Geo))
       (append (for/fold ([labels : (Listof (GLayerof Geo)) null])
-                        ([lbl (in-list (plot-axis-label-settings axis-label unit-desc axis-desc flaxis-min flaxis-max label-offset 'x))])
+                        ([lbl (in-list (cond [(or no-axis?) null]
+                                             [else (plot-axis-label-settings axis-label unit-desc axis-desc flaxis-min flaxis-max label-offset 'x)]))])
                 (if (car lbl)
                     (let ([lbl.geo (plot-x-axis-label (car lbl) label-font label-color (caddr lbl) (cadddr lbl) desc-font desc-color (* em 0.382))])
                       (case/eq (plot-axis-style-label-placement axis-style)
@@ -243,7 +248,7 @@
                     labels))
               
               (for/fold ([ticks : (Listof (GLayerof Geo)) null])
-                        ([tick actual-ticks])
+                        ([tick (in-list (if (and no-axis?) null actual-ticks))])
                 (define-values (maybe-sticker gtick)
                   (if (plot-tick-major? tick)
                       (values (tick->sticker id (plot-tick-desc tick) digit-font digit-color)
@@ -267,7 +272,7 @@
                                                        mark dot->pos)
                                           integers fltick-min real-part fltick-max)))))
     
-    (define the-main-axis-layer : (GLayerof Geo) (geo-own-layer main-axis))
+    (define the-main-axis-layer : (GLayerof Geo) (if (not no-axis?) (geo-own-layer main-axis) the-void-layer))
     (define translated-layers : (Option (GLayer-Groupof Geo)) (geo-layers-try-extend the-main-axis-layer layers))
     (define-values (border background margin padding open-sides) (geo-frame-values frame))
     

@@ -49,11 +49,13 @@
               internal-move:expr ...])
      (quasisyntax/loc stx
        (parameterize ([current-rubber-zone (geo-create-rubber-zone! self id 'type desc options)])
-         (gomamon-dsl self internal-move) ...))]
+         (gomamon-dsl self internal-move) ...
+         (void)))]
     [(_ self [#:with-zone id internal-move:expr ...])
      (quasisyntax/loc stx
        (parameterize ([current-rubber-zone (geo-rubber-zone-ref self id)])
-         (gomamon-dsl self internal-move) ...))]
+         (gomamon-dsl self internal-move) ...
+         (void)))]
     [(_ self [(~or => #:=>) submove-expr ...])
      (with-syntax ([here (gensym 'goma:dsl:)])
        (quasisyntax/loc stx
@@ -61,7 +63,7 @@
            (gomamon-dsl self submove-expr) ...
            (geo-track-jump-to-position self here))))]
     [(_ self ((~or let where #:let #:where) (let-expr ...) move-expr ...))
-     (syntax/loc stx (let (let-expr ...) (gomamon-dsl self move-expr) ...))]
+     (syntax/loc stx (let (let-expr ...) (gomamon-dsl self move-expr) ... (void)))]
     [(_ self (move:id argl ...))
      (with-syntax ([goma-move! (format-id #'move "gomamon-~a!" (syntax->datum #'move))])
        (quasisyntax/loc stx

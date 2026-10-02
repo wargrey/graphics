@@ -184,18 +184,23 @@
         (values (PangoRectangle-x &ink) (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink)
                 (PangoRectangle-width &logical) (PangoRectangle-height &logical))))
 
-  
   (define (~ink-size layout ink?)
     (start-atomic)
     (pango_layout_get_extents layout &ink &logical)
-    (define-values (width height)
+    (define-values (x y width height)
       (if (or ink?)
-          (values (PangoRectangle-width &ink) (PangoRectangle-height &ink))
-          (values (PangoRectangle-width &logical) (PangoRectangle-height &logical))))
+          (values (PangoRectangle-x &ink) (PangoRectangle-y &ink) (PangoRectangle-width &ink) (PangoRectangle-height &ink))
+          (values 0.0 0.0 (PangoRectangle-width &logical) (PangoRectangle-height &logical))))
     (end-atomic)
+
+    (define flw (~pango-metric width))
+    (define flh (~pango-metric height))
     
-    (values (~pango-metric width)
-            (~pango-metric height)))
+    (cond [(or ink?) (values flw flh)]
+          [else (let ([flx (~pango-metric x)]
+                      [fly (~pango-metric y)])
+                  (values (unsafe-fl- (unsafe-flceiling (unsafe-fl+ flx flw)) (unsafe-flfloor flx))
+                          (unsafe-fl- (unsafe-flceiling (unsafe-fl+ fly flh)) (unsafe-flfloor fly))))]))
   
   (define (~ink-position layout ink? x0 y0)
     (cond [(not ink?) (values x0 y0)]
@@ -204,8 +209,8 @@
                        (define-values (x y) (values (PangoRectangle-x &ink) (PangoRectangle-y &ink)))
                        (end-atomic)
                        
-                       (values (unsafe-fl- x0 (~pango-metric x))
-                               (unsafe-fl- y0 (~pango-metric y))))]))
+                       (values (unsafe-fl- x0 (unsafe-flfloor (~pango-metric x)))
+                               (unsafe-fl- y0 (unsafe-flfloor (~pango-metric y)))))]))
                 
   (define (family-faces++ family faces0)
     (define fname. (string-append (pango_font_family_get_name family) ", "))

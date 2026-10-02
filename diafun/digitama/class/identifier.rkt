@@ -9,7 +9,6 @@
 (require geofun/digitama/track/anchor)
 
 (require "../block/dc.rkt")
-(require "../block/style.rkt")
 (require "../block/interface.rkt")
 (require "../track/interface.rkt")
 

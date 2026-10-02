@@ -8,8 +8,6 @@
 (require geofun/digitama/path/label)
 (require geofun/digitama/track/anchor)
 
-(require "../block/dc.rkt")
-(require "../block/style.rkt")
 (require "../block/predicate.rkt")
 (require "../block/interface.rkt")
 (require "../track/interface.rkt")
