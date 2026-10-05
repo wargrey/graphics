@@ -4,7 +4,7 @@
 
 (require geofun/digitama/richtext/self)
 
-(require "../slot/style.rkt")
+(require "style.rkt")
 (require "../interface.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -36,16 +36,31 @@
     (unsafe-mtx-idx row col idx)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Mtx-Slot-Create (Expr-Slot-Create Mtx-Indices))
-(define-type (Mtx-Entry->Slot M) (Expr-Datum->Slot M Mtx-Indices))
-(define-type (Mtx-Style-Make S) (Expr-Slot-Style-Make Any S Mtx-Indices))
+(define-type Mtx-Entry-Theme-Adjuster (Expr-Slot-Theme-Adjuster Any Mtx-Entry-Style Mtx-Indices))
+(define-type Mtx-Mask-Theme-Adjuster (Expr-Slot-Theme-Adjuster Any Mtx-Mask-Style Mtx-Indices))
+(define-type Mtx-Hole-Theme-Adjuster (Expr-Slot-Theme-Adjuster Any Mtx-Hole-Style Mtx-Indices))
 
-(define-type Mtx-Header-Slot-Create (Expr-Slot-Create Mtx-Hdr-Index))
-(define-type Mtx-Header->Slot (Expr-Datum->Slot Void Mtx-Hdr-Index))
-(define-type (Mtx-Header-Style-Make S) (Expr-Slot-Style-Make Void S Mtx-Hdr-Index))
+(define-type Mtx-Row-Header-Theme-Adjuster (Expr-Slot-Theme-Adjuster Void Mtx-Row-Header-Style Mtx-Hdr-Index))
+(define-type Mtx-Col-Header-Theme-Adjuster (Expr-Slot-Theme-Adjuster Void Mtx-Col-Header-Style Mtx-Hdr-Index))
+(define-type Mtx-Corner-Theme-Adjuster (Expr-Slot-Theme-Adjuster Void Mtx-Corner-Style Mtx-Hdr-Index))
+
+(define default-mtx-entry-theme-adjuster : (Parameterof (Option Mtx-Entry-Theme-Adjuster)) (make-parameter #false))
+(define default-mtx-hole-theme-adjuster : (Parameterof (Option Mtx-Hole-Theme-Adjuster)) (make-parameter #false))
+(define default-mtx-mask-theme-adjuster : (Parameterof (Option Mtx-Mask-Theme-Adjuster)) (make-parameter #false))
+
+(define default-mtx-row-header-theme-adjuster : (Parameterof (Option Mtx-Row-Header-Theme-Adjuster)) (make-parameter #false))
+(define default-mtx-col-header-theme-adjuster : (Parameterof (Option Mtx-Col-Header-Theme-Adjuster)) (make-parameter #false))
+(define default-mtx-corner-theme-adjuster : (Parameterof (Option Mtx-Corner-Theme-Adjuster)) (make-parameter #false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Mtx-Entry M) (-> M Expr-Slot-Style-Layers Mtx-Indices Geo-Maybe-Rich-Text))
+(define-type Mtx-Slot-Create (Expr-Slot-Create Mtx-Slot-Style Mtx-Indices))
+(define-type (Mtx-Entry->Slot M) (Expr-Datum->Slot M Mtx-Slot-Style Mtx-Indices))
+
+(define-type Mtx-Header-Slot-Create (Expr-Slot-Create Mtx-Slot-Style Mtx-Hdr-Index))
+(define-type Mtx-Header->Slot (Expr-Datum->Slot Void Mtx-Slot-Style Mtx-Hdr-Index))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type (Mtx-Entry M) (-> M (Expr-Slot-Style-Spec Mtx-Slot-Style) Mtx-Indices Geo-Maybe-Rich-Text))
 (define-type Mtx-Mask (-> Index Index Boolean))
 
 (define-type Mtx-Static-Headers

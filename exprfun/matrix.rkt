@@ -37,17 +37,17 @@
            #:col-header-top? [col-header-top? : Boolean #true]
            #:λslot [make-entry-slot : (Option (Mtx-Entry->Slot M)) #false]
            #:λheader-slot [make-header-slot : (Option Mtx-Header->Slot) #false]
-           #:λstyle [make-entry-style : (Option (Mtx-Style-Make Mtx-Entry-Style)) (default-mtx-entry-style-make)]
-           #:λmask-style [make-mask-style : (Option (Mtx-Style-Make Mtx-Mask-Style)) (default-mtx-mask-style-make)]
-           #:λhole-style [make-hole-style : (Option (Mtx-Style-Make Mtx-Hole-Style)) (default-mtx-hole-style-make)]
+           #:λstyle [adjust-entry-style : (Option Mtx-Entry-Theme-Adjuster) (default-mtx-entry-theme-adjuster)]
+           #:λmask-style [adjust-mask-style : (Option Mtx-Mask-Theme-Adjuster) (default-mtx-mask-theme-adjuster)]
+           #:λhole-style [adjust-hole-style : (Option Mtx-Hole-Theme-Adjuster) (default-mtx-hole-theme-adjuster)]
            #:mask? [mask? : (U Boolean Mtx-Mask) #false]
            #:hole? [hole? : (Option (-> M Any)) #false]
            [mtx : ($Matrixof M)]
            [cell-width : Real 32.0]
            [cell-height : Real+% cell-width]] : Expr:Matrix
-    (parameterize ([default-mtx-entry-style-make make-entry-style]
-                   [default-mtx-mask-style-make make-mask-style]
-                   [default-mtx-hole-style-make make-hole-style])
+    (parameterize ([default-mtx-entry-theme-adjuster adjust-entry-style]
+                   [default-mtx-mask-theme-adjuster adjust-mask-style]
+                   [default-mtx-hole-theme-adjuster adjust-hole-style])
       (define-values (flcwidth flcheight) (~extent cell-width cell-height))
       (define id (or id0 (gensym 'dia:mtx:)))
       (define nrows : Index (if (vector? mtx) (vector-length mtx) (length mtx)))
@@ -62,21 +62,25 @@
           (cond [(eq? type 'rhdr) (values (expr-slot-cell-id id type idx   0) (mtx-hdr idx   0 'rc))]
                 [(eq? type 'chdr) (values (expr-slot-cell-id id type   0 idx) (mtx-hdr 0   idx (if col-header-top? 'cb 'ct)))]
                 [else       #;cnr (values (expr-slot-cell-id id type idx idx) (mtx-hdr idx idx 'cc))]))
-        (define style (cons (dia-mtx-header-style-make self-id type indices) backstop))
+        (define style : (Expr-Slot-Style-Spec Mtx-Slot-Style)
+          ((inst make-expr-slot-style-spec Mtx-Slot-Style) #:custom (make-mtx-header-style self-id type indices)
+                                                           #:backstop backstop))
         
-        (dia-mtx-slot-make self-id (void) style indices
-                           (cond [(or (not desc) (void? desc)) #false]
-                                 [(geo? desc) desc]
-                                 [else (expr-slot-text-term desc style #:id self-id)])
-                           flcwidth flcheight
-                           (and (eq? type 'chdr)
-                                (* (real->double-flonum col-header-angle)
-                                   (if (or col-header-top?) 1.0 -1.0)))
-                           make-header-slot default-mtx-header-fallback-construct))
+        (make-mtx-slot self-id (void) style indices
+                       (cond [(or (not desc) (void? desc)) #false]
+                             [(geo? desc) desc]
+                             [else (expr-slot-text-term desc style #:id self-id)])
+                       flcwidth flcheight
+                       (and (eq? type 'chdr)
+                            (* (real->double-flonum col-header-angle)
+                               (if (or col-header-top?) 1.0 -1.0)))
+                       make-header-slot default-mtx-header-fallback-construct))
 
       (define (mtx-body [raw : M] [type : Mtx-Block-Type] [r : Index] [c : Index] [idx : Index]) : (Option Expr:Slot)
         (define-values (self-id indices) (values (expr-slot-cell-id id type r c) (mtx-indices #:row r #:col c #:ordinal idx)))
-        (define style (cons (dia-mtx-style-make self-id raw type indices) backstop))
+        (define style : (Expr-Slot-Style-Spec Mtx-Slot-Style)
+          ((inst make-expr-slot-style-spec Mtx-Slot-Style) #:custom (dia-mtx-style-make self-id raw type indices)
+                                                           #:backstop backstop))
         (define term : (Option Geo)
           (and (eq? type 'entry)
                (let datum->geo ([desc : (U Geo-Maybe-Rich-Text M) (if (and entry-desc) (entry-desc raw style indices) raw)])
@@ -85,8 +89,8 @@
                        [(void? desc) (if (void? raw) #false (datum->geo raw))]
                        [else (expr-slot-text-term (format "~a" desc) style #:id self-id)]))))
         
-        ((inst dia-mtx-slot-make M Mtx-Indices) self-id raw style indices term flcwidth flcheight #false
-                                                make-entry-slot default-mtx-entry-fallback-construct))
+        ((inst make-mtx-slot M Mtx-Indices) self-id raw style indices term flcwidth flcheight #false
+                                                           make-entry-slot default-mtx-entry-fallback-construct))
 
       (define row-desc : (Option Mtx-Static-Headers) (let ([desc (or rheader-desc header-desc)]) (if (procedure? desc) #false desc)))
       (define col-desc : (Option Mtx-Static-Headers) (let ([desc (or cheader-desc header-desc)]) (if (procedure? desc) #false desc)))
@@ -169,9 +173,9 @@
            #:col-header-top? [col-header-top? : Boolean #true]
            #:λslot [make-entry-slot : (Option (Mtx-Entry->Slot M)) #false]
            #:λheader-slot [make-header-slot : (Option Mtx-Header->Slot) #false]
-           #:λstyle [make-entry-style : (Option (Mtx-Style-Make Mtx-Entry-Style)) (default-mtx-entry-style-make)]
-           #:λmask-style [make-mask-style : (Option (Mtx-Style-Make Mtx-Mask-Style)) (default-mtx-mask-style-make)]
-           #:λhole-style [make-hole-style : (Option (Mtx-Style-Make Mtx-Hole-Style)) (default-mtx-hole-style-make)]
+           #:λstyle [adjust-entry-style : (Option Mtx-Entry-Theme-Adjuster) (default-mtx-entry-theme-adjuster)]
+           #:λmask-style [adjust-mask-style : (Option Mtx-Mask-Theme-Adjuster) (default-mtx-mask-theme-adjuster)]
+           #:λhole-style [adjust-hole-style : (Option Mtx-Hole-Theme-Adjuster) (default-mtx-hole-theme-adjuster)]
            #:mask? [mask? : (U Boolean Mtx-Mask) #false]
            #:hole? [hole? : (Option (-> M Any)) #false]
            #:ncols [ncols0 : Integer 0]
@@ -206,6 +210,6 @@
                       #:row-desc rheader-desc #:col-desc cheader-desc
                       #:col-header-rotate col-header-angle #:col-header-top? col-header-top?
                       #:λslot make-entry-slot #:λheader-slot make-header-slot
-                      #:λstyle make-entry-style #:λmask-style make-mask-style #:λhole-style make-hole-style
+                      #:λstyle adjust-entry-style #:λmask-style adjust-mask-style #:λhole-style adjust-hole-style
                       #:header-gap hgap #:gap egap #:mask? mask? #:hole? hole?
                       mtx cell-width cell-height)))

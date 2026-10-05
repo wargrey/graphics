@@ -15,24 +15,25 @@
 (define-type Mtx-Block-Type (U 'entry 'hole 'mask 'rhdr 'chdr 'cnr))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dia-mtx-header-style-make : (-> Symbol Mtx-Block-Type Mtx-Hdr-Index Expr-Slot-Style)
+(define make-mtx-header-style : (-> Symbol Mtx-Block-Type Mtx-Hdr-Index (Expr-Slot-Style Mtx-Slot-Style))
   (lambda [id type indices]
-    (cond [(eq? type 'rhdr) (expr-slot-style-construct id (void) (default-mtx-row-header-style-make) make-mtx-row-header-style indices)]
-          [(eq? type 'chdr) (expr-slot-style-construct id (void) (default-mtx-col-header-style-make) make-mtx-col-header-style indices)]
-          [else             (expr-slot-style-construct id (void) (default-mtx-corner-style-make) make-mtx-corner-style indices)])))
+    (cond [(eq? type 'rhdr) (expr-slot-theme-adjust (default-mtx-row-header-style) id (void) (default-mtx-row-header-theme-adjuster) indices)]
+          [(eq? type 'chdr) (expr-slot-theme-adjust (default-mtx-col-header-style) id (void) (default-mtx-col-header-theme-adjuster) indices)]
+          [else             (expr-slot-theme-adjust (default-mtx-corner-style) id (void) (default-mtx-corner-theme-adjuster) indices)])))
 
-(define #:forall (M) dia-mtx-style-make : (-> Symbol M Mtx-Block-Type Mtx-Indices Expr-Slot-Style)
+(define #:forall (M) dia-mtx-style-make : (-> Symbol M Mtx-Block-Type Mtx-Indices (Expr-Slot-Style Mtx-Slot-Style))
   (lambda [id self type indices]
-    (cond [(eq? type 'entry) (expr-slot-style-construct id self (default-mtx-entry-style-make) make-mtx-entry-style indices)]
-          [(eq? type  'hole) (expr-slot-style-construct id self (default-mtx-hole-style-make) make-mtx-hole-style indices)]
-          [else              (expr-slot-style-construct id self (default-mtx-mask-style-make) make-mtx-mask-style indices)])))
+    (cond [(eq? type 'entry) (expr-slot-theme-adjust (default-mtx-entry-style) id self (default-mtx-entry-theme-adjuster) indices)]
+          [(eq? type  'hole) (expr-slot-theme-adjust (default-mtx-hole-style) id self (default-mtx-hole-theme-adjuster) indices)]
+          [else              (expr-slot-theme-adjust (default-mtx-mask-style) id self (default-mtx-mask-theme-adjuster) indices)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (T Idx) dia-mtx-slot-make : (-> Symbol T Expr-Slot-Style-Layers Idx (Option Geo)
+(define #:forall (T Idx) make-mtx-slot : (-> Symbol T (Expr-Slot-Style-Spec Mtx-Slot-Style) Idx (Option Geo)
                                              Nonnegative-Flonum Nonnegative-Flonum (Option Flonum)
-                                             (Option (Expr-Datum->Slot T Idx)) (Expr-Datum->Slot T Idx)
+                                             (Option (Expr-Datum->Slot T Mtx-Slot-Style Idx))
+                                             (Expr-Datum->Slot T Mtx-Slot-Style Idx)
                                              (Option Expr:Slot))
-  (lambda [id self style indices term width height direction make-slot fallback-slot ]
+  (lambda [id self style indices term width height direction make-slot fallback-slot]
     (define slot : (U Expr:Slot Void False)
       (cond [(not make-slot) (void)]
             [else (make-slot id self term style width height direction indices)]))

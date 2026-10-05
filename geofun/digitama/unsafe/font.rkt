@@ -196,7 +196,7 @@
     (define flw (~pango-metric width))
     (define flh (~pango-metric height))
     
-    (cond [(or ink?) (values flw flh)]
+    (cond [(not ink?) (values flw flh)]
           [else (let ([flx (~pango-metric x)]
                       [fly (~pango-metric y)])
                   (values (unsafe-fl- (unsafe-flceiling (unsafe-fl+ flx flw)) (unsafe-flfloor flx))

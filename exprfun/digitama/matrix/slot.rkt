@@ -61,9 +61,9 @@
     (cond [(or (not direction) (zero? direction)) term]
           [else (and term (geo-rotate term direction))])))
 
-(define mtx-slot-shape : (->* (Symbol (Option Geo) Expr-Slot-Style-Layers Nonnegative-Flonum Nonnegative-Flonum)
-                              (Flonum Flonum Flonum Flonum)
-                              Expr:Slot)
+(define #:forall (S) mtx-slot-shape : (->* (Symbol (Option Geo) (Expr-Slot-Style-Spec S) Nonnegative-Flonum Nonnegative-Flonum)
+                                           (Flonum Flonum Flonum Flonum)
+                                           Expr:Slot)
   (lambda [id term style width height [sx% 0.5] [sy% 0.5] [tx% 0.5] [ty% 0.5]]
     (create-expr-slot #:id id
                       #:alignment sx% sy% tx% ty%

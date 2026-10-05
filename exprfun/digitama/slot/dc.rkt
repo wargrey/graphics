@@ -5,10 +5,7 @@
 (require geofun/digitama/self)
 (require geofun/digitama/dc/composite)
 
-(require geofun/digitama/layer/type)
 (require geofun/digitama/layer/adapter)
-
-(require geofun/digitama/geometry/computation/line)
 
 (require "style.rkt")
 

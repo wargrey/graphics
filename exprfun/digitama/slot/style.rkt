@@ -1,14 +1,17 @@
 #lang typed/racket/base
 
-(provide (all-defined-out))
+(provide (all-defined-out) Geo-Insets-Datum)
 
+(require digimon/struct)
 (require racket/string)
 
 (require geofun/font)
 (require geofun/stroke)
 (require geofun/fill)
 
+(require geofun/digitama/base)
 (require geofun/digitama/self)
+
 (require geofun/digitama/paint/self)
 (require geofun/digitama/paint/source)
 (require geofun/digitama/track/anchor)
@@ -17,15 +20,25 @@
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/realize)
 
-(require geofun/digitama/base)
+(require (for-syntax racket/base))
+(require (for-syntax syntax/parse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type (Expr-Slot-Style-Make D S Property) (-> Symbol D Property (U S False Void)))
+(define-syntax (expr-slot-case stx)
+  (syntax-parse stx #:literals [:]
+    [(_ style [(pred? ...) adjust ...] ...)
+     (syntax/loc stx
+       (let ([self (expr-slot-style-spec-custom style)])
+         (cond [(or (expr-slot-style?? self pred?) ...) adjust ...]
+               ...)))]))
 
-(define-type (Expr-Slot-Style-Layers* S) (Pairof S Expr-Slot-Backstop-Style))
-(define-type Expr-Slot-Style-Layers (Expr-Slot-Style-Layers* Expr-Slot-Style))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type (Expr-Slot-Theme-Adjuster Datum Style Metadata)
+  (-> (Expr-Slot-Style Style) Symbol Datum Metadata
+      (U (Expr-Slot-Style Style) False Void)))
 
-(struct expr-slot-style
+(define-struct expr-slot-style : Expr-Slot-Style
+  #:forall ([phantom-type : T])
   ([font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [stroke-width : (Option Flonum)]
@@ -33,7 +46,6 @@
    [stroke-dash : (Option Stroke-Dash+Offset)]
    [fill-paint : Maybe-Fill-Paint]
    [opacity : (Option Real)])
-  #:type-name Expr-Slot-Style
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -46,15 +58,23 @@
   #:type-name Expr-Slot-Backstop-Style
   #:transparent)
 
+(define-struct #:forall (S) expr-slot-style-spec : Expr-Slot-Style-Spec
+  ([custom : (Expr-Slot-Style S)]
+   [backstop : Expr-Slot-Backstop-Style])
+  #:transparent)
+
 (define default-expr-slot-margin : (Parameterof Geo-Insets-Datum) (make-parameter 4.0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define expr-slot-text-term : (->* (Geo-Rich-Text Expr-Slot-Style-Layers)
-                                   (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
-                                   (Option Geo))
+(define #:forall (S) expr-slot-text-term : (->* (Geo-Rich-Text (Expr-Slot-Style-Spec S))
+                                                (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
+                                                (Option Geo))
   (lambda [term style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
-    (define maybe-font : (Option Font) (or alt-font (expr-slot-style-font (car style))))
-    (define maybe-paint : Option-Fill-Paint (or alt-color (expr-slot-style-font-paint (car style))))
+    (define self : (Expr-Slot-Style S) (expr-slot-style-spec-custom style))
+    (define fallback : Expr-Slot-Backstop-Style (expr-slot-style-spec-backstop style))
+    
+    (define maybe-font : (Option Font) (or alt-font (expr-slot-style-font self)))
+    (define maybe-paint : Option-Fill-Paint (or alt-color (expr-slot-style-font-paint self)))
 
     (define text : Geo-Rich-Text
       (cond [(string? term) (string-trim term)]
@@ -67,69 +87,58 @@
          (geo-rich-text-realize #:id (expr-slot-term-id (or id (gensym 'dia:block:caption:)))
                                 #:alignment 'center
                                 text
-                                (or maybe-font (expr-slot-backstop-style-font (cdr style)))
-                                (or maybe-paint (expr-slot-backstop-style-font-paint (cdr style)))))))
+                                (or maybe-font (expr-slot-backstop-style-font fallback))
+                                (or maybe-paint (expr-slot-backstop-style-font-paint fallback))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define expr-slot-resolve-stroke-width : (-> Expr-Slot-Style-Layers Nonnegative-Flonum)
-  (let ([pens : (Weak-HashTable Any Nonnegative-Flonum) (make-weak-hash)])
-   (lambda [self]
-     (hash-ref! pens self
-                (λ [] (let ([paint (stroke-paint->source (expr-slot-backstop-style-stroke-paint (cdr self)))]
-                            [width (expr-slot-style-stroke-width (car self))])
-                        (cond [(not width) (pen-width paint)]
-                              [(>= width 0.0) width]
-                              [(< width 0.0) (abs (* (pen-width paint) width))]
-                              [else (pen-width paint)])))))))
+(define #:forall (S) expr-slot-resolve-stroke-width : (-> (Expr-Slot-Style-Spec S) Nonnegative-Flonum)
+  (lambda [self]
+    (define paint (stroke-paint->source (expr-slot-backstop-style-stroke-paint (expr-slot-style-spec-backstop self))))
+    (define width (expr-slot-style-stroke-width (expr-slot-style-spec-custom self)))
 
-(define expr-slot-resolve-stroke-paint : (-> Expr-Slot-Style-Layers (Option Pen))
-   (let ([pens : (Weak-HashTable Any (Option Pen)) (make-weak-hash)])
-     (lambda [self]
-       (hash-ref! pens self
-                  (λ [] (let ([c (expr-slot-style-stroke-color (car self))])
-                          (and c (let*-values ([(d+o) (expr-slot-style-stroke-dash (car self))]
-                                               [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
-                                   (desc-stroke #:color (and (not (void? c)) c) #:opacity (expr-slot-resolve-opacity self)
-                                                #:width (expr-slot-style-stroke-width (car self))
-                                                #:dash dash #:offset offset
-                                                (stroke-paint->source (expr-slot-backstop-style-stroke-paint (cdr self))))))))))))
+    (cond [(not width) (pen-width paint)]
+          [(>= width 0.0) width]
+          [(< width 0.0) (abs (* (pen-width paint) width))]
+          [else (pen-width paint)])))
 
-(define #:forall (S B) expr-slot-resolve-fill-paint
-  : (case-> [Expr-Slot-Style-Layers -> (Option Brush)]
-            [(Expr-Slot-Style-Layers* (∩ S Expr-Slot-Style)) (-> S Maybe-Fill-Paint) (-> Any Boolean : B) (-> B Option-Fill-Paint) -> (Option Brush)])
-  (let ([brushs : (Weak-HashTable Any (Option Brush)) (make-weak-hash)])
-   (case-lambda
-     [(self)
-      (hash-ref! brushs self
-                 (λ [] (let ([paint (expr-slot-style-fill-paint (car self))])                
-                         (try-desc-brush #:opacity (expr-slot-resolve-opacity self)
-                                         (fill-paint->source* (cond [(not (void? paint)) paint]
-                                                                    [else (expr-slot-backstop-style-fill-paint (cdr self))]))))))]
-     [(self S->paint style? B->paint)
-      (define master (cdr self))
-      (and (style? master)
-           (hash-ref! brushs (list self S->paint B->paint)
-                      (λ [] (try-desc-brush #:opacity (expr-slot-resolve-opacity self)
-                                            (fill-paint->source* (let ([paint (S->paint (car self))])
-                                                                   (cond [(not (void? paint)) paint]
-                                                                         [else (B->paint master)])))))))])))
+(define #:forall (S) expr-slot-resolve-stroke-paint : (-> (Expr-Slot-Style-Spec S) (Option Pen))
+  (lambda [self]
+    (define fb (expr-slot-style-spec-backstop self))
+    (define s (expr-slot-style-spec-custom self))
+    (define c (expr-slot-style-stroke-color s))
 
-(define expr-slot-resolve-font-paint : (-> Expr-Slot-Style-Layers Brush)
+    (and c (let*-values ([(d+o) (expr-slot-style-stroke-dash s)]
+                         [(dash offset) (if (pair? d+o) (values (car d+o) (cdr d+o)) (values d+o #false))])
+             (desc-stroke #:color (and (not (void? c)) c) #:opacity (expr-slot-resolve-opacity self)
+                          #:width (expr-slot-style-stroke-width s)
+                          #:dash dash #:offset offset
+                          (stroke-paint->source (expr-slot-backstop-style-stroke-paint fb)))))))
+
+(define #:forall (S) expr-slot-resolve-fill-paint : (-> (Expr-Slot-Style-Spec S) (Option Brush))
+  (lambda [self]
+    (define paint (expr-slot-style-fill-paint (expr-slot-style-spec-custom self)))
+
+    (try-desc-brush #:opacity (expr-slot-resolve-opacity self)
+                    (fill-paint->source* (cond [(not (void? paint)) paint]
+                                               [else (expr-slot-backstop-style-fill-paint (expr-slot-style-spec-backstop self))])))))
+
+(define #:forall (S) expr-slot-resolve-font-paint : (-> (Expr-Slot-Style-Spec S) Brush)
   (let ([brushs : (Weak-HashTable Any Brush) (make-weak-hash)])
     (lambda [self]
       (hash-ref! brushs self
                  (λ [] (desc-brush #:opacity (expr-slot-resolve-opacity self)
-                                   (fill-paint->source (or (expr-slot-style-font-paint (car self))
-                                                           (expr-slot-backstop-style-font-paint (cdr self))))))))))
+                                   (fill-paint->source (or (expr-slot-style-font-paint (expr-slot-style-spec-custom self))
+                                                           (expr-slot-backstop-style-font-paint (expr-slot-style-spec-backstop self))))))))))
 
-(define expr-slot-resolve-font : (-> Expr-Slot-Style-Layers Font)
+(define #:forall (S) expr-slot-resolve-font : (-> (Expr-Slot-Style-Spec S) Font)
   (lambda [self]
-    (or (expr-slot-style-font (car self)) (expr-slot-backstop-style-font (cdr self)))))
+    (or (expr-slot-style-font (expr-slot-style-spec-custom self))
+        (expr-slot-backstop-style-font (expr-slot-style-spec-backstop self)))))
 
-(define expr-slot-resolve-opacity : (-> Expr-Slot-Style-Layers (Option Real))
+(define #:forall (S) expr-slot-resolve-opacity : (-> (Expr-Slot-Style-Spec S) (Option Real))
   (lambda [self]
-    (or (expr-slot-style-opacity (car self))
-        (expr-slot-backstop-style-opacity (cdr self)))))
+    (or (expr-slot-style-opacity (expr-slot-style-spec-custom self))
+        (expr-slot-backstop-style-opacity (expr-slot-style-spec-backstop self)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define expr-slot-term-id : (-> Geo-Anchor-Name Symbol)
@@ -145,10 +154,12 @@
     (string->symbol (format "~a:~a:~a:~a" id type row col))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (D S P) expr-slot-style-construct : (-> Symbol D (Option (Expr-Slot-Style-Make D S P)) (-> S) P S)
-  (lambda [id datum mk-style mk-fallback-style property]
-    (define maybe-style (and mk-style (mk-style id datum property)))
-
-    (if (or (not maybe-style) (void? maybe-style))
-        (mk-fallback-style)
-        maybe-style)))
+(define #:forall (D S P) expr-slot-theme-adjust : (-> (Expr-Slot-Style S) Symbol D (Option (Expr-Slot-Theme-Adjuster D S P)) P
+                                                      (Expr-Slot-Style S))
+  (lambda [the-style id datum maybe-adjuster property]
+    (if (and maybe-adjuster)
+        (let ([maybe-adjusted-style (maybe-adjuster the-style id datum property)])
+          (cond [(void? maybe-adjusted-style) the-style]
+                [(not maybe-adjusted-style) the-style]
+                [else maybe-adjusted-style]))
+        the-style)))

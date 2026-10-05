@@ -9,17 +9,11 @@
 (require geofun/paint)
 (require geofun/digitama/base)
 
-(require "types.rkt")
 (require "../slot/style.rkt")
 (require "../presets.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define default-mtx-hole-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Hole-Style))) (make-parameter #false))
-(define default-mtx-mask-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Mask-Style))) (make-parameter #false))
-(define default-mtx-entry-style-make : (Parameterof (Option (Mtx-Style-Make Mtx-Entry-Style))) (make-parameter #false))
-(define default-mtx-row-header-style-make : (Parameterof (Option (Mtx-Header-Style-Make Mtx-Row-Header-Style))) (make-parameter #false))
-(define default-mtx-col-header-style-make : (Parameterof (Option (Mtx-Header-Style-Make Mtx-Col-Header-Style))) (make-parameter #false))
-(define default-mtx-corner-style-make : (Parameterof (Option (Mtx-Header-Style-Make Mtx-Corner-Style))) (make-parameter #false))
+(struct mtx-slot-style () #:type-name Mtx-Slot-Style)
 
 (define-configuration mtx-backstop-style : Mtx-Backstop-Style #:as expr-slot-backstop-style
   #:format "default-mtx-~a"
@@ -30,8 +24,7 @@
    [opacity : (Option Real) #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-configuration mtx-row-header-style : Mtx-Row-Header-Style #:as expr-slot-style
-  #:format "default-mtx-row-header-~a"
+(define-phantom-struct mtx-row-header-style : Mtx-Row-Header-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
@@ -40,8 +33,7 @@
    [fill-paint : Maybe-Fill-Paint #false]
    [opacity : (Option Real) #false]))
 
-(define-configuration mtx-col-header-style : Mtx-Col-Header-Style #:as expr-slot-style
-  #:format "default-mtx-col-header-~a"
+(define-phantom-struct mtx-col-header-style : Mtx-Col-Header-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
@@ -50,8 +42,7 @@
    [fill-paint : Maybe-Fill-Paint #false]
    [opacity : (Option Real) #false]))
 
-(define-configuration mtx-corner-style : Mtx-Corner-Style #:as expr-slot-style
-  #:format "default-mtx-corner-~a"
+(define-phantom-struct mtx-corner-style : Mtx-Corner-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
@@ -60,8 +51,7 @@
    [fill-paint : Maybe-Fill-Paint #false]
    [opacity : (Option Real) #false]))
 
-(define-configuration mtx-hole-style : Mtx-Hole-Style #:as expr-slot-style
-  #:format "default-mtx-hole-~a"
+(define-phantom-struct mtx-hole-style : Mtx-Hole-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
@@ -70,8 +60,7 @@
    [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]
    [opacity : (Option Real) #false]))
 
-(define-configuration mtx-mask-style : Mtx-Mask-Style #:as expr-slot-style
-  #:format "default-mtx-mask-~a"
+(define-phantom-struct mtx-mask-style : Mtx-Mask-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
@@ -80,8 +69,7 @@
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]
    [opacity : (Option Real) #false]))
 
-(define-configuration mtx-entry-style : Mtx-Entry-Style #:as expr-slot-style
-  #:format "default-mtx-entry-~a"
+(define-phantom-struct mtx-entry-style : Mtx-Entry-Style #:-> mtx-slot-style #:for expr-slot-style
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]

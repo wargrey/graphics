@@ -45,17 +45,17 @@
     (32 . ("SP"   "空格(Space)"))
     (127 . ("DEL"  "删除"))))
 
-(define ascii-style : (Mtx-Style-Make Mtx-Entry-Style)
-  (lambda [id code indices]
+(define ascii-style : Mtx-Entry-Theme-Adjuster
+  (lambda [style id code indices]
     (define ch (integer->char (mtx-idx-ord indices)))
     
-    (make-mtx-entry-style
-     #:fill-paint (cond [(char-lower-case? ch) 'MistyRose]
-                        [(char-upper-case? ch) 'AntiqueWhite]
-                        [(char-numeric? ch) 'Cornsilk]
-                        [(char-punctuation? ch) 'Honeydew]
-                        [(char-symbolic? ch) 'MintCream]
-                        [else 'WhiteSmoke]))))
+    (remake-expr-slot-style style
+                            #:fill-paint (cond [(char-lower-case? ch) 'MistyRose]
+                                               [(char-upper-case? ch) 'AntiqueWhite]
+                                               [(char-numeric? ch) 'Cornsilk]
+                                               [(char-punctuation? ch) 'Honeydew]
+                                               [(char-symbolic? ch) 'MintCream]
+                                               [else 'WhiteSmoke]))))
 
 (define ascii-desc : (Mtx-Entry Byte)
   (lambda [code style indices]
