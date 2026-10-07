@@ -39,9 +39,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct dia-free-track-style () #:type-name Dia-Free-Track-Style)
 
-(define-type Dia-Zone-Track-Style dia-zone-track-style)
-(struct (T) dia-zone-track-style dia-track-style
+(struct dia-zone-track-style dia-free-track-style
   ([fill-paint : Option-Fill-Paint])
+  #:type-name Dia-Zone-Track-Style
   #:transparent)
 
 (define default-free-track-theme-adjuster : (Parameterof (Option Dia-Free-Track-Adjuster)) (make-parameter #false))
@@ -83,7 +83,7 @@
    [label-inline? : (U Boolean Void) #false]
    [label-distance : (U Void Length+%) (&% -100)]))
 
-(define-phantom-struct dia~zone~track~style : Dia~Zone~Track~Style #:-> dia-free-track-style #:for dia-zone-track-style
+(define-phantom-struct dia~zone~track~style : Dia~Zone~Track~Style #:as dia-zone-track-style #:for dia-track-style
   ([font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [width : (Option Flonum) #false]
@@ -93,8 +93,9 @@
    [target-tip : Maybe-Geo-Marker #false]
    [label-rotate? : (U Boolean Void) #true]
    [label-inline? : (U Boolean Void) #false]
-   [label-distance : (U Void Length+%) (&% -100)]
-   [fill-paint : Option-Fill-Paint #false]))
+   [label-distance : (U Void Length+%) (&% -100)])
+  #:metadata
+  ([fill-paint : Option-Fill-Paint #false]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-struct/parameter dia-free-track-factory : Dia-Free-Track-Factory

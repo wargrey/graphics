@@ -3,7 +3,9 @@
 (provide (all-defined-out))
 (provide (rename-out [dia-track-annotate dia-free-track-annotate]))
 
+(require geofun/fill)
 (require geofun/digitama/path/dc)
+(require geofun/digitama/paint/source)
 
 (require "self.rkt")
 (require "../../track/style.rkt")
@@ -18,9 +20,12 @@
     (geo-path* #:id (dia-track-id-merge source target #false)
                #:type (dia-track-style-type-object style)
                #:stroke (dia-track-resolve-line-paint style)
-               #:fill (and (dia-zone-track-style? cstyle) (dia-zone-track-style-fill-paint cstyle))
                #:source-tip stip #:target-tip ttip
                #:tip-placement 'inside
+               #:fill (let ([phantom (dia-track-style-phantom-type cstyle)])
+                        (and (dia-zone-track-style? phantom)
+                             (try-desc-brush* #:opacity (dia-track-style-spec-opacity style)
+                                              (fill-paint->source* (dia-zone-track-style-fill-paint phantom)))))
                tracks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

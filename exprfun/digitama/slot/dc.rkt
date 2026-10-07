@@ -22,18 +22,18 @@
                          #:defaults ([hfit% #'1.0] [vfit% #'1.0] [lft% #'+nan.0] [top% #'+nan.0]))
               (~optional (~seq #:alignment sx% sy% (~optional (~seq tx% ty%)))
                          #:defaults ([sx% #'0.5] [sy% #'0.5] [tx% #'#false] [ty% #'#false]))) ...
-        #:create-with style [make-shape shape-argl ...] maybe-term slot-argl ...)
+        #:create-with style width height [make-shape shape-argl ...] maybe-term slot-argl ...)
      (syntax/loc stx
        (let ([shape (make-shape #:id (expr-slot-shape-id name)
                                 #:stroke (expr-slot-resolve-stroke-paint style)
                                 #:fill (expr-slot-resolve-fill-paint style)
-                                shape-argl ...)])
+                                width height shape-argl ...)])
          (create-geometry-group make-slot name #false #false
                                 #:bleed (geo<%>-bleed shape)
                                 #:desc (or desc (geo-group-desc-from-caption maybe-term))
                                 (geo-dsfit-layers shape maybe-term lft% top% hfit% vfit%
                                                   sx% sy% (or tx% sx%) (or ty% sy%)
-                                                  (default-expr-slot-margin))
+                                                  (expr-slot-resolve-padding style width height))
                                 slot-argl ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

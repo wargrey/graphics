@@ -8,26 +8,25 @@
 (require "variable.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define ram-identify : (-> C-Variable-Datum Symbol (Values Symbol (Option RAM-Block-Style)))
+(define ram-identify : (-> C-Variable-Datum Symbol (Values Symbol (Option (Expr-Slot-Style RAM-Block-Style))))
   (lambda [self segment]
     (cond [(c-variable? self)
            (let ([var (c-variable-name self)])
              (if (keyword? var)
                  (let ([vname (string->symbol (keyword->immutable-string var))])
-                   (ram-style-construct vname self (default-ram-pointer-style-make) make-ram-pointer-style segment))
-                 (ram-style-construct var self (default-ram-variable-style-make) make-ram-variable-style segment)))]
+                   (ram-theme-adjust vname self (default-ram-pointer-theme-adjuster) (default-ram-pointer-style) segment))
+                 (ram-theme-adjust var self (default-ram-variable-theme-adjuster) (default-ram-variable-style) segment)))]
           [(c-vector? self)
            (let ([var (c-vector-name self)])
              (if (keyword? var)
                  (let ([vname (string->symbol (keyword->immutable-string var))])
-                   (ram-style-construct vname self (default-ram-pointer-style-make) make-ram-pointer-style segment))
-                 (ram-style-construct var self (default-ram-array-style-make) make-ram-array-style segment)))]
-          [else (ram-style-construct '|| self (default-ram-padding-style-make) make-ram-padding-style segment)])))
+                   (ram-theme-adjust vname self (default-ram-pointer-theme-adjuster) (default-ram-pointer-style) segment))
+                 (ram-theme-adjust var self (default-ram-array-theme-adjuster) (default-ram-array-style) segment)))]
+          [else (ram-theme-adjust '|| self (default-ram-padding-theme-adjuster) (default-ram-padding-style) segment)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define #:forall (S) ram-style-construct : (-> Symbol C-Placeholder (Option (RAM-Location-Style-Make (∩ S RAM-Block-Style))) (-> (∩ S RAM-Block-Style)) Symbol
-                                               (Values Symbol (∩ S RAM-Block-Style)))
-  (lambda [variable content mk-style mk-fallback-style segment]
+(define #:forall (S) ram-theme-adjust : (-> Symbol C-Placeholder (Option (RAM-Location-Theme-Adjuster S)) (Expr-Slot-Style S) Symbol
+                                            (Values Symbol (Expr-Slot-Style S)))
+  (lambda [variable content style-adjust style segment]
     (values variable
-            ((inst expr-slot-style-construct C-Placeholder (∩ S RAM-Block-Style) Symbol)
-             variable content mk-style mk-fallback-style segment))))
+            (expr-slot-theme-adjust style variable content style-adjust segment))))

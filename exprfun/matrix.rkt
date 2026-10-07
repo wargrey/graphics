@@ -90,7 +90,7 @@
                        [else (expr-slot-text-term (format "~a" desc) style #:id self-id)]))))
         
         ((inst make-mtx-slot M Mtx-Indices) self-id raw style indices term flcwidth flcheight #false
-                                                           make-entry-slot default-mtx-entry-fallback-construct))
+                                            make-entry-slot default-mtx-entry-fallback-construct))
 
       (define row-desc : (Option Mtx-Static-Headers) (let ([desc (or rheader-desc header-desc)]) (if (procedure? desc) #false desc)))
       (define col-desc : (Option Mtx-Static-Headers) (let ([desc (or cheader-desc header-desc)]) (if (procedure? desc) #false desc)))

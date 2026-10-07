@@ -7,7 +7,7 @@
 (provide (all-from-out geofun/paint geofun/stroke geofun/fill geofun/font geofun/color))
 (provide (all-from-out "presets.rkt" "interface.rkt"))
 
-(provide default-expr-slot-margin create-expr-slot)
+(provide create-expr-slot)
 
 (require geofun/paint)
 (require geofun/stroke)

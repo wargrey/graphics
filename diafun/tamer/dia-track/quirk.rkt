@@ -3,7 +3,9 @@
 (require diafun/activity)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-activity-diagram! goma.dia [#:opacity 0.32 #:frame 'Snow] #:-
+(define-activity-diagram! goma.dia
+  #:parameterize ([default-dia~zone~track~style (remake-dia~zone~track~style #:fill-paint 'Azure)])
+  [#:opacity 0.32 #:frame 'Snow] #:-
   [#:tree (move-down 1 '--=)
    [=> (move-left 0.8 #false "should be dropped")
        (move-down 1.5 'sort "fork 1")
@@ -26,9 +28,9 @@
   (T-step 3+3.5i " label inside")
   (T-step '.inside)
   
-  (jump-to -1+7.25i '.outside)
+  (jump-to -1+7.25i '#:.outside)
   (T-step 2-3i)
-  (T-step '.outside #false "label outside")
+  (T-step '#:.outside #false "label outside")
 
   (jump-to 'collate)
   [#:tree (jump-right 1.5 '#:/doc/pptx)

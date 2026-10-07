@@ -17,7 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define mtx-slot-row-header : Mtx-Header-Slot-Create
   (lambda [id term0 style width height direction indices]
-    (define-values (mt mright mb mleft) (geo-inset-values (default-expr-slot-margin)))
+    (define-values (mt mright mb mleft) (geo-inset-values (expr-slot-resolve-padding style width height)))
     (define term (mtx-rotate term0 direction))
     (define cell-width
       (cond [(or term) (max (+ (geo-width term) mright mleft) width)]
@@ -28,7 +28,7 @@
 
 (define mtx-slot-col-header : Mtx-Header-Slot-Create
   (lambda [id term0 style width height direction indices]
-    (define-values (mtop mr mbottom ml) (geo-inset-values (default-expr-slot-margin)))
+    (define-values (mtop mr mbottom ml) (geo-inset-values (expr-slot-resolve-padding style width height)))
     (define term (mtx-rotate term0 direction))
     (define cell-height
       (cond [(or term) (max (+ (geo-height term) mtop mbottom) height)]
@@ -67,5 +67,5 @@
   (lambda [id term style width height [sx% 0.5] [sy% 0.5] [tx% 0.5] [ty% 0.5]]
     (create-expr-slot #:id id
                       #:alignment sx% sy% tx% ty%
-                      #:create-with style [geo-rectangle width height]
+                      #:create-with style width height [geo-rectangle]
                       term)))

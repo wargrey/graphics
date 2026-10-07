@@ -6,6 +6,7 @@
 (require digimon/digitama/unsafe/release/ops)
 
 (require geofun/font)
+(require geofun/fill)
 (require geofun/resize)
 (require geofun/composite)
 
@@ -13,13 +14,15 @@
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/text)
 (require geofun/digitama/paint/self)
+(require geofun/digitama/paint/source)
+(require geofun/digitama/geometry/sides)
 
 (require exprfun/digitama/presets)
 
 (require "style.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plt-RAM-Variable-Layout (-> (Option Geo) Geo (Option Geo) Geo (Pairof Geo (Listof Geo))))
+(define-type Plt-RAM-Variable-Layout (-> (Option Geo) Geo (Option Geo) Geo Geo-Standard-Insets (Pairof Geo (Listof Geo))))
 
 (struct ram-variable
   ([name : (Option Geo)]
@@ -35,7 +38,7 @@
            #:rendering-segment [rsegment : (Option Symbol)]
            #:width [loc-width : Nonnegative-Flonum]
            #:height [loc-height : Nonnegative-Flonum]
-           [style : (Expr-Slot-Style-Layers* RAM-Block-Style)]
+           [style : RAM-Slot-Style-Spec]
            [id : Symbol] [ram0-address : Index]
            [mask : Natural]
            [ram : Bytes]
@@ -47,9 +50,7 @@
     (define color : Option-Fill-Paint (expr-slot-resolve-font-paint style))
     (define loc-stroke : Maybe-Stroke-Paint (expr-slot-resolve-stroke-paint style))
     (define loc-fill : Maybe-Fill-Paint (expr-slot-resolve-fill-paint style))
-    (define igr-color : Option-Fill-Paint
-      (expr-slot-resolve-fill-paint style ram-block-style-ignored-paint
-                                    ram-location-backstop-style? ram-block-backstop-style-ignored-paint))
+    (define igr-color : Option-Fill-Paint (ram-slot-resolve-ignored-paint style))
     
     (let gen-row ([idx : Nonnegative-Fixnum start]
                   [swor : (Listof RAM-Variable) null])
@@ -87,13 +88,13 @@
            #:rendering-segment [rsegment : (Option Symbol)]
            #:width [loc-width : Nonnegative-Flonum]
            #:height [loc-height : Nonnegative-Flonum]
-           [style : (Expr-Slot-Style-Layers* RAM-Block-Style)]
+           [style : RAM-Slot-Style-Spec]
            [id : Symbol]
            [address : Natural]
            [mask : Natural]
            [datum : Any]
            [base : Positive-Byte]] : (List RAM-Variable)
-    (define datum-desc : String (ram-datum->string (car style) datum base mask))
+    (define datum-desc : String (ram-datum->string (expr-slot-style-phantom-type (expr-slot-style-spec-custom style)) datum base mask))
     (define font : (Option Font) (expr-slot-resolve-font style))
     (define color : Option-Fill-Paint (expr-slot-resolve-font-paint style))
     (define label : (Option Geo) (expr-slot-text-term datum-desc style #:id id #:color color #:font font))
@@ -109,8 +110,7 @@
                         #:lines (if (and rsegment (not (eq? vsegment rsegment))) '(line-through) null)
                         id font)
               (geo-text #:lines '(line-through)
-                        #:color (expr-slot-resolve-fill-paint style ram-block-style-ignored-paint
-                                                              ram-location-backstop-style? ram-block-backstop-style-ignored-paint)
+                        #:color (ram-slot-resolve-ignored-paint style)
                         (ram-address->string address mask) font)))
     
     (list (RAM-Variable var addr label loc-box))))
@@ -118,7 +118,7 @@
 (define plt-padding-raw
   (lambda [#:width [loc-width : Nonnegative-Flonum]
            #:height [loc-height : Nonnegative-Flonum]
-           [style : (Expr-Slot-Style-Layers* RAM-Block-Style)]
+           [style : RAM-Slot-Style-Spec]
            [addr0 : Index]
            [mask : Natural]
            [ram : Bytes]
@@ -162,7 +162,7 @@
            #:rendering-segment [rsegment : (Option Symbol)]
            #:width [loc-width : Nonnegative-Flonum]
            #:height [loc-height : Nonnegative-Flonum]
-           [style : (Expr-Slot-Style-Layers* RAM-Block-Style)]
+           [style : RAM-Slot-Style-Spec]
            [id : Symbol]
            [addr0 : Natural]
            [type-size : Byte]
@@ -188,7 +188,7 @@
            #:rendering-segment [rsegment : (Option Symbol)]
            #:width [loc-width : Nonnegative-Flonum]
            #:height [loc-height : Nonnegative-Flonum]
-           [style : (Expr-Slot-Style-Layers* RAM-Block-Style)]
+           [style : RAM-Slot-Style-Spec]
            [id : Symbol]
            [addr0 : Index]
            [type-size : Byte]
@@ -217,7 +217,7 @@
     (geo-text name expr-preset-header-font)))
 
 (define plt-ram-variable-layout : Plt-RAM-Variable-Layout
-  (lambda [name addr datum shape]
+  (lambda [name addr datum shape padding]
     (define address
       (cond [(not name) addr]
             [else (geo-vr-append name addr)]))
@@ -230,7 +230,7 @@
               address)
           
           (if (or datum)
-              (let ([fit-label (geo-try-dsfit datum shape 1.0 1.0 (default-expr-slot-margin))])
+              (let ([fit-label (geo-try-dsfit datum shape 1.0 1.0 padding)])
                 (cond [(not fit-label) shape]
                       [else (geo-cc-superimpose shape fit-label)]))
               shape))))
@@ -276,3 +276,13 @@
       [(16) (string-append "0x" (~r raw-datum #:base '(up 16) #:min-width 2 #:pad-string "0"))]
       [(8)  (string-append "0"  (~r raw-datum #:base 8        #:min-width 3 #:pad-string "0"))]
       [else #false])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define #:forall (S) ram-slot-resolve-ignored-paint : (-> RAM-Slot-Style-Spec (Option Brush))
+  (lambda [self]
+    (define paint (ram-block-style-ignored-paint (expr-slot-style-phantom-type (expr-slot-style-spec-custom self))))
+
+    (try-desc-brush #:opacity (expr-slot-resolve-opacity self)
+                    (fill-paint->source* (cond [(not (void? paint)) paint]
+                                               [else (ram-slot-backstop-style-ignored-paint
+                                                      (assert (expr-slot-style-spec-backstop self) ram-slot-backstop-style?))])))))

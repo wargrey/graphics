@@ -17,7 +17,8 @@
 
 (define-configuration mtx-backstop-style : Mtx-Backstop-Style #:as expr-slot-backstop-style
   #:format "default-mtx-~a"
-  ([font : Font expr-preset-expr-font]
+  ([padding : Expr-Slot-Padding 4.0]
+   [font : Font expr-preset-expr-font]
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint expr-preset-slot-stroke]
    [fill-paint : Option-Fill-Paint #false]
@@ -25,7 +26,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct mtx-row-header-style : Mtx-Row-Header-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) expr-preset-header-font]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -34,7 +36,8 @@
    [opacity : (Option Real) #false]))
 
 (define-phantom-struct mtx-col-header-style : Mtx-Col-Header-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) expr-preset-header-font]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -43,7 +46,8 @@
    [opacity : (Option Real) #false]))
 
 (define-phantom-struct mtx-corner-style : Mtx-Corner-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) expr-preset-header-font]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -52,7 +56,8 @@
    [opacity : (Option Real) #false]))
 
 (define-phantom-struct mtx-hole-style : Mtx-Hole-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) expr-preset-header-font]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) expr-preset-header-font]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]
@@ -61,7 +66,8 @@
    [opacity : (Option Real) #false]))
 
 (define-phantom-struct mtx-mask-style : Mtx-Mask-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) #false]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) 0.0]
    [stroke-color : (U Color Void False) (void)]
@@ -70,7 +76,8 @@
    [opacity : (Option Real) #false]))
 
 (define-phantom-struct mtx-entry-style : Mtx-Entry-Style #:-> mtx-slot-style #:for expr-slot-style
-  ([font : (Option Font) #false]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font) #false]
    [font-paint : Option-Fill-Paint #false]
    [stroke-width : (Option Flonum) #false]
    [stroke-color : (U Color Void False) (void)]

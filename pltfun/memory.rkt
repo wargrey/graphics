@@ -46,9 +46,11 @@
            [variables : Plt-Reversed-Variables] [segment : Symbol 'stack] [state : String ""]] : Plt:RAM
     (define-values (cwidth cheight) (~extent loc-width loc-height))
     (define backstop (make-ram-location-backstop-style))
-    (define (realize [self : RAM-Variable]) : (Pairof Geo (Listof Geo))
-      (layout (ram-variable-name self) (ram-variable-address self)
-              (ram-variable-datum self) (ram-variable-shape self)))
+    (define (realize [selves : (Listof RAM-Variable)] [style : RAM-Slot-Style-Spec]) : (Listof (Pairof Geo (Listof Geo)))
+      (for/list ([self (in-list selves)])
+        (layout (ram-variable-name self) (ram-variable-address self)
+                (ram-variable-datum self) (ram-variable-shape self)
+                (expr-slot-resolve-padding style cwidth cheight))))
     
     (let var->cell ([vars : (Listof C-Variable-Datum) variables]
                     [swor : (Listof (Pairof Geo (Listof Geo))) null])
@@ -58,29 +60,32 @@
                         [(vname style) (ram-identify self segment)])
             (cond [(not style) (var->cell rest swor)]
                   [(or (c-padding? self) ignore-variable?)
-                   (if (or no-padding?)
-                       (var->cell rest swor)
-                       (var->cell rest (append swor (map realize (plt-padding-raw #:width cwidth #:height cheight
-                                                                                  (cons style backstop) address addr-mask raw p-radix padding-limit)))))]
+                   (cond [(or no-padding?) (var->cell rest swor)]
+                         [else (let* ([spec ((inst make-expr-slot-style-spec RAM-Block-Style) #:custom style #:backstop backstop)]
+                                      [rows (plt-padding-raw #:width cwidth #:height cheight
+                                                             spec address addr-mask raw p-radix padding-limit)])
+                                 (var->cell rest (append swor (realize rows spec))))])]
                   [(c-variable? self)
-                   (let ([rows (if (not human-readable?)
-                                   (plt-variable-raw #:segment (c-variable-segment self) #:rendering-segment segment
-                                                     #:width cwidth #:height cheight
-                                                     (cons style backstop) vname address addr-mask raw rd-radix)
-                                   (plt-variable-datum #:segment (c-variable-segment self) #:rendering-segment segment
-                                                       #:width cwidth #:height cheight
-                                                       (cons style backstop) vname address addr-mask (unbox (c-variable-datum self)) fx-radix))])
-                     (var->cell rest (append swor (map realize rows))))]
-                  [(c-vector? self)
-                   (let ([rows (if (not human-readable?)
-                                   (plt-vector-raw #:segment (c-vector-segment self) #:rendering-segment segment
-                                                   #:width cwidth #:height cheight
-                                                   (cons style backstop) vname address (c-vector-type-size self) addr-mask raw rd-radix)
-                                   (plt-variable-data #:segment (c-vector-segment self) #:rendering-segment segment
+                   (let* ([spec ((inst make-expr-slot-style-spec RAM-Block-Style) #:custom style #:backstop backstop)]
+                          [rows (if (not human-readable?)
+                                    (plt-variable-raw #:segment (c-variable-segment self) #:rendering-segment segment
                                                       #:width cwidth #:height cheight
-                                                      (cons style backstop) vname address (c-vector-type-size self) addr-mask
-                                                      (c-vector-data self) fx-radix))])
-                     (var->cell rest (append swor (map realize rows))))]
+                                                      spec vname address addr-mask raw rd-radix)
+                                    (plt-variable-datum #:segment (c-variable-segment self) #:rendering-segment segment
+                                                        #:width cwidth #:height cheight
+                                                        spec vname address addr-mask (unbox (c-variable-datum self)) fx-radix))])
+                     (var->cell rest (append swor (realize rows spec))))]
+                  [(c-vector? self)
+                   (let* ([spec ((inst make-expr-slot-style-spec RAM-Block-Style) #:custom style #:backstop backstop)]
+                          [rows (if (not human-readable?)
+                                    (plt-vector-raw #:segment (c-vector-segment self) #:rendering-segment segment
+                                                    #:width cwidth #:height cheight
+                                                    spec vname address (c-vector-type-size self) addr-mask raw rd-radix)
+                                    (plt-variable-data #:segment (c-vector-segment self) #:rendering-segment segment
+                                                       #:width cwidth #:height cheight
+                                                       spec vname address (c-vector-type-size self) addr-mask
+                                                       (c-vector-data self) fx-radix))])
+                     (var->cell rest (append swor (realize rows spec))))]
                   [else (var->cell rest swor)]))
           
           (let ([rows (if reverse? swor (reverse swor))])

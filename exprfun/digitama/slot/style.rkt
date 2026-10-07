@@ -1,9 +1,11 @@
 #lang typed/racket/base
 
+;;; the plt RAM module depends on this module
+
 (provide (all-defined-out) Geo-Insets-Datum)
 
 (require digimon/struct)
-(require racket/string)
+(require digimon/measure)
 
 (require geofun/font)
 (require geofun/stroke)
@@ -33,13 +35,18 @@
                ...)))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-type Expr-Slot-Option-Size (Option Length+%))
+(define-type Expr-Slot-Padding Geo-Insets-Datum+%)
+(define-type Expr-Slot-Option-Padding (Option Expr-Slot-Padding))
+
 (define-type (Expr-Slot-Theme-Adjuster Datum Style Metadata)
   (-> (Expr-Slot-Style Style) Symbol Datum Metadata
       (U (Expr-Slot-Style Style) False Void)))
 
 (define-struct expr-slot-style : Expr-Slot-Style
   #:forall ([phantom-type : T])
-  ([font : (Option Font)]
+  ([padding : Expr-Slot-Option-Padding #false]
+   [font : (Option Font)]
    [font-paint : Option-Fill-Paint]
    [stroke-width : (Option Flonum)]
    [stroke-color : (U Color Void False)]
@@ -50,7 +57,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (struct expr-slot-backstop-style
-  ([font : Font]
+  ([padding : Expr-Slot-Padding]
+   [font : Font]
    [font-paint : Fill-Paint]
    [stroke-paint : Option-Stroke-Paint]
    [fill-paint : Option-Fill-Paint]
@@ -63,32 +71,27 @@
    [backstop : Expr-Slot-Backstop-Style])
   #:transparent)
 
-(define default-expr-slot-margin : (Parameterof Geo-Insets-Datum) (make-parameter 4.0))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) expr-slot-text-term : (->* (Geo-Rich-Text (Expr-Slot-Style-Spec S))
-                                                (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font))
+                                                (#:id Geo-Anchor-Name #:color Option-Fill-Paint #:font (Option Font)
+                                                 #:trim? Boolean)
                                                 (Option Geo))
-  (lambda [term style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false]]
-    (define self : (Expr-Slot-Style S) (expr-slot-style-spec-custom style))
-    (define fallback : Expr-Slot-Backstop-Style (expr-slot-style-spec-backstop style))
+  (lambda [term style #:id [id #false] #:color [alt-color #false] #:font [alt-font #false] #:trim? [trim? #true]]
+    (define font : Font (expr-slot-resolve-font style))
+    (define paint : Option-Fill-Paint (expr-slot-resolve-font-paint style))
     
-    (define maybe-font : (Option Font) (or alt-font (expr-slot-style-font self)))
-    (define maybe-paint : Option-Fill-Paint (or alt-color (expr-slot-style-font-paint self)))
+    (geo-rich-text-try-realize #:id (expr-slot-term-id (or id (gensym 'dia:block:caption:)))
+                               #:alignment 'center #:trim? trim?
+                               term font paint)))
 
-    (define text : Geo-Rich-Text
-      (cond [(string? term) (string-trim term)]
-            [(bytes? term) (regexp-replace* #px"((^\\s*)|(\\s*$))" term #"")]
-            [else term]))
-    
-    (and (cond [(string? text) (> (string-length text) 0)]
-               [(bytes? text) (> (bytes-length text) 0)]
-               [else #true])
-         (geo-rich-text-realize #:id (expr-slot-term-id (or id (gensym 'dia:block:caption:)))
-                                #:alignment 'center
-                                text
-                                (or maybe-font (expr-slot-backstop-style-font fallback))
-                                (or maybe-paint (expr-slot-backstop-style-font-paint fallback))))))
+(define #:forall (S) expr-slot-resolve-padding : (->* ((Expr-Slot-Style-Spec S) Nonnegative-Flonum Nonnegative-Flonum)
+                                                      (#:padding Expr-Slot-Option-Padding)
+                                                      Geo-Standard-Insets)
+  (lambda [style width height #:padding [alt-padding #false]]
+    (geo-insets*->insets (or alt-padding
+                             (expr-slot-style-padding (expr-slot-style-spec-custom style))
+                             (expr-slot-backstop-style-padding (expr-slot-style-spec-backstop style)))
+                         width)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) expr-slot-resolve-stroke-width : (-> (Expr-Slot-Style-Spec S) Nonnegative-Flonum)
@@ -123,12 +126,10 @@
                                                [else (expr-slot-backstop-style-fill-paint (expr-slot-style-spec-backstop self))])))))
 
 (define #:forall (S) expr-slot-resolve-font-paint : (-> (Expr-Slot-Style-Spec S) Brush)
-  (let ([brushs : (Weak-HashTable Any Brush) (make-weak-hash)])
-    (lambda [self]
-      (hash-ref! brushs self
-                 (λ [] (desc-brush #:opacity (expr-slot-resolve-opacity self)
-                                   (fill-paint->source (or (expr-slot-style-font-paint (expr-slot-style-spec-custom self))
-                                                           (expr-slot-backstop-style-font-paint (expr-slot-style-spec-backstop self))))))))))
+  (lambda [self]
+    (desc-brush #:opacity (expr-slot-resolve-opacity self)
+                (fill-paint->source (or (expr-slot-style-font-paint (expr-slot-style-spec-custom self))
+                                        (expr-slot-backstop-style-font-paint (expr-slot-style-spec-backstop self)))))))
 
 (define #:forall (S) expr-slot-resolve-font : (-> (Expr-Slot-Style-Spec S) Font)
   (lambda [self]
