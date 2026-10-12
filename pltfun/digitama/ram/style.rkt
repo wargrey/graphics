@@ -9,6 +9,9 @@
 (require geofun/paint)
 (require geofun/stroke)
 
+(require geofun/digitama/geometry/sides)
+(require geofun/digitama/unsafe/typed/cairo)
+
 (require exprfun/digitama/slot/style)
 (require exprfun/digitama/presets)
 
@@ -69,6 +72,7 @@
    [stroke-paint : Option-Stroke-Paint (default-stroke)]
    [fill-paint : Option-Fill-Paint 'GhostWhite]
    [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides) null]
    [ignored-paint : Option-Fill-Paint 'Grey]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,7 +84,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Real) #false])
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false])
   #:metadata
   ([ignored-paint : Maybe-Fill-Paint (void)]))
 
@@ -92,7 +97,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Real) #false])
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false])
   #:metadata
   ([ignored-paint : Maybe-Fill-Paint (void)]))
 
@@ -104,7 +110,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint (void)]
-   [opacity : (Option Real) #false])
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false])
   #:metadata
   ([ignored-paint : Maybe-Fill-Paint (void)]))
 
@@ -116,6 +123,7 @@
    [stroke-color : (U Color Void False) 'DimGrey]
    [stroke-dash : (Option Stroke-Dash-Datum) #false]
    [fill-paint : Maybe-Fill-Paint 'LightGrey]
-   [opacity : (Option Real) #false])
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false])
   #:metadata
   ([ignored-paint : Maybe-Fill-Paint (void)]))
