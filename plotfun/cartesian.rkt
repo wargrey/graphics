@@ -298,7 +298,8 @@
     (define annotation-layers
       ; visualizers' data labels
       (for/list : (Listof (GLayerof Geo)) ([self (in-list plots)]
-                                           #:when (and (not no-vlabel?) (geo:visualizer-label self)))
+                                           #:when (and (not no-vlabel?)
+                                                       (geo:visualizer-label self)))
         (define-values (this-pin this-gap)
           (plot-mark-vector-values mark-style
                                    (or (geo:visualizer-pin-angle self) 0.0)

@@ -7,7 +7,10 @@
 
 (require geofun/font)
 (require geofun/paint)
+
 (require geofun/digitama/base)
+(require geofun/digitama/geometry/sides)
+(require geofun/digitama/unsafe/typed/cairo)
 
 (require "../slot/style.rkt")
 (require "../presets.rkt")
@@ -22,7 +25,8 @@
    [font-paint : Fill-Paint 'Black]
    [stroke-paint : Option-Stroke-Paint expr-preset-slot-stroke]
    [fill-paint : Option-Fill-Paint #false]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides) null]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-phantom-struct mtx-row-header-style : Mtx-Row-Header-Style #:-> mtx-slot-style #:for expr-slot-style
@@ -33,7 +37,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))
 
 (define-phantom-struct mtx-col-header-style : Mtx-Col-Header-Style #:-> mtx-slot-style #:for expr-slot-style
   ([padding : Expr-Slot-Option-Padding #false]
@@ -43,7 +48,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))
 
 (define-phantom-struct mtx-corner-style : Mtx-Corner-Style #:-> mtx-slot-style #:for expr-slot-style
   ([padding : Expr-Slot-Option-Padding #false]
@@ -53,7 +59,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))
 
 (define-phantom-struct mtx-hole-style : Mtx-Hole-Style #:-> mtx-slot-style #:for expr-slot-style
   ([padding : Expr-Slot-Option-Padding #false]
@@ -63,7 +70,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) 'dot]
    [fill-paint : Maybe-Fill-Paint 'WhiteSmoke]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))
 
 (define-phantom-struct mtx-mask-style : Mtx-Mask-Style #:-> mtx-slot-style #:for expr-slot-style
   ([padding : Expr-Slot-Option-Padding #false]
@@ -73,7 +81,8 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint 'GhostWhite]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))
 
 (define-phantom-struct mtx-entry-style : Mtx-Entry-Style #:-> mtx-slot-style #:for expr-slot-style
   ([padding : Expr-Slot-Option-Padding #false]
@@ -83,4 +92,5 @@
    [stroke-color : (U Color Void False) (void)]
    [stroke-dash : (Option Stroke-Dash+Offset) #false]
    [fill-paint : Maybe-Fill-Paint #false]
-   [opacity : (Option Real) #false]))
+   [opacity : (Option Real) #false]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False) #false]))

@@ -8,6 +8,7 @@
 (require geofun/digitama/dc/rect)
 (require geofun/digitama/dc/resize)
 (require geofun/digitama/geometry/sides)
+(require geofun/digitama/unsafe/typed/cairo)
 
 (require "../slot/style.rkt")
 (require "../slot/dc.rkt")
@@ -67,5 +68,5 @@
   (lambda [id term style width height [sx% 0.5] [sy% 0.5] [tx% 0.5] [ty% 0.5]]
     (create-expr-slot #:id id
                       #:alignment sx% sy% tx% ty%
-                      #:create-with style width height [geo-rectangle]
+                      #:create-with style width height [geo-open-rectangle]
                       term)))

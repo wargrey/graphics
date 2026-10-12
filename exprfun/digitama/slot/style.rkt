@@ -18,6 +18,7 @@
 (require geofun/digitama/paint/source)
 (require geofun/digitama/track/anchor)
 (require geofun/digitama/geometry/sides)
+(require geofun/digitama/unsafe/typed/cairo)
 
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/richtext/realize)
@@ -52,7 +53,8 @@
    [stroke-color : (U Color Void False)]
    [stroke-dash : (Option Stroke-Dash+Offset)]
    [fill-paint : Maybe-Fill-Paint]
-   [opacity : (Option Real)])
+   [opacity : (Option Real)]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides False)])
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,7 +64,8 @@
    [font-paint : Fill-Paint]
    [stroke-paint : Option-Stroke-Paint]
    [fill-paint : Option-Fill-Paint]
-   [opacity : (Option Real)])
+   [opacity : (Option Real)]
+   [open-sides : (U (Listof Geo-Side-Choice) Geo-Open-Sides)])
   #:type-name Expr-Slot-Backstop-Style
   #:transparent)
 
@@ -92,6 +95,11 @@
                              (expr-slot-style-padding (expr-slot-style-spec-custom style))
                              (expr-slot-backstop-style-padding (expr-slot-style-spec-backstop style)))
                          width)))
+
+(define #:forall (S) expr-slot-resolve-open-sides : (-> (Expr-Slot-Style-Spec S) (U (Listof Geo-Side-Choice) Geo-Open-Sides))
+  (lambda [style]
+    (or (expr-slot-style-open-sides (expr-slot-style-spec-custom style))
+        (expr-slot-backstop-style-open-sides (expr-slot-style-spec-backstop style)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define #:forall (S) expr-slot-resolve-stroke-width : (-> (Expr-Slot-Style-Spec S) Nonnegative-Flonum)

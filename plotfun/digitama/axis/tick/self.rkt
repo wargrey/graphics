@@ -80,7 +80,8 @@
         self))
 
     (values trimmed-ticks
-            (if (and (pair? trimmed-ticks) (pair? (cdr trimmed-ticks)))
+            (if (and (pair? trimmed-ticks)
+                     (pair? (cdr trimmed-ticks)))
                 (cons (plot-tick-value (car trimmed-ticks))
                       (plot-tick-value (last trimmed-ticks)))
                 fallback-view))))

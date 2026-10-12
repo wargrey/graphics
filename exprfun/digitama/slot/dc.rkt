@@ -27,6 +27,7 @@
        (let ([shape (make-shape #:id (expr-slot-shape-id name)
                                 #:stroke (expr-slot-resolve-stroke-paint style)
                                 #:fill (expr-slot-resolve-fill-paint style)
+                                #:open-sides (expr-slot-resolve-open-sides style)
                                 width height shape-argl ...)])
          (create-geometry-group make-slot name #false #false
                                 #:bleed (geo<%>-bleed shape)
