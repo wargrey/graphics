@@ -41,13 +41,15 @@
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:opacity [opacity : (Option Real) #false]
            #:fast-range [fast-range : (Option Plot-Visualizer-Data-Range) #false]
-           #:safe-df/dx [alt-df/dx : (Option (-> Real Real)) #false]
-           #:safe-dff/dxx [alt-ddf/dxx : (Option (-> Real Real)) #false]
+           #:safe-df/dx [alt-df/dx : (Option (-> Real (Option Real))) #false]
+           #:safe-ddf/dxx [alt-ddf/dxx : (Option (-> Real (Option Real))) #false]
            [f : (-> Real (Option Number))]
            [maybe-xmin : (Option Real) #false] [maybe-xmax : (Option Real) #false]
            [maybe-ymin : (Option Real) #false] [maybe-ymax : (Option Real) #false]] : Plot-Visualizer
     (define-values (xrange yrange) (plot-range-normalize maybe-xmin maybe-xmax maybe-ymin maybe-ymax))
     (define safe-f : (-> Real Real) (safe-real-function f))
+    (define self-df/dx : (-> Real (Option Real))   (or alt-df/dx   (λ [[x : Real]] (df/dx safe-f x))))
+    (define self-ddf/dxx : (-> Real (Option Real)) (or alt-ddf/dxx (λ [[x : Real]] (df/dx safe-f x))))
     
     (define function-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
@@ -59,9 +61,7 @@
               (~cartesian2ds f xs ymin ymax transform))))
 
         (define dynamic-angle : (-> Real (Option Real))
-          (plot-function-pin-angle (or   alt-df/dx (λ [[x : Real]]   (df/dx safe-f x)))
-                                   (or alt-ddf/dxx (λ [[x : Real]] (ddf/dxx safe-f x)))
-                                   placement))
+          (plot-function-pin-angle self-df/dx self-ddf/dxx placement))
 
         (define pen : Pen
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity

@@ -20,6 +20,8 @@
 (require "../guard.rkt")
 (require "../interface.rkt")
 
+(require "../../calculus.rkt")
+
 (require "../../marker/self.rkt")
 (require "../../marker/style.rkt")
 
@@ -32,24 +34,27 @@
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
-           #:offset [offset : Complex 0.0+0.0i]
            #:color [strk-color : (Option Color) #false]
            #:width [strk-width : (Option Real) #false]
            #:opacity [opacity : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
            #:close? [close? : Boolean #false]
+           #:safe-dr/dθ [alt-dr/dθ : (Option (-> Real (Option Real))) #false]
+           #:safe-ddr/dθθ [alt-ddr/dθθ : (Option (-> Real (Option Real))) #false]
            [r : (-> Real (Option Number))]
            [θmin : Real 0] [θmax : Real 2pi]] : Plot-Visualizer
-    (define-values (points lx ty rx by) (polar-points r θmin θmax 500))
-    (define df/dx : (-> Real (Option Real)) (plot-lines-df/dx points))
-    (define safe-f : (-> Real Real) (plot-lines->function points close? (object-name r)))
-    (define-values (xrange yrange) (plot-range-normalize lx rx -inf.0 +inf.0))
+    (define safe-r (safe-real-function r))
+    (define-values (points lx ty rx by) (polar-points safe-r θmin θmax 500))
+    (define-values (xrange yrange) (plot-range-normalize lx rx #false #false))
 
     (define polar-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
         (define-values (dots x y width height) (~cartesian2ds points xmin xmax ymin ymax transform))
+        (define safe-f : (-> Real Real) (polar->cartesian-func safe-r xmin xmax θmin θmax))
         (define dynamic-angle : (-> Real (Option Real))
-          (plot-function-pin-angle df/dx 0 placement))
+          (plot-function-pin-angle (polar-df/dx safe-r alt-dr/dθ)
+                                   (polar-ddf/dxx safe-r alt-dr/dθ alt-ddr/dθθ)
+                                    placement))
 
         (define pen : Pen
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
@@ -73,7 +78,7 @@
                      (and strk-color #true))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define polar-points : (-> (-> Real (Option Number)) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
+(define polar-points : (-> (-> Real Real) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
   (let ([pts-db : (Weak-HashTable Any (Immutable-Vector (Listof Float-Complex) Flonum Flonum Flonum Flonum)) (make-weak-hash)])
     (lambda [rθ θmin θmax density]
       (define &pts : (Immutable-Vector (Listof Float-Complex) Flonum Flonum Flonum Flonum)
@@ -85,3 +90,52 @@
       (values (vector-ref &pts 0)
               (vector-ref &pts 1) (vector-ref &pts 2)
               (vector-ref &pts 3) (vector-ref &pts 4)))))
+
+(define polar->cartesian-func : (-> (-> Real Real) Real Real Real Real (-> Real Real))
+  (lambda [rθ xmin xmax θmin θmax]
+    (define xspan (- xmax xmin))
+    (define θspan (- θmax θmin))
+    
+    (procedure-rename
+     (λ [[x : Real]]
+       (define theta (+ θmin (* θspan (/ (- x xmin) xspan))))
+       (displayln (list xmin x xmax))
+       (imag-part (make-polar (rθ theta) theta)))
+     (assert (object-name rθ) symbol?))))
+
+(define polar-df/dx : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
+  (lambda [rθ alt-dr/dθ]
+    (define dr/dθ (or alt-dr/dθ (λ [[theta : Real]] (df/dx rθ theta))))
+    
+    (λ [[θ : Real]]
+      (define r (rθ θ))
+      (define dr (dr/dθ θ))
+
+      (and (rational? r) dr
+           (let* ([sinθ (sin θ)]
+                  [cosθ (cos θ)]
+                  [dx (- (* dr cosθ) (* r sinθ))]
+                  [dy (+ (* dr sinθ) (* r cosθ))])
+             (cond [(zero? dx) +inf.0]
+                   [else (/ dy dx)]))))))
+
+(define polar-ddf/dxx : (-> (-> Real Real) (Option (-> Real (Option Real))) (Option (-> Real (Option Real))) (-> Real (Option Real)))
+  (lambda [rθ alt-dr/dθ alt-ddr/dθθ]
+    (define dr/dθ (or alt-dr/dθ (λ [[theta : Real]] (df/dx rθ theta))))
+    (define ddr/dθθ (or alt-ddr/dθθ (λ [[theta : Real]] (ddf/dxx rθ theta))))
+    
+    (λ [[θ : Real]]
+      (define r (rθ θ))
+      (define dr (dr/dθ θ))
+      (define ddr (ddr/dθθ θ))
+
+      (and (rational? r) dr ddr
+           (let* ([sinθ (sin θ)]
+                  [cosθ (cos θ)]
+                  [dx (- (* dr cosθ) (* r sinθ))]
+                  [dy (+ (* dr sinθ) (* r cosθ))]
+                  [ddx (- (* ddr cosθ) (* 2 dr sinθ) (* r cosθ))]
+                  [ddy (- (+ (* ddr sinθ) (* 2 dr cosθ)) (* r sinθ))])
+             (cond [(zero? dx) +inf.0]
+                   [else (/ (- (* dx ddy) (* dy ddx)) 
+                            (expt dx 3))]))))))

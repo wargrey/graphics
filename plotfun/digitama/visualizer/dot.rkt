@@ -83,7 +83,7 @@
                (point2ds-rational-reverse stod lx ty rx by))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define ~polar2ds : (-> (-> Real (Option Number)) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
+(define ~polar2ds : (-> (-> Real Real) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
   (lambda [rθ θmin θmax density]
     (define delta : Exact-Rational (/ 1 density))
     

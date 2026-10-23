@@ -2,7 +2,8 @@
 
 ;;; the plt RAM module depends on this module
 
-(provide (all-defined-out) Geo-Insets-Datum)
+(provide (all-defined-out))
+(provide Geo-Insets-Datum Geo-Side-Choice Geo-Open-Sides)
 
 (require digimon/struct)
 (require digimon/measure)
