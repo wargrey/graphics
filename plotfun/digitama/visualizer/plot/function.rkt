@@ -152,7 +152,7 @@
   (let ([range-db : (Weak-HashTable Any (Pairof Real Real)) (make-weak-hash)])
     (lambda [f samples]
       (λ [xmin xmax]
-        (hash-ref! range-db (list f xmin xmax)
+        (hash-ref! range-db (list f xmin xmax samples)
                    (λ [] (parameterize ([plot-sampling? #false])
                            (define xs (geo-linear-samples xmin xmax samples))
                            (define maybe-range

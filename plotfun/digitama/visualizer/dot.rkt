@@ -81,3 +81,26 @@
                                    (max rx scr-x) (max by scr-y)))]
                      [else (normalize rest (point2ds-nan-cons stod) lx ty rx by)]))
                (point2ds-rational-reverse stod lx ty rx by))))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define ~polar2ds : (-> (-> Real (Option Number)) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
+  (lambda [rθ θmin θmax density]
+    (define delta : Exact-Rational (/ 1 density))
+    
+    (let polar->pts ([theta : Real θmin]
+                     [stp : (Listof Float-Complex) null]
+                     [lx : Flonum +inf.0] [ty : Flonum +inf.0]
+                     [rx : Flonum -inf.0] [by : Flonum -inf.0])
+      (if (< theta θmax)
+          (let ([theta++ (+ theta delta)]
+                [r (rθ theta)])
+            (cond [(rational? r)
+                   (let* ([pt (make-polar r theta)]
+                          [x (real->double-flonum (real-part pt))]
+                          [y (real->double-flonum (imag-part pt))])
+                     (polar->pts theta++ (cons (make-rectangular x y) stp)
+                                 (min lx x) (min ty y)
+                                 (max rx x) (max by y)))]
+                  ; TODO: r is infinity or multple-valued
+                  [else (polar->pts theta++ (point2ds-nan-cons stp) lx ty rx by)]))
+          (point2ds-rational-reverse stp lx ty rx by)))))

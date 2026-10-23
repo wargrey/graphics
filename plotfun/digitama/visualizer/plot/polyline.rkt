@@ -97,8 +97,8 @@
                   [else (sample rest (cons this-x sx))]))
           (reverse sx)))))
 
-(define plot-lines->function : (-> (Listof Complex) Boolean (-> Real Real))
-  (lambda [pts0 close?]
+(define plot-lines->function : (->* ((Listof Complex) Boolean) (Any) (-> Real Real))
+  (lambda [pts0 close? [name #false]]
     (define pts
       (cond [(null? pts0) pts0]
             [(not close?) pts0]
@@ -109,19 +109,22 @@
         (values (real-part pt)
                 (imag-part pt))))
     
-    (λ [[x : Real]]
-      (hash-ref ys x
-                (λ [] (let f : Real ([pts : (Listof Complex) pts])
-                        (if (pair? pts)
-                            (let*-values ([(self rest) (values (car pts) (cdr pts))]
-                                          [(this-x) (real-part self)])
-                              (cond [(< x this-x) (f rest)]
-                                    [(pair? rest)
-                                     (let* ([v (- (car rest) self)]
-                                            [d (* v (/ (- this-x x) (real-part v)))])
-                                       (imag-part (+ self d)))]
-                                    [else +nan.0]))
-                            +nan.0)))))))
+    (define f : (-> Real Real)
+      (λ [[x : Real]]
+        (hash-ref ys x
+                  (λ [] (let f : Real ([pts : (Listof Complex) pts])
+                          (if (pair? pts)
+                              (let*-values ([(self rest) (values (car pts) (cdr pts))]
+                                            [(this-x) (real-part self)])
+                                (cond [(< x this-x) (f rest)]
+                                      [(pair? rest)
+                                       (let* ([v (- (car rest) self)]
+                                              [d (* v (/ (- this-x x) (real-part v)))])
+                                         (imag-part (+ self d)))]
+                                      [else +nan.0]))
+                              +nan.0))))))
+
+    (if (symbol? name) (procedure-rename f name) f)))
 
 (define plot-lines-df/dx : (-> (Listof Complex) (-> Real (Option Real)))
   (lambda [pts]

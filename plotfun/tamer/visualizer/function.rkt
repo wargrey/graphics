@@ -33,6 +33,11 @@
      (sin (+ x (* n 0.4))))
    (string->symbol (format "sin(φ+~a)" (* n 4/10)))))
 
+(define (clover [theta : Real]) : (Option Real)
+  (* 1.618
+     (+ (abs (cos theta))
+        (abs (sin theta)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vtree : (Listof Plot-Visualizer)
   (list (function #:color 'grey #:dash 'long-dash values #:label #false)
@@ -44,7 +49,8 @@
         (function exp  -3   +1.2      #:label (<span> null "e" (<sup> "x")))
         (function sqr  -2   +2        #:label (<span> null "x" (<sup> "2")))
         (function sqrt -3   +4)
-        (function log  +1/4 #f)))
+        (function log  +1/4 #f)
+        (polar clover                 #:label #false)))
 
 (define white-cart (plot-cartesian #:frame white vtree))
 (define  grey-cart (plot-cartesian #:frame grey  #:x-grid-style #false vtree))
@@ -62,4 +68,8 @@
    #:x-label "φ"
    #:y-label "ψ"
    (for/list : (Listof Plot-Visualizer) ([i (in-range 10)])
-     (function (sin+n i) #false #false -1 +1))))
+     (function (sin+n i) #false #false -1 +1)))
+
+  (plot-cartesian #:x-range (cons -1.5 1.5)
+                  #:y-range (cons -1.5 1.5)
+                  (polar clover)))

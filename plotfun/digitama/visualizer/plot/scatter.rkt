@@ -22,7 +22,7 @@
 (require geofun/digitama/geometry/footprint)
 (require geofun/digitama/nice/pairable)
 
-(require "line.rkt")
+(require "polyline.rkt")
 
 (require "../dot.rkt")
 (require "../self.rkt")

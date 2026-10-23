@@ -117,6 +117,7 @@
                      (let*-values ([(sxrng syrng) (values (plot-visualizer-xrng self) (plot-visualizer-yrng self))]
                                    [(sxmin sxmax) (values (car sxrng) (cdr sxrng))]
                                    [(symin symax) (values (car syrng) (cdr syrng))])
+                       (displayln (list xmin ymin xmax ymax sxrng syrng))
                        (flatten rest
                                 (if (rational? sxmin) (min xmin sxmin) xmin)
                                 (if (rational? sxmax) (max xmax sxmax) xmax)

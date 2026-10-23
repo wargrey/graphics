@@ -33,4 +33,4 @@
 (define <s:s> : (-> Any PExpr-Element) (λ [v] (pexpr 's (format "~s" v))))
 (define <s:u> : (-> Any PExpr-Element) (λ [v] (pexpr 'u (format "~s" v))))
 (define <s:b> : (-> Any PExpr-Element) (λ [v] (pexpr 'b (format "~s" v))))
-(define <s:i>> : (-> Any PExpr-Element) (λ [v] (pexpr 'i (format "~s" v))))
+(define <s:i> : (-> Any PExpr-Element) (λ [v] (pexpr 'i (format "~s" v))))
