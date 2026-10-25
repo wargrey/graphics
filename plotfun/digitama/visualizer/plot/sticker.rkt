@@ -4,9 +4,6 @@
 
 (require racket/math)
 
-(require geofun/color)
-(require geofun/fill)
-
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/paint/self)
@@ -18,7 +15,6 @@
 
 (require "../self.rkt")
 (require "../interface.rkt")
-(require "../vaid/self.rkt")
 (require "../../axis/view.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

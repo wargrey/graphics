@@ -6,26 +6,19 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/self)
-(require geofun/digitama/paint)
 (require geofun/digitama/richtext/self)
-
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/dot)
-(require geofun/digitama/nice/pairable)
 
 (require "polyline.rkt")
 
 (require "../dot.rkt")
 (require "../self.rkt")
+(require "../curve.rkt")
 (require "../guard.rkt")
 (require "../interface.rkt")
 
 (require "../../calculus.rkt")
-
 (require "../../marker/self.rkt")
-(require "../../marker/style.rkt")
-
-(require "../../unsafe/dot.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define polar
@@ -38,7 +31,6 @@
            #:width [strk-width : (Option Real) #false]
            #:opacity [opacity : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
-           #:close? [close? : Boolean #false]
            ;#:safe-dr/dθ [alt-dr/dθ : (Option (-> Real (Option Real))) #false]
            ;#:safe-ddr/dθθ [alt-ddr/dθθ : (Option (-> Real (Option Real))) #false]
            [r : (-> Real (Option Number))]
@@ -60,17 +52,18 @@
                          #:color (plot-select-pen-color strk-color idx bg-color)
                          (default-plot-function-pen)))
 
-        (create-visualizer plot:lines
-                           #:with [id (geo-draw-lines pen)
+        (create-visualizer plot:curve
+                           #:with [id (geo-draw-curve pen #false)
                                       (geo-shape-extent width height 0.0 0.0)
                                       (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard safe-r label (+ idx 1) total θmin θmax xmin xmax ymin ymax at-frac rng-frac)
+                                      #:label (plot-function-mark-guard id safe-r label (pen-color pen)
+                                                                        [(+ idx 1) total θmin θmax xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
-                           dots close?)))
+                           dots)))
 
     (plot-visualizer polar-realize xrange yrange
                      (plot-lines-range points)

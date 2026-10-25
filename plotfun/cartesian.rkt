@@ -184,23 +184,23 @@
         [(x y) (+ Origin (* x xunit) (* (y-cart-transform y) yunit))]
         [(dot) (origin-dot->pos (real-part dot) (imag-part dot))]))
 
-    (define-values (visible-xticks visible-xview) (plot-ticks-trim actual-xticks xO xunit  view-width xview))
-    (define-values (visible-yticks visible-yview) (plot-ticks-trim actual-yticks yO yU    view-height yview))
+    (define-values (visible-xticks xtick-view) (plot-ticks-trim actual-xticks xO xunit  view-width xview))
+    (define-values (visible-yticks ytick-view) (plot-ticks-trim actual-yticks yO yU    view-height yview))
 
     (define O-belong-to-x? : Boolean
       (or no-yaxis?
-          (and (< (car visible-xview) 0.0)
-               (>= (car visible-yview) 0.0)
+          (and (< (car xview) 0.0)
+               (>= (car yview) 0.0)
                (flnear? y-neg-margin0 0.0))))
 
     (define O-belong-to-y? : Boolean
       (or no-xaxis?
-          (and (< (car visible-yview) 0.0)
-               (>= (car visible-xview) 0.0)
+          (and (< (car yview) 0.0)
+               (>= (car xview) 0.0)
                (flnear? x-neg-margin 0.0))))
 
-    (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers visible-xview visible-yview origin-dot->pos palette chameleon bg-color))
-    (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos visible-xview visible-yview y-downards?))
+    (define plots : (Listof Geo-Visualizer) (plot-realize-all visualizers xview yview origin-dot->pos palette chameleon bg-color))
+    (define-values (visible-pos visible-diag) (plot-diagonal* origin-dot->pos xtick-view ytick-view y-downards?))
     (define-values (visible-width visible-height) (values (abs (real-part visible-diag)) (abs (imag-part visible-diag))))
 
     (define zero : Geo

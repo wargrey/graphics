@@ -31,6 +31,12 @@
                                               (λ [] (geo-diamond-path self 100% angle placement))))]
           [else (values null 0.0 0.0 0.0 0.0 0.0+0.0i geo-filled-cfg)])))
 
+(define geo-marker-shape+config : (-> (Option geo-marker) Nonnegative-Flonum Flonum Boolean Geo-Tip-Placement
+                                      (Values Geo-Path-Prints Geo-Marker-Config))
+  (lambda [self 100% angle.rad forward? placement]
+    (define-values (shape _x _y _w _h _off cfg) (geo-marker-shape self 100% angle.rad forward? placement))
+    (values shape cfg)))
+
 (define geo-marker-shape-size : (-> (Option geo-marker) Nonnegative-Flonum Flonum (Values Nonnegative-Flonum Nonnegative-Flonum))
   (lambda [self 100% angle]
     (define-values (shape x0 y0 w h off cfg) (geo-marker-shape self 100% angle #false 'inside))

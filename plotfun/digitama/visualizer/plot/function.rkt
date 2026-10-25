@@ -7,26 +7,18 @@
 
 (require geofun/digitama/base)
 (require geofun/digitama/self)
-(require geofun/digitama/paint)
 (require geofun/digitama/paint/self)
 (require geofun/digitama/richtext/self)
 (require geofun/digitama/geometry/sample)
 
 (require "../dot.rkt")
 (require "../self.rkt")
+(require "../curve.rkt")
 (require "../guard.rkt")
 (require "../interface.rkt")
 
 (require "../../calculus.rkt")
-
 (require "../../marker/self.rkt")
-(require "../../marker/style.rkt")
-(require "../../unsafe/dot.rkt")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:function geo:line:visualizer ()
-  #:type-name Plot:Function
-  #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define function
@@ -68,14 +60,15 @@
                          #:color (plot-select-pen-color strk-color idx bg-color)
                          (default-plot-function-pen)))
         
-        (create-visualizer plot:function
-                           #:with [id (geo-draw-function pen)
+        (create-visualizer plot:curve
+                           #:with [id (geo-draw-curve pen #false)
                                       (geo-shape-extent width height 0.0 0.0)
                                       (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
+                                      #:label (plot-function-mark-guard id safe-f label (pen-color pen)
+                                                                        [(+ idx 1) total xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            dots)))
@@ -132,15 +125,16 @@
                          #:color (plot-select-pen-color strk-color idx bg-color)
                          (default-plot-function-pen)))
         
-        (create-visualizer plot:function
-                           #:with [id (geo-draw-function pen)
+        (create-visualizer plot:curve
+                           #:with [id (geo-draw-curve pen #false)
                                       (geo-shape-extent width height 0.0 0.0)
                                       (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular (min (real-part lft) (real-part rgt))
                                                                    (min (imag-part lft) (imag-part rgt)))
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard f label (+ idx 1) total x1 x2 y1 y2 at-frac rng-frac)
+                                      #:label (plot-function-mark-guard id f label (pen-color pen)
+                                                                        [(+ idx 1) total x1 x2 y1 y2 at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            (list lft rgt))))
@@ -171,14 +165,3 @@
              [else (format "y = ~ax ~a ~a"
                      (case K [("1") '||] [("-1") '-] [else K])
                      (if (< b 0.0) '- '+) B)])))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-draw-function : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
-  (lambda [alt-stroke]
-    (λ [self cr x0 y0 width height]
-      (when (plot:function? self)
-        (define pos (geo:visualizer-position self))
-        (dc_line cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
-                 (geo:line:visualizer-dots self)
-                 (geo-select-stroke-paint* alt-stroke)
-                 #false)))))

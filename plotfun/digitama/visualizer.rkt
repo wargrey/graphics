@@ -4,8 +4,9 @@
 (provide (all-from-out "visualizer/interface.rkt"))
 (provide Plot-Visualizer-Tree Plot-Visualizer Geo-Visualizer plot-visualizer?)
 
-(provide Plot:Lines plot:lines? lines polar)
-(provide Plot:Function plot:function? function f:linear f:kx+b)
+(provide Plot:Curve plot:curve?)
+(provide Plot:Lines plot:lines? lines)
+(provide function polar f:linear f:kx+b)
 (provide Plot:Scatter plot:scatter? points)
 (provide sticker)
 

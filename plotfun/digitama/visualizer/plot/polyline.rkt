@@ -2,14 +2,23 @@
 
 (provide (all-defined-out))
 
+(require digimon/measure)
+
+(require geofun/color)
 (require geofun/digitama/base)
 (require geofun/digitama/self)
 (require geofun/digitama/paint)
+
+(require geofun/digitama/path/marker)
+(require geofun/digitama/path/markers)
+(require geofun/digitama/path/marker/self)
 (require geofun/digitama/richtext/self)
 
 (require geofun/digitama/paint/self)
-(require geofun/digitama/geometry/dot)
 (require geofun/digitama/nice/pairable)
+(require geofun/digitama/geometry/dot)
+(require geofun/digitama/geometry/footprint)
+(require geofun/digitama/unsafe/typed/cairo)
 
 (require "../dot.rkt")
 (require "../self.rkt")
@@ -17,13 +26,12 @@
 (require "../interface.rkt")
 
 (require "../../marker/self.rkt")
-(require "../../marker/style.rkt")
-
 (require "../../unsafe/dot.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:lines geo:line:visualizer
-  ([close? : Boolean])
+(struct plot:lines plot:curve
+  ([marker : (Option (Pairof Geo-Path-Prints Geo-Marker-Config))]
+   [close? : Boolean])
   #:type-name Plot:Lines
   #:transparent)
 
@@ -34,6 +42,10 @@
            #:label-position [at-frac : Real (default-plot-visualizer-label-position)]
            #:label-position-range [rng-frac : (Pairof Real Real) (default-plot-visualizer-label-position-range)]
            #:label-placement [placement : Plot-Visualizer-Label-Placement (default-plot-visualizer-label-placement)]
+           #:marker [marker : Option-Geo-Marker #false]
+           #:marker-fill-rule [fill-rule : (Option Fill-Rule) #false]
+           #:marker-color [mkr-color : (Option Color) #false]
+           #:marker-clip? [clip? : Boolean #false]
            #:scale [scale : Pairable-Real 1.0]
            #:offset [offset : Complex 0.0+0.0i]
            #:color [strk-color : (Option Color) #false]
@@ -63,17 +75,23 @@
                          #:color (plot-select-pen-color strk-color idx bg-color)
                          (default-plot-function-pen)))
 
+        (define marker+cfg : (Option (Pairof Geo-Path-Prints Geo-Marker-Config))
+          (and marker
+               (let-values ([(shape cfg) (geo-marker-shape+config (geo-marker-filter marker) (pen-width pen) -pi/2 #true 'center)])
+                 (cons shape cfg))))
+
         (create-visualizer plot:lines
-                           #:with [id (geo-draw-lines pen)
+                           #:with [id (geo-draw-lines pen (and mkr-color (rgb* mkr-color)) fill-rule clip?)
                                       (geo-shape-extent width height 0.0 0.0)
                                       (geo-shape-bleed pen #true #true)
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard safe-f label (+ idx 1) total xmin xmax ymin ymax at-frac rng-frac)
+                                      #:label (plot-function-mark-guard id safe-f label (pen-color pen)
+                                                                        [(+ idx 1) total xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
-                           dots close?)))
+                           dots marker+cfg close?)))
 
     (plot-visualizer lines-realize xrange yrange
                      (plot-lines-range points)
@@ -141,12 +159,22 @@
                      [else #false])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define geo-draw-lines : (-> Maybe-Stroke-Paint Geo-Surface-Draw!)
-  (lambda [alt-stroke]
+(define geo-draw-lines : (-> Maybe-Stroke-Paint (Option FlRGBA) (Option Fill-Rule) Boolean Geo-Surface-Draw!)
+  (lambda [alt-stroke alt-mkr-color fill-rule clip?]
     (λ [self cr x0 y0 width height]
       (when (plot:lines? self)
         (define pos (geo:visualizer-position self))
-        (dc_line cr (- x0 (real-part pos)) (- y0 (imag-part pos)) width height
-                 (geo:line:visualizer-dots self)
-                 (geo-select-stroke-paint* alt-stroke)
-                 (plot:lines-close? self))))))
+        (define dots (plot:curve-dots self))
+        (define marker+cfg (plot:lines-marker self))
+        (define pen (geo-select-stroke-paint* alt-stroke))
+
+        (when (or marker+cfg) (cairo_save cr))
+        (dc_line cr x0 y0 width height pos dots pen (plot:lines-close? self))
+
+        (when (or marker+cfg)
+          (define-values (marker-pen marker-brush)
+            (geo-marker-resolve-paints pen (cdr marker+cfg) fill-rule alt-mkr-color))
+
+          (cairo_restore cr)
+          (dc_scatter cr x0 y0 width height pos dots (car marker+cfg)
+                      marker-pen marker-brush clip?))))))

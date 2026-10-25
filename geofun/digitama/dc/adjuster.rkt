@@ -20,11 +20,12 @@
            #:stroke [stroke : Maybe-Stroke-Paint (void)]
            #:border [border : Maybe-Stroke-Paint (void)]
            #:fill [fill : Maybe-Fill-Paint (void)]
-           [geo : Geo]]
+           #:font-color [font-color : Option-Fill-Paint #false]
+           [geo : Geo]] : Geo:Adjuster
     (define body (if (geo:adjuster? geo) (geo:adjuster-body geo) geo))
     
     (create-geometry-object geo:adjuster
-                            #:with [id (geo-draw-adjuster! body stroke border fill)
+                            #:with [id (geo-draw-adjuster! body stroke border fill font-color)
                                        (geo-delegate-expand body)
                                        (geo-adjuster-bleed body stroke border)]
                             body)))
@@ -37,10 +38,11 @@
                   (stroke-paint->source* alt-stroke)
                   (border-paint->source* alt-border)))))
 
-(define geo-draw-adjuster! : (-> Geo Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Geo-Surface-Draw!)
-  (lambda [body alt-stroke alt-border alt-fill]
+(define geo-draw-adjuster! : (-> Geo Maybe-Stroke-Paint Maybe-Stroke-Paint Maybe-Fill-Paint Option-Fill-Paint Geo-Surface-Draw!)
+  (lambda [body alt-stroke alt-border alt-fill alt-font-fill]
     (λ [self cr x0 y0 width height]
       (parameterize ([default-stroke-source (if (void? alt-stroke) (void) (stroke-paint->source* alt-stroke))]
                      [default-border-source (if (void? alt-border) (void) (border-paint->source* alt-border))]
-                     [default-fill-source (if (void? alt-fill) (void) (fill-paint->source* alt-fill))])
+                     [default-fill-source (if (void? alt-fill) (void) (fill-paint->source* alt-fill))]
+                     [default-font-source (and alt-font-fill (fill-paint->source* alt-font-fill))])
         ((geo<%>-draw! body) body cr x0 y0 width height)))))

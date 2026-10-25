@@ -97,9 +97,9 @@
    [gap-angle : (Option (-> Real (Option Real))) #false]
    [visual-aids : (Listof Plot-Visual-Aid) null]))
 
-(struct geo:line:visualizer geo:visualizer
+(struct plot:curve geo:visualizer
   ([dots : (Listof Float-Complex)])
-  #:type-name Geo:Line:Visualizer
+  #:type-name Plot:Curve
   #:transparent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

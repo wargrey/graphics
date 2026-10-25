@@ -31,7 +31,7 @@
 (require "../../unsafe/dot.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(struct plot:scatter geo:line:visualizer
+(struct plot:scatter plot:curve
   ([marker : Geo-Path-Prints]
    [config : Geo-Marker-Config])
   #:type-name Plot:Scatter
@@ -67,8 +67,7 @@
                          #:color (plot-select-pen-color color idx bg-color)
                          (default-plot-sticker-pen)))
 
-        (define-values (shape _x _y _w _h _off cfg)
-          (geo-marker-shape (geo-marker-filter marker) (pen-width pen) -pi/2 #true 'center))
+        (define-values (shape cfg) (geo-marker-shape+config (geo-marker-filter marker) (pen-width pen) -pi/2 #true 'center))
         
         (create-visualizer plot:scatter
                            #:with [id (geo-draw-points pen fill-rule clip?)
@@ -93,5 +92,5 @@
         (define-values (pen brush) (geo-marker-resolve-paints paint mrkcfg fill-rule))
         
         (dc_scatter cr x0 y0 width height
-                    (geo:visualizer-position self) (geo:line:visualizer-dots self) (plot:scatter-marker self)
+                    (geo:visualizer-position self) (plot:curve-dots self) (plot:scatter-marker self)
                     pen brush clip?)))))

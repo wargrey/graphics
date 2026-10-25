@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(require geofun/digitama/self)
+(require geofun/digitama/dc/adjuster)
 (require geofun/digitama/richtext/self)
 
 (require "interface.rkt")
@@ -13,7 +15,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-syntax (plot-function-mark-guard stx)
   (syntax-case stx []
-    [(_ fx label argl ...)
+    [(_ id fx label color [argl ...])
      (syntax/loc stx
        (cond [(plot:mark? label)
               (let* ([origin (plot:mark-point label)]
@@ -23,8 +25,10 @@
                       [else (remake-plot:mark label #:point dot)]))]
              [(or label)
               (let ([dot (plot-mark-point-guard +nan.0 fx argl ...)])
-                (and dot (let ([func-name (if (eq? label 'name) (format "~a" (object-name fx)) label)])
-                           (plot-label func-name #:at dot))))]
+                (and dot (plot-label #:at dot
+                                     (cond [(eq? label 'name) (format "~a" (object-name fx))]
+                                           [(geo? label) (geo-try-repaint label #:id id #:font-color color)]
+                                           [else label]))))]
              [else #false]))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

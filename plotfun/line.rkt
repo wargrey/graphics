@@ -194,7 +194,7 @@
     (define tip : Plot-Axis-Tip-Style (plot-axis-tip axis-style 'x))
     (define-values (fllength used-length neg-margin pos-margin) (plot-axis-length-values axis-style tip line-length))
     (define-values (tick-range origin flunit)
-      (plot-axis-metrics (or (plot-tick-engine-range ticks-engine) tick-hint)
+      (plot-axis-metrics (or tick-hint (plot-tick-engine-range ticks-engine))
                          (plot-axis-integer-range number-sequence ex-zero?)
                          maybe-origin used-length maybe-unit))
     

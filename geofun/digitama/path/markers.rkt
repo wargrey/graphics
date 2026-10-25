@@ -54,7 +54,7 @@
 
     (values (and paint (not fill?)
                  (desc-stroke #:width (geo-marker-config-thickness cfg)
-                              #:color (or alt-color color)
+                              #:color color
                               #:dash alt-dash
                               #:join 100.0 ; chamfered like a plane wing for wide width or being upscaled
                               paint))

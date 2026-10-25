@@ -12,10 +12,10 @@
 (require "self.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-type Plot-Cartesian-Layer (U 'grid 'axes 'visualizer 'data 'aid 'annotation 'sticker 'tick))
+(define-type Plot-Cartesian-Layer (U 'grid 'axes 'tick 'visualizer 'data 'aid 'annotation 'sticker))
 
 (define default-plot-cartesian-layer-order : (Parameterof (Listof Plot-Cartesian-Layer))
-  (make-parameter '(grid axes visualizer aid annotation sticker tick)))
+  (make-parameter '(grid axes tick visualizer aid annotation sticker)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-cartesian-layers : (-> (Immutable-HashTable Plot-Cartesian-Layer (Listof (GLayerof Geo))) (Listof Geo-Visualizer)

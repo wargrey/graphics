@@ -15,21 +15,22 @@
 (require geofun/digitama/unsafe/dc/path)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum (Listof Float-Complex) Pen Boolean Any)
-  (lambda [cr x0 y0 flwidth flheight vertices stroke close?]
-    (dc_polyline cr x0 y0 flwidth flheight vertices stroke close?)))
+(define dc_line : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum Float-Complex (Listof Float-Complex) Pen Boolean Void)
+  (lambda [cr x0 y0 flwidth flheight pos vertices stroke close?]
+    (dc_polyline cr
+                 (- x0 (real-part pos)) (- y0 (imag-part pos))
+                 flwidth flheight
+                 vertices stroke
+                 close?)))
 
 (define dc_scatter : (-> Cairo-Ctx Flonum Flonum Nonnegative-Flonum Nonnegative-Flonum
                          Float-Complex (Listof Float-Complex) Geo-Path-Prints
-                         (Option Pen) (Option Brush) Boolean Any)
-  (lambda [cr x y flwidth flheight origin vertices marker pen brush clip?]
-    (define x0 (real-part origin))
-    (define y0 (imag-part origin))
-    
+                         (Option Pen) (Option Brush) Boolean Void)
+  (lambda [cr x y flwidth flheight pos vertices marker pen brush clip?]
     (when (or clip?)
       (cairo-clip cr x y flwidth flheight))
 
-    (cairo_translate cr (- x x0) (- y y0))
+    (cairo_translate cr (- x (real-part pos)) (- y (imag-part pos)))
     
     (for ([pt (in-list vertices)])
       (define px (real-part pt))

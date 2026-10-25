@@ -29,7 +29,7 @@
 (define plot-realize-all : (-> (Listof Plot-Visualizer) (Pairof Real Real) (Pairof Real Real)
                                Plot-Position-Transform Palette-Index->Colors Palette-Color-Adapter (Option FlRGBA)
                                (Listof Geo-Visualizer))
-  (lambda [visualizers xview yview origin-dot->pos palette chameleon bg-color]
+  (lambda [visualizers xrange yrange origin-dot->pos palette chameleon bg-color]
     (define color-pool ((inst make-hasheq Symbol FlRGBA)))
     (define polyline-pool ((inst make-hasheq Symbol Plot-Visualizer)))
 
@@ -38,7 +38,7 @@
       (unless (symbol-interned? vid)
         (unless (plot-visualizer-skip-palette? self)
           (hash-set! color-pool vid (geo:visualizer-color vself)))
-        (when (geo:line:visualizer? vself)
+        (when (plot:curve? vself)
           (hash-set! polyline-pool vid self))))
     
     (parameterize ([default-plot-palette palette]
@@ -52,7 +52,7 @@
                           [sreyalv : (Listof Geo-Visualizer) null])
               (if (and (pair? visualizers) (<= idx N))
                   (let-values ([(self rest) (values (car visualizers) (cdr visualizers))])
-                    (define vself (plot-realize self idx N xview yview origin-dot->pos bg-color))
+                    (define vself (plot-realize self idx N xrange yrange origin-dot->pos bg-color))
 
                     (if (or vself)
                         (let ([idx++ (if (plot-visualizer-skip-palette? self) idx (+ idx 1))])
