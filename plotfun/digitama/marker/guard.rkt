@@ -65,31 +65,61 @@
         (values #false #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-point-guard : (-> Complex (-> Real Real) Positive-Fixnum Positive-Index Real Real Real Real Real (Pairof Real Real) (Option Complex))
-  (lambda [pt x->dot idx total xmin xmax ymin ymax frac frac-rng]
-    (if (real? pt)
-        (let ([delta : Real (* (- xmax xmin) 1/8)])
-          (cond [(<= xmin pt xmax) (plot-mark-point-try-filter pt delta x->dot xmin xmax ymin ymax)]
-                [(< pt xmin) (plot-mark-point-try-filter xmin     delta x->dot xmin xmax ymin ymax)]
-                [(> pt xmax) (plot-mark-point-try-filter xmax (- delta) x->dot xmin xmax ymin ymax)]         
-                [else (let* ([span (- xmax xmin)]
-                             [s (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) xmin)]
-                             [e (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) xmin)]
-                             [t (if (<= 0.0 frac 1.0) frac (/ (- idx 1/2) total))])
-                        (plot-mark-point-try-filter (+ (* (- e s) t) s)
-                                                    delta x->dot xmin xmax ymin ymax))]))
-        (let ([x (real-part pt)]
-              [y (imag-part pt)])
-          (if (<= xmin x xmax)
-              (and (<= ymin y ymax) pt)
-              (plot-mark-point-guard x x->dot idx total xmin xmax ymin ymax
-                                     frac frac-rng))))))
+(define plot-mark-point-guard : (case-> [-> Complex (-> Real Real) Positive-Fixnum Positive-Index
+                                            Real Real Real Real Real (Pairof Real Real)
+                                            (Option Complex)]
+                                        [-> Complex (-> Real Real) Positive-Fixnum Positive-Index
+                                            Real Real Real Real Real Real Real (Pairof Real Real)
+                                            (Option Complex)])
+  (case-lambda
+    [(pt fx idx total xmin xmax ymin ymax frac frac-rng)
+     (if (real? pt)
+         (let* ([span (- xmax xmin)]
+                [delta : Real (/ span (max total 8))])
+           (cond [(<= xmin pt xmax) (plot-mark-point-try-filter pt   delta     fx xmin xmax ymin ymax)]
+                 [(< pt xmin)       (plot-mark-point-try-filter xmin delta     fx xmin xmax ymin ymax)]
+                 [(> pt xmax)       (plot-mark-point-try-filter xmax (- delta) fx xmin xmax ymin ymax)]         
+                 [else (plot-mark-point-try-filter (~lerp (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) xmin)
+                                                          (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) xmin)
+                                                          (cond [(and (>= frac 0.0) (<= frac 1.0)) frac]
+                                                                [else (/ (max (- idx 1/2) 0) total)]))
+                                                   delta fx xmin xmax ymin ymax)]))
+         (let ([x (real-part pt)]
+               [y (imag-part pt)])
+           (cond [(<= xmin x xmax) (and (<= ymin y ymax) pt)]
+                 [else (plot-mark-point-guard x fx idx total xmin xmax ymin ymax frac frac-rng)])))]
+    [(θ-or-pt rθ idx total θmin θmax xmin xmax ymin ymax frac frac-rng)
+     (if (real? θ-or-pt)
+         (let* ([span (- θmax θmin)]
+                [delta : Real (/ span (max total 8))])
+           (cond [(<= θmin θ-or-pt θmax) (plot-mark-point-try-filter θ-or-pt delta     rθ θmin θmax xmin xmax ymin ymax)]
+                 [(< θ-or-pt θmin)       (plot-mark-point-try-filter    θmin delta     rθ θmin θmax xmin xmax ymin ymax)]
+                 [(> θ-or-pt θmax)       (plot-mark-point-try-filter    θmax (- delta) rθ θmin θmax xmin xmax ymin ymax)]         
+                 [else (plot-mark-point-try-filter (~lerp (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) θmin)
+                                                          (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) θmin)
+                                                          (cond [(and (>= frac 0.0) (<= frac 1.0)) frac]
+                                                                [else (/ (max (- idx 1/2) 0) total)]))
+                                                   delta rθ θmin θmax xmin xmax ymin ymax)]))
+         (let ([x (real-part θ-or-pt)]
+               [y (imag-part θ-or-pt)])
+           (cond [(<= xmin x xmax) (and (<= ymin y ymax) θ-or-pt)]
+                 [else (plot-mark-point-guard +nan.0 rθ idx total θmin θmax xmin xmax ymin ymax frac frac-rng)])))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-point-try-filter : (-> Real Real (-> Real Real) Real Real Real Real (Option Complex))
-  (lambda [x delta x->dot xmin xmax ymin ymax]
-    (and (<= xmin x xmax)
-         (let ([y : Real (x->dot x)])
-           (cond [(<= ymin y ymax) (make-rectangular x y)]
-                 [(zero? delta) #false]
-                 [else (plot-mark-point-try-filter (+ x delta) delta x->dot xmin xmax ymin ymax)])))))
+(define plot-mark-point-try-filter : (case-> [Real Real (-> Real Real) Real Real Real Real -> (Option Complex)]
+                                             [Real Real (-> Real Real) Real Real Real Real Real Real -> (Option Complex)])
+  (case-lambda
+    [(x delta fx xmin xmax ymin ymax)
+     (and (<= xmin x xmax)
+          (let ([y : Real (fx x)])
+            (cond [(<= ymin y ymax) (make-rectangular x y)]
+                  [(zero? delta) #false]
+                  [else (plot-mark-point-try-filter (+ x delta) delta fx xmin xmax ymin ymax)])))]
+    [(θ delta rθ θmin θmax xmin xmax ymin ymax)
+     (and (<= θmin θ θmax)
+          (let* ([pt (make-polar (rθ θ) θ)]
+                 [x (real-part pt)]
+                 [y (imag-part pt)])
+            (cond [(and (<= xmin x xmax) (<= ymin y ymax)) pt]
+                  [(zero? delta) #false]
+                  [else (plot-mark-point-try-filter (+ θ delta) delta rθ θmin θmax xmin xmax ymin ymax)])))]))

@@ -27,29 +27,29 @@
   (lambda [x]
     (/ -1 x)))
 
+(define clover : (-> Real (Option Real))
+  (lambda [theta]
+    (+ (abs (cos theta))
+       (abs (sin theta)))))
+
 (define (sin+n [n : Integer]) : (-> Real (Option Real))
   (procedure-rename
    (λ [[x : Real]]
      (sin (+ x (* n 0.4))))
    (string->symbol (format "sin(φ+~a)" (* n 4/10)))))
 
-(define (clover [theta : Real]) : (Option Real)
-  (* 1.618
-     (+ (abs (cos theta))
-        (abs (sin theta)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define vtree : (Listof Plot-Visualizer)
   (list (function #:color grey #:dash 'long-dash values #:label #false)
-        (function -1/x +0   +4 #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)) #:label "1/x")
         (function discrete-floor -3.0 #:label "floor(x)")
         (function discrete-ceiling    #:label "ceiling(x)")
+        (function exp  -3    +1.4     #:label (<span> null "e" (<sup> "x")))
+        (function log  +1/16 #f)
+        (function tan  -3    -1.8)
+        (function sqr  -2    +2       #:label (<span> null "x" (<sup> "2")))
+        (function sqrt -3    +4)
+        (function -1/x +0    +4       #:label "1/x" #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)))
         (function normal-dist         #:label "N(x)")
-        (function tan  -3   -1.8)
-        (function exp  -3   +1.2      #:label (<span> null "e" (<sup> "x")))
-        (function sqr  -2   +2        #:label (<span> null "x" (<sup> "2")))
-        (function sqrt -3   +4)
-        (function log  +1/8 #f)
         (polar clover                 #:label (<span> null "x" (<sup> "2") " + y" (<sup> "2") " = |x| + |y|"))))
 
 (define white-cart (plot-cartesian #:frame white vtree))
@@ -70,9 +70,9 @@
    (for/list : (Listof Plot-Visualizer) ([i (in-range 10)])
      (function (sin+n i) #false #false -1 +1)))
 
-  (plot-cartesian #:x-range (cons -2.5 2.5)
-                  #:y-range (cons -2.5 2.5)
-                  (polar #:label-position 0.72
+  (plot-cartesian #:x-range (cons -1.5 1.5)
+                  #:y-range (cons -1.5 1.5)
+                  (polar #:label-position (random)
                          #:label-placement 'right
                          #:label (<span> null
                                          "x" (<sup> "2")
