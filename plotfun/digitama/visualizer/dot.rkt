@@ -71,15 +71,13 @@
              (let*-values ([(self rest) (values (car pts) (cdr pts))]
                            [(flx) (real->double-flonum (real-part self))]
                            [(fly) (real->double-flonum (imag-part self))])
-               (cond [(or (< flx xflmin) (> flx xflmax))
-                      (normalize rest stod lx ty rx by)]
-                     [(<= yflmin fly yflmax)
-                      (let*-values ([(dot) (transform flx fly)]
-                                    [(scr-x scr-y) (values (real-part dot) (imag-part dot))])
-                        (normalize rest (cons dot stod)
-                                   (min lx scr-x) (min ty scr-y)
-                                   (max rx scr-x) (max by scr-y)))]
-                     [else (normalize rest (point2ds-nan-cons stod) lx ty rx by)]))
+               (if (and (<= xflmin flx xflmax) (<= yflmin fly yflmax))
+                   (let*-values ([(dot) (transform flx fly)]
+                                 [(scr-x scr-y) (values (real-part dot) (imag-part dot))])
+                     (normalize rest (cons dot stod)
+                                (min lx scr-x) (min ty scr-y)
+                                (max rx scr-x) (max by scr-y)))
+                   (normalize rest (point2ds-nan-cons stod) lx ty rx by)))
                (point2ds-rational-reverse stod lx ty rx by))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

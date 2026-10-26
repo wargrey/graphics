@@ -67,8 +67,7 @@
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard id safe-f label (pen-color pen)
-                                                                        [(+ idx 1) total xmin xmax ymin ymax at-frac rng-frac])
+                                      #:label (plot-function-mark-guard safe-f label [idx total xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            dots)))
@@ -124,7 +123,7 @@
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
                          #:color (plot-select-pen-color strk-color idx bg-color)
                          (default-plot-function-pen)))
-        
+
         (create-visualizer plot:curve
                            #:with [id (geo-draw-curve pen #false)
                                       (geo-shape-extent width height 0.0 0.0)
@@ -133,8 +132,7 @@
                                       #:position (make-rectangular (min (real-part lft) (real-part rgt))
                                                                    (min (imag-part lft) (imag-part rgt)))
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard id f label (pen-color pen)
-                                                                        [(+ idx 1) total x1 x2 y1 y2 at-frac rng-frac])
+                                      #:label (plot-function-mark-guard f label [idx total x1 x2 (min y1 y2) (max y1 y2) at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            (list lft rgt))))

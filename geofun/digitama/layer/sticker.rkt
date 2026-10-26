@@ -32,6 +32,10 @@
                   (make-rectangular (real->double-flonum dx)
                                     (real->double-flonum dy)))]))
 
+(define geo-sticker-replace : (-> Geo-Sticker Geo Geo-Sticker)
+  (lambda [self body]
+    (geo-sticker body (geo-sticker-anchor self) (geo-sticker-offset self))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-type Geo-Sticker-Datum (U Geo-Sticker Geo))
 

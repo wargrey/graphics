@@ -59,8 +59,7 @@
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard id safe-r label (pen-color pen)
-                                                                        [(+ idx 1) total θmin θmax xmin xmax ymin ymax at-frac rng-frac])
+                                      #:label (plot-function-mark-guard safe-r label [idx total θmin θmax xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            dots)))

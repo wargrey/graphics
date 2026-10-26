@@ -65,10 +65,10 @@
         (values #false #false))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-mark-point-guard : (case-> [-> Complex (-> Real Real) Positive-Fixnum Positive-Index
+(define plot-mark-point-guard : (case-> [-> Complex (-> Real Real) Nonnegative-Fixnum Positive-Index
                                             Real Real Real Real Real (Pairof Real Real)
                                             (Option Complex)]
-                                        [-> Complex (-> Real Real) Positive-Fixnum Positive-Index
+                                        [-> Complex (-> Real Real) Nonnegative-Fixnum Positive-Index
                                             Real Real Real Real Real Real Real (Pairof Real Real)
                                             (Option Complex)])
   (case-lambda
@@ -82,7 +82,7 @@
                  [else (plot-mark-point-try-filter (~lerp (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) xmin)
                                                           (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) xmin)
                                                           (cond [(and (>= frac 0.0) (<= frac 1.0)) frac]
-                                                                [else (/ (max (- idx 1/2) 0) total)]))
+                                                                [else (/ (+ idx 1/2) total)]))
                                                    delta fx xmin xmax ymin ymax)]))
          (let ([x (real-part pt)]
                [y (imag-part pt)])
@@ -98,7 +98,7 @@
                  [else (plot-mark-point-try-filter (~lerp (+ (* span (max (min (car frac-rng) (cdr frac-rng)) 0.0)) θmin)
                                                           (+ (* span (min (max (car frac-rng) (cdr frac-rng)) 1.0)) θmin)
                                                           (cond [(and (>= frac 0.0) (<= frac 1.0)) frac]
-                                                                [else (/ (max (- idx 1/2) 0) total)]))
+                                                                [else (/ (+ idx 1/2) total)]))
                                                    delta rθ θmin θmax xmin xmax ymin ymax)]))
          (let ([x (real-part θ-or-pt)]
                [y (imag-part θ-or-pt)])

@@ -55,7 +55,7 @@
         (define adjusted-anchor (if (< yunit 0.0) (geo-anchor-vertical-flip anchor) anchor))
 
         (and (<= xmin px xmax) (<= ymin py ymax)
-             (let ([the-sticker (geo-try-repaint self #:id id #:stroke pen #:fill brush)]
+             (let ([the-sticker (geo-try-repaint self #:id id #:stroke pen #:fill brush #:font-color brush)]
                    [descriptor (desc-geo:visualizer #:position (transform flpos)
                                                     #:color (pen-color pen)
                                                     #:visual-aids (list))])

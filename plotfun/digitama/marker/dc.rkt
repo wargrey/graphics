@@ -9,6 +9,7 @@
 (require geofun/digitama/self)
 (require geofun/digitama/color)
 (require geofun/digitama/paint/self)
+(require geofun/digitama/dc/adjuster)
 (require geofun/digitama/dc/composite)
 
 (require geofun/digitama/richtext/self)
@@ -36,26 +37,37 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-marker
   (lambda [#:id [id : (Option Symbol) #false]
-           #:font [font : (Option Font) #false] #:color [color : (Option Color) #false] #:pin-stroke [pin-stroke : Maybe-Stroke-Paint (void)]
-           #:fallback-pin [fallback-pin : (Option Plot-Mark-Fallback-Vector) #false] #:fallback-gap [fallback-gap : (Option Plot-Mark-Fallback-Vector) #false]
-           #:fallback-anchor [fallback-anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor] #:length-base [length-base : Nonnegative-Flonum 100.0]
+           #:font [font : (Option Font) #false]
+           #:color [color : (Option Color) #false]
+           #:pin-stroke [pin-stroke : Maybe-Stroke-Paint (void)]
+           #:fallback-pin [fallback-pin : (Option Plot-Mark-Fallback-Vector) #false]
+           #:fallback-gap [fallback-gap : (Option Plot-Mark-Fallback-Vector) #false]
+           #:fallback-anchor [fallback-anchor : Plot-Mark-Auto-Anchor plot-mark-auto-anchor]
+           #:length-base [length-base : Nonnegative-Flonum 100.0]
            #:rotate [rotate : Real 0.0] #:debug? [debug0? : Boolean #false]
            [self : Plot:Mark] [transform0 : (Option Plot-Position-Transform) #false]] : Plot:Marker
     (define transform : Plot-Position-Transform (or transform0 plot-mark-values))
     (define maybe-debugger : (U Boolean Pen) (plot:mark-debug? self))
     (define debug? : Boolean (or debug0? (and maybe-debugger #true)))
     (define labels : (Listof Geo-Sticker-Datum)
-      (let sticker-filter ([desc (plot:mark-desc self)])
-        (cond [(geo? desc) (list desc)]
-              [(geo-sticker? desc) (list desc)]
-              [(geo-rich-text? desc) (list (geo-rich-text-realize desc font color))]
-              [(list? desc) (apply append (map sticker-filter desc))]
-              [(not desc) null]
-              [else (let ([desc.geo (desc (plot:mark-point self) (plot:mark-datum self)
-                                          (or font (default-font)) (or color hilite)
-                                          transform)])
-                      (cond [(void? desc.geo) null]
-                            [else (sticker-filter desc.geo)]))])))
+      (let sticker-filter ([desc : (Option Plot-Mark-Description) (plot:mark-desc self)]
+                           [alt-color : (Option Color) color])
+        (cond [(geo? desc)
+               (list (if (not alt-color) desc (geo-try-repaint desc #:id id #:font-color alt-color)))]
+              [(geo-sticker? desc)
+               (list (if (not alt-color) desc (geo-sticker-replace desc (geo-try-repaint (geo-sticker-self desc) #:id id #:font-color alt-color))))]
+              [(geo-rich-text? desc)
+               (list (geo-rich-text-realize desc font color))]
+              [(list? desc)
+               (apply append (for/list : (Listof (Listof Geo-Sticker-Datum)) ([d (in-list desc)])
+                               (sticker-filter d alt-color)))]
+              [(or desc)
+               (let ([desc.geo (desc (plot:mark-point self) (plot:mark-datum self)
+                                     (or font (default-font)) (or color hilite)
+                                     transform)])
+                 (cond [(void? desc.geo) null]
+                       [else (sticker-filter desc.geo #false)]))]
+              [else null])))
 
     (define-values (prints location angle)
       (plot-mark->footprints self transform length-base
