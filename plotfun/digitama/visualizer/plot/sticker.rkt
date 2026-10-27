@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require racket/math)
+(require digimon/flonum)
 
 (require geofun/digitama/base)
 (require geofun/digitama/self)
@@ -54,7 +55,8 @@
         (define yunit (imag-part (plot-vyunit transform)))
         (define adjusted-anchor (if (< yunit 0.0) (geo-anchor-vertical-flip anchor) anchor))
 
-        (and (<= xmin px xmax) (<= ymin py ymax)
+        (and (sfl<= (real->double-flonum xmin) (real-part flpos) (real->double-flonum xmax))
+             (sfl<= (real->double-flonum ymin) (imag-part flpos) (real->double-flonum ymax))
              (let ([the-sticker (geo-try-repaint self #:id id #:stroke pen #:fill brush #:font-color brush)]
                    [descriptor (desc-geo:visualizer #:position (transform flpos)
                                                     #:color (pen-color pen)
