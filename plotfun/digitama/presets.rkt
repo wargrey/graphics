@@ -24,5 +24,5 @@
 (define plot-preset-aaline-pen : Pen (desc-stroke #:color (rgb 0.6 0.6 0.8 0.8) #:width 1.0 #:cap 'round #:dash #(3.0 2.0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define plot-preset-marker-font : Font (desc-font #:family 'math #:size 12.0))
+(define plot-preset-marker-font : Font (desc-font #:family 'math #:size 'large))
 (define plot-preset-marker-pin-pen : Pen (desc-stroke #:color 'DimGrey #:width 1.0))

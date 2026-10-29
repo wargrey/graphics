@@ -1,10 +1,7 @@
 #lang typed/racket/base
 
-(require geofun/vector)
 (require plotfun/cartesian)
 (require plotfun/digitama/calculus)
-
-(require racket/math)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (|(x²+x-2)/(x²-x)| [x : Real]) : (Option Real)
