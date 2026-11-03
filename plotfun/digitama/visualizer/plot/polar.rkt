@@ -36,6 +36,7 @@
            [r : (-> Real (Option Number))]
            [θmin : Real 0] [θmax : Real 2pi]] : Plot-Visualizer
     (define safe-r (safe-real-function r))
+    (define safe-f (polar->cartesian-function safe-r))
     (define-values (points lx ty rx by) (polar-points safe-r θmin θmax 500))
     (define-values (xrange yrange) (plot-range-normalize lx rx #false #false))
 
@@ -60,7 +61,7 @@
 
                                       #:position (make-rectangular x y)
                                       #:color (pen-color pen)
-                                      #:label (plot-function-mark-guard safe-r label [idx total θmin θmax xmin xmax ymin ymax at-frac rng-frac])
+                                      #:label (plot-function-mark-guard safe-f label [idx total θmin θmax xmin xmax ymin ymax at-frac rng-frac])
                                       #:pin-angle dynamic-angle
                                       #:gap-angle dynamic-angle]
                            dots)))
@@ -82,6 +83,11 @@
       (values (vector-ref &pts 0)
               (vector-ref &pts 1) (vector-ref &pts 2)
               (vector-ref &pts 3) (vector-ref &pts 4)))))
+
+(define polar->cartesian-function : (-> (-> Real Real) (-> Real Complex))
+  (lambda [r]
+    (λ [[θ : Real]]
+      (make-polar (r θ) θ))))
 
 (define polar-dr/dθ : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
   (lambda [rθ alt-dr/dθ]

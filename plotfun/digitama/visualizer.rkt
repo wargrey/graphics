@@ -6,7 +6,8 @@
 
 (provide Plot:Curve plot:curve?)
 (provide Plot:Lines plot:lines? lines)
-(provide function polar f:linear f:kx+b)
+(provide function polar parametric)
+(provide f:linear f:kx+b)
 (provide Plot:Scatter plot:scatter? points)
 (provide sticker)
 
@@ -16,5 +17,6 @@
 (require "visualizer/plot/polyline.rkt")
 (require "visualizer/plot/function.rkt")
 (require "visualizer/plot/polar.rkt")
+(require "visualizer/plot/parametric.rkt")
 (require "visualizer/plot/scatter.rkt")
 (require "visualizer/plot/sticker.rkt")

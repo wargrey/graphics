@@ -103,3 +103,22 @@
                   ; TODO: r is infinity or multple-valued
                   [else (polar->pts theta++ (point2ds-nan-cons stp) lx ty rx by)]))
           (point2ds-rational-reverse stp lx ty rx by)))))
+
+(define ~parametric2ds : (-> (-> Real Real) (-> Real Real) Real Real Positive-Index (Values (Listof Float-Complex) Flonum Flonum Flonum Flonum))
+  (lambda [xt yt tmin tmax density]
+    (define delta : Exact-Rational (/ 1 density))
+    
+    (let polar->pts ([t : Real tmin]
+                     [stp : (Listof Float-Complex) null]
+                     [lx : Flonum +inf.0] [ty : Flonum +inf.0]
+                     [rx : Flonum -inf.0] [by : Flonum -inf.0])
+      (if (<= t tmax)
+          (let ([t++ (+ t delta)]
+                [x (real->double-flonum (xt t))]
+                [y (real->double-flonum (yt t))])
+            (cond [(and (rational? x) (rational? y))
+                   (polar->pts t++ (cons (make-rectangular x y) stp)
+                               (min lx x) (min ty y)
+                               (max rx x) (max by y))]
+                  [else (polar->pts t++ (point2ds-nan-cons stp) lx ty rx by)]))
+          (point2ds-rational-reverse stp lx ty rx by)))))
