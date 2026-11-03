@@ -34,8 +34,7 @@
 
 (define (sin+n [n : Integer]) : (-> Real (Option Real))
   (procedure-rename
-   (λ [[x : Real]]
-     (sin (+ x (* n 0.4))))
+   (λ [[x : Real]] (sin (+ x (* n 0.4))))
    (string->symbol (format "sin(φ+~a)" (* n 4/10)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,12 +42,12 @@
   (list (function #:color grey #:dash 'long-dash values #:label #false)
         (function discrete-floor -3.0 #:label "floor(x)")
         (function discrete-ceiling    #:label "ceiling(x)")
-        (function -1/x +0    +4       #:label "1/x" #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)))
-        (function tan  -3    -1.8)
         (function sqr  -2    +2       #:label (<span> null "x" (<sup> "2")))
         (function sqrt -3    +4)
         (function log  +1/16 #f)
         (function exp  -3    +1.4     #:label (<span> null "e" (<sup> "x")))
+        (function tan  -3    -1.8)
+        (function -1/x +0    +4       #:label "1/x" #:fast-range (λ [[xmin : Real] [xmax : Real]] (cons xmin xmax)))
         (function normal-dist         #:label "N(x)")
         (polar clover                 #:label (<span> null "x" (<sup> "2") " + y" (<sup> "2") " = |x| + |y|"))))
 

@@ -2,6 +2,7 @@
 
 (provide (all-defined-out))
 
+(require digimon/flonum)
 (require geofun/digitama/geometry/dot)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,7 +49,7 @@
              (let*-values ([(flx rest) (values (car xs) (cdr xs))]
                            [(y) (f flx)]
                            [(fly) (if (rational? y) (real->double-flonum y) +nan.0)])
-               (if (<= flmin fly flmax)
+               (if (sfl<= flmin fly flmax)
                    (let*-values ([(dot) (transform (real->double-flonum flx) fly)]
                                  [(scr-x scr-y) (values (real-part dot) (imag-part dot))])
                      (normalize rest (cons dot stod)
@@ -71,7 +72,7 @@
              (let*-values ([(self rest) (values (car pts) (cdr pts))]
                            [(flx) (real->double-flonum (real-part self))]
                            [(fly) (real->double-flonum (imag-part self))])
-               (if (and (<= xflmin flx xflmax) (<= yflmin fly yflmax))
+               (if (and (sfl<= xflmin flx xflmax) (sfl<= yflmin fly yflmax))
                    (let*-values ([(dot) (transform flx fly)]
                                  [(scr-x scr-y) (values (real-part dot) (imag-part dot))])
                      (normalize rest (cons dot stod)

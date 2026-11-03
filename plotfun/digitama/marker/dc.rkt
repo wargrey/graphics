@@ -107,8 +107,9 @@
               (real->double-flonum (imag-part pt))))
 
     (define start : Float-Complex (transform x y))
-    (define-values (pin pin.rad) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base x rotate))
-    (define-values (gap gap.rad) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base x rotate))
+    (define t (or (plot:mark-parameter self) x))
+    (define-values (pin pin.rad) (plot-mark-vector-guard (plot:mark-pin self) fallback-pin length-base t rotate))
+    (define-values (gap gap.rad) (plot-mark-vector-guard (plot:mark-gap self) fallback-gap length-base t rotate))
 
     (cond [(and pin gap)
            (let* ([pin-end (+ start   pin)]

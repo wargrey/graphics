@@ -31,21 +31,22 @@
            #:width [strk-width : (Option Real) #false]
            #:opacity [opacity : (Option Real) #false]
            #:dash [strk-dash : (Option Stroke-Dash+Offset) #false]
-           ;#:safe-dr/dθ [alt-dr/dθ : (Option (-> Real (Option Real))) #false]
-           ;#:safe-ddr/dθθ [alt-ddr/dθθ : (Option (-> Real (Option Real))) #false]
+           #:safe-dr/dθ [alt-dr/dθ : (Option (-> Real (Option Real))) #false]
+           #:safe-ddr/dθθ [alt-ddr/dθθ : (Option (-> Real (Option Real))) #false]
            [r : (-> Real (Option Number))]
            [θmin : Real 0] [θmax : Real 2pi]] : Plot-Visualizer
     (define safe-r (safe-real-function r))
     (define-values (points lx ty rx by) (polar-points safe-r θmin θmax 500))
     (define-values (xrange yrange) (plot-range-normalize lx rx #false #false))
-    (define discrete-df/dx : (-> Real (Option Real)) (plot-lines-df/dx points))
 
     (define polar-realize : Plot-Visualizer-Realize
       (λ [idx total xmin xmax ymin ymax transform bg-color]
         (define-values (dots x y width height) (~cartesian2ds points xmin xmax ymin ymax transform))
 
-        ;;; TODO: implement real polar dynamic angle
-        (define dynamic-angle : (-> Real (Option Real)) (plot-function-pin-angle discrete-df/dx 0 placement))
+        (define dynamic-angle : (-> Real (Option Real))
+          (plot-function-pin-angle (polar-dr/dθ safe-r alt-dr/dθ)
+                                   (polar-ddr/dθθ safe-r alt-dr/dθ alt-ddr/dθθ)
+                                   placement))
 
         (define pen : Pen
           (plot-desc-pen #:width strk-width #:dash strk-dash #:opacity opacity
@@ -82,7 +83,7 @@
               (vector-ref &pts 1) (vector-ref &pts 2)
               (vector-ref &pts 3) (vector-ref &pts 4)))))
 
-(define polar-df/dx : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
+(define polar-dr/dθ : (-> (-> Real Real) (Option (-> Real (Option Real))) (-> Real (Option Real)))
   (lambda [rθ alt-dr/dθ]
     (define dr/dθ (or alt-dr/dθ (λ [[theta : Real]] (df/dx rθ theta))))
     
@@ -98,7 +99,7 @@
              (cond [(zero? dx) +inf.0]
                    [else (/ dy dx)]))))))
 
-(define polar-ddf/dxx : (-> (-> Real Real) (Option (-> Real (Option Real))) (Option (-> Real (Option Real))) (-> Real (Option Real)))
+(define polar-ddr/dθθ : (-> (-> Real Real) (Option (-> Real (Option Real))) (Option (-> Real (Option Real))) (-> Real (Option Real)))
   (lambda [rθ alt-dr/dθ alt-ddr/dθθ]
     (define dr/dθ (or alt-dr/dθ (λ [[theta : Real]] (df/dx rθ theta))))
     (define ddr/dθθ (or alt-ddr/dθθ (λ [[theta : Real]] (ddf/dxx rθ theta))))

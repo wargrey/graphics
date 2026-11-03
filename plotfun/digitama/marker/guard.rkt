@@ -37,7 +37,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-vector-guard : (-> (Option Plot-Mark-Vector) (Option Plot-Mark-Fallback-Vector) Nonnegative-Flonum Real Flonum
                                      (Values (Option Float-Complex) (Option Flonum)))
-  (lambda [self fallback-vctr 100% x rotate]
+  (lambda [self fallback-vctr 100% in-para rotate]
     (define-values (length fb.rad)
       (cond [(list? fallback-vctr)
              (values (list (car fallback-vctr) (caddr fallback-vctr))
@@ -49,7 +49,7 @@
     (define (guard [guarded-len : Flonum] [rad : Flonum]) : (Values (Option Float-Complex) (Option Flonum))
       (define guarded-rad
         (cond [(rational? rad) (+ rad rotate)]
-              [(procedure? fb.rad) (+ (real->double-flonum (or (fb.rad x) +nan.0)) rotate)]
+              [(procedure? fb.rad) (+ (real->double-flonum (or (fb.rad in-para) +nan.0)) rotate)]
               [else (+ (real->double-flonum fb.rad) rotate)]))
 
       (values (and (rational? guarded-len)
@@ -70,7 +70,7 @@
                                             (Option Complex)]
                                         [-> Complex (-> Real Real) Nonnegative-Fixnum Positive-Index
                                             Real Real Real Real Real Real Real (Pairof Real Real)
-                                            (Option Complex)])
+                                            (U Complex (Pairof Complex Real) False)])
   (case-lambda
     [(pt fx idx total xmin xmax ymin ymax frac frac-rng)
      (if (real? pt)
@@ -107,7 +107,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define plot-mark-point-try-filter : (case-> [Real Real (-> Real Real) Real Real Real Real -> (Option Complex)]
-                                             [Real Real (-> Real Real) Real Real Real Real Real Real -> (Option Complex)])
+                                             [Real Real (-> Real Real) Real Real Real Real Real Real -> (Option (Pairof Complex Real))])
   (case-lambda
     [(x delta fx xmin xmax ymin ymax)
      (and (<= xmin x xmax)
@@ -120,6 +120,6 @@
           (let* ([pt (make-polar (rθ θ) θ)]
                  [x (real-part pt)]
                  [y (imag-part pt)])
-            (cond [(and (<= xmin x xmax) (<= ymin y ymax)) pt]
+            (cond [(and (<= xmin x xmax) (<= ymin y ymax)) (cons pt θ)]
                   [(zero? delta) #false]
                   [else (plot-mark-point-try-filter (+ θ delta) delta rθ θmin θmax xmin xmax ymin ymax)])))]))
