@@ -25,8 +25,8 @@
   (lambda [#:id [id : (Option Symbol) #false]
            #:fallback-border-thickness [fallback-thickness : (Option Nonnegative-Flonum) 1.0]
            #:stroke [stroke : Maybe-Stroke-Paint #false]
-           #:head-color [head-pattern : Maybe-Fill-Paint 'LawnGreen]
            #:body-color [body-pattern : Maybe-Fill-Paint 'LawnGreen]
+           #:head-color [head-pattern : Maybe-Fill-Paint body-pattern]
            #:arm-color [arm-pattern : Maybe-Fill-Paint 'GhostWhite]
            [height : Real] [self : Geo-Standing-Stickman the-standing-stickman]] : Geo:Stickman
     (define skeleton : Geo-Stickman-Skeleton (geo-standing-stickman-snapshot self))

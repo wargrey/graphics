@@ -50,7 +50,7 @@
       (geo-cc-superimpose #:id 'protein-coat
        (geo-icosahedron-side-projection R #:radius-type 'edge   #:id 'coat/out #:edge #false #:border ohead-stroke #:fill head-color)
        (geo-trim (geo-text symtext (desc-font #:size (* R 1.4) #:family "YuMincho, Extrabold") #:id 'lambda #:color λ-color))
-       (geo-icosahedron-side-projection R #:radius-type 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke)))
+       (geo-icosahedron-side-projection R #:radius-type 'vertex #:id 'coat/in #:edge edge-stroke #:border ihead-stroke #:fill #false)))
 
     (define collar (geo-dart Rcollar pi/2 #:id 'collar #:fill tail-color #:stroke ihead-stroke #:wing-angle 4pi/5))
     (define maybe-sheath : (Option Geo)
